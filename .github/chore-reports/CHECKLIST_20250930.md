@@ -19,7 +19,7 @@ Weekly maintenance chore run to validate repository health, test infrastructure,
   - **Result:** All 3 tests PASSED in 1.22s
   - No failures, no warnings
   
-- [x] Start the FastAPI server via `python main.py` to ensure it boots cleanly with `ENVIRONMENT=development` and `USE_MOCKS=true`
+- [x] Start the FastAPI server via `python scripts/main.py` to ensure it boots cleanly with `ENVIRONMENT=development` and `USE_MOCKS=true`
   - **Result:** Server started successfully on http://0.0.0.0:8000
   - Application startup completed without errors
   - Swagger UI accessible at `/docs`

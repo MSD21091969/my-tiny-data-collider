@@ -39,7 +39,7 @@ Create a `.env` file to store local overrides; it is automatically loaded at sta
 
 ```powershell
 .\.venv\Scripts\activate
-python main.py
+python scripts/main.py
 ```
 
 The app starts a FastAPI server with automatic reload in development.
@@ -67,6 +67,7 @@ Tests default to the mock persistence layer and include coverage of ID prefix en
 
 ## Development Notes
 
+- Runtime helpers now live under `scripts/` (`scripts/main.py`, `scripts/debug_startup.py`, `scripts/get_token.py`).
 - JWT helpers live in `src/authservice/token.py` and now use timezone-aware timestamps.
 - `.gitignore` excludes virtual environments, cache directories, and environment files.
 - `pytest.ini` configures asyncio fixtures with function scope to keep event loops isolated.

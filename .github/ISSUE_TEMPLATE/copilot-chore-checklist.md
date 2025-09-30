@@ -18,7 +18,7 @@ Provide a two-sentence overview of why this chore run is being kicked off (e.g.,
 
 ## Core chores
 - [ ] Run the full automated test suite with `pytest` and capture the results.
-- [ ] Start the FastAPI server via `python main.py` to ensure it boots cleanly with `ENVIRONMENT=development` and `USE_MOCKS=true`.
+- [ ] Start the FastAPI server via `python scripts/main.py` to ensure it boots cleanly with `ENVIRONMENT=development` and `USE_MOCKS=true`.
 - [ ] Exercise the casefile and tool session APIs (or equivalent service calls) to confirm ID prefixes (`cf_`, `ts_`, `sr_`, `te_`, `cs_`) are still produced as expected.
 - [ ] Verify mock persistence still mirrors Firestore shape by inspecting recent mock writes or running targeted repository unit tests if available.
 - [ ] Review `requirements.txt` for outdated pins and open a follow-up ticket if any patch/minor upgrades are available.

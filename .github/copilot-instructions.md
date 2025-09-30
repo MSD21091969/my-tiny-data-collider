@@ -28,9 +28,9 @@
 - `communicationservice.service` bridges chat messages to tool executions by embedding tool session IDs in `session.metadata`; reuse that contract if you introduce new message types.
 
 ## Developer workflows
-- Run the API locally with `python main.py`; it enables Uvicorn reload automatically when `ENVIRONMENT=development`.
+- Run the API locally with `python scripts/main.py`; it enables Uvicorn reload automatically when `ENVIRONMENT=development`.
 - `pytest` respects `pytest.ini` (`pythonpath=.` and `asyncio_mode=auto`). Without Firestore access, export `USE_MOCKS=true` or filter out Firestore-heavy scripts (`pytest -k "not firestore"`).
-- Use `debug_startup.py` to sanity-check imports and JWT creation without launching the server.
+- Use `python scripts/debug_startup.py` to sanity-check imports and JWT creation without launching the server.
 
 ## Copilot chore cadence
 - File recurring maintenance work using the issue template at `.github/ISSUE_TEMPLATE/copilot-chore-checklist.md`; it auto-assigns the `github-copilot` user with `chore` + `automation` labels.

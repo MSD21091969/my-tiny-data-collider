@@ -9,7 +9,7 @@ ALGORITHM = "HS256"
 expire = datetime.now(UTC) + timedelta(hours=24)
 payload = {
     "sub": "sam123",
-    "username": "Sam", 
+    "username": "Sam",
     "exp": int(expire.timestamp()),
     "iat": int(datetime.now(UTC).timestamp()),
 }

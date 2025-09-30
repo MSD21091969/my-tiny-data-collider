@@ -21,7 +21,7 @@ pytest -v
 
 ### 2. FastAPI Server Boot Test
 ```
-python main.py
+python scripts/main.py
 ```
 **Result:** ✅ Server started successfully on port 8000
 - Uvicorn running with auto-reload enabled
