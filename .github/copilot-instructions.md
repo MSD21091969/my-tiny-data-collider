@@ -32,6 +32,11 @@
 - `pytest` respects `pytest.ini` (`pythonpath=.` and `asyncio_mode=auto`). Without Firestore access, export `USE_MOCKS=true` or filter out Firestore-heavy scripts (`pytest -k "not firestore"`).
 - Use `debug_startup.py` to sanity-check imports and JWT creation without launching the server.
 
+## Copilot chore cadence
+- File recurring maintenance work using the issue template at `.github/ISSUE_TEMPLATE/copilot-chore-checklist.md`; it auto-assigns the `github-copilot` user with `chore` + `automation` labels.
+- Ensure each run captures `pytest` output, FastAPI startup confirmation, and findings from ID prefix/manual smoke tests in the "Observations & follow-ups" section.
+- Open follow-up issues for dependency bumps or regressions instead of packing them into the chore ticket.
+
 ## Implementation tips
 - When extending repositories or services, accept an optional `use_mocks` flag so tests can force the backend.
 - Prefer storing timestamps via `datetime.now().isoformat()` to match existing documents and computed fields.
