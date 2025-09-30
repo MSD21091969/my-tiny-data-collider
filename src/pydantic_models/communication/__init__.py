@@ -1,0 +1,3 @@
+"""
+Communication model package initialization.
+"""
