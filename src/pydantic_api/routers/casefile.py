@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 
 from ...casefileservice import CasefileService
-from ..dependencies import get_current_user_id
 from ...authservice import get_current_user
 
 router = APIRouter(

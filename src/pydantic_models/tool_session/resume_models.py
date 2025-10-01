@@ -3,9 +3,7 @@ Pydantic models for session resumption.
 """
 
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional, Union
-from uuid import UUID
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 class SessionResumeRequest(BaseModel):
     """Request to resume a previous session."""

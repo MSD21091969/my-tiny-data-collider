@@ -2,4 +2,11 @@
 Initialization file for casefile models.
 """
 
-from .models import CasefileModel, CasefileMetadata, ResourceReference, CasefileSummary
+from .models import (
+    CasefileMetadata,
+    CasefileModel,
+    CasefileSummary,
+    ResourceReference,
+)
+
+__all__ = ["CasefileMetadata", "CasefileModel", "CasefileSummary", "ResourceReference"]

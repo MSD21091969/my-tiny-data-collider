@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
 
-from ..pydantic_models.casefile.models import CasefileModel, CasefileMetadata, CasefileSummary
+from ..pydantic_models.casefile.models import CasefileModel, CasefileMetadata
 from .repository import CasefileRepository
 
 logger = logging.getLogger(__name__)

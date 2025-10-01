@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional, Literal
 from datetime import datetime
 from enum import Enum
 
-from ..shared.base_models import BaseRequest, BaseResponse, RequestStatus
+from ..shared.base_models import BaseRequest, BaseResponse
 
 # Chat message payload types
 class MessageType(str, Enum):

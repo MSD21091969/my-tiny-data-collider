@@ -7,10 +7,9 @@ from datetime import datetime
 import logging
 from pydantic import ValidationError
 
-from ..pydantic_models.tool_session import ToolRequest, ToolResponse, ToolSession, ToolRequestPayload, ToolResponsePayload, ToolEvent
+from ..pydantic_models.tool_session import ToolRequest, ToolResponse, ToolSession, ToolResponsePayload, ToolEvent
 from ..pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
 from ..pydantic_ai_integration.dependencies import MDSContext
-from ..pydantic_ai_integration.agents.base import get_agent_for_toolset
 from ..pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
     validate_tool_exists,

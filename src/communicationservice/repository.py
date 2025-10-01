@@ -2,7 +2,7 @@
 Repository for chat sessions (Firestore only).
 """
 
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 import logging
 
 from ..pydantic_models.communication.models import ChatSession

@@ -2,13 +2,12 @@
 JWT token handling and authentication logic.
 """
 
-import time
 import jwt
 import logging
 import os
 from typing import Dict, Any, Optional
 from datetime import UTC, datetime, timedelta
-from fastapi import HTTPException, Depends, Request, status
+from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # Configure logging

@@ -3,7 +3,7 @@ Core dependency types for the MDS Objects framework.
 """
 
 from pydantic import BaseModel, Field, model_validator
-from typing import Dict, Any, List, Optional, Union, Callable
+from typing import Dict, Any, List, Optional, Callable
 from uuid import uuid4
 from datetime import datetime
 import json

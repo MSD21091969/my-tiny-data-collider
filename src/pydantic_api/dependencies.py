@@ -2,10 +2,10 @@
 FastAPI dependency injection module.
 """
 
-from typing import Callable, Dict, Any
+from typing import Dict, Any
 from functools import lru_cache
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 
 from ..tool_sessionservice import ToolSessionService
 from ..authservice import get_current_user
