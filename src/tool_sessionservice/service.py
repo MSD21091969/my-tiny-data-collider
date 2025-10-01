@@ -6,7 +6,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
 
-from ..pydantic_models.tool_session import ToolRequest, ToolResponse, ToolSession, ToolRequestPayload, ToolResponsePayload
+from ..pydantic_models.tool_session import ToolRequest, ToolResponse, ToolSession, ToolRequestPayload, ToolResponsePayload, ToolEvent
 from ..pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
 from ..pydantic_ai_integration.dependencies import MDSContext
 from ..pydantic_ai_integration.agents.base import get_agent_for_toolset
@@ -17,17 +17,10 @@ from ..coreservice.id_service import get_id_service
 logger = logging.getLogger(__name__)
 
 class ToolSessionService:
-    """Service for handling tool sessions and tool execution."""
-    
-    def __init__(self, use_mocks: bool = None):
-        """Initialize the service.
-        
-        Args:
-            use_mocks: Whether to use mock implementations. If None, determined from environment.
-        """
-        from ..coreservice.config import get_use_mocks
-        self.use_mocks = use_mocks if use_mocks is not None else get_use_mocks()
-        self.repository = ToolSessionRepository(use_mocks=self.use_mocks)
+    """Service for handling tool sessions and tool execution (Firestore only)."""
+
+    def __init__(self):
+        self.repository = ToolSessionRepository()
         self.id_service = get_id_service()
         
     async def create_session(self, user_id: str, casefile_id: Optional[str] = None) -> Dict[str, str]:
@@ -56,7 +49,8 @@ class ToolSessionService:
         if casefile_id:
             try:
                 from ..casefileservice.service import CasefileService
-                casefile_service = CasefileService(use_mocks=self.use_mocks)
+                # CasefileService signature previously allowed use_mocks; now Firestore-only
+                casefile_service = CasefileService()
                 await casefile_service.add_session_to_casefile(casefile_id, session_id)
                 logger.info(f"Successfully linked session {session_id} to casefile {casefile_id}")
             except Exception as e:
@@ -90,108 +84,94 @@ class ToolSessionService:
         if not session:
             raise ValueError(f"Session {cleaned_request.session_id} not found")
             
-        # Handle client-provided session request ID if present
-        client_session_request_id = cleaned_request.payload.session_request_id
+        request_id = str(cleaned_request.request_id)
+        
+        # Add request to session
+        session.request_ids.append(request_id)
+        session.updated_at = datetime.now().isoformat()
+        await self.repository.update_session(session)
+        
+        # Store request in subcollection
+        await self.repository.add_request_to_session(session_id, cleaned_request)
         
         # Create context for tool execution
         context = MDSContext(
             user_id=session.user_id,
             session_id=session.session_id,
             casefile_id=session.casefile_id,
-            use_mocks=self.use_mocks,
-            environment="development"  # Would get from config in real implementation
+            environment="development"
         )
         
-        # Create request ID - use client-provided ID if available
+        # Handle client-provided session request ID if present
+        client_session_request_id = cleaned_request.payload.session_request_id
         session_request_id = client_session_request_id or self.id_service.new_session_request_id()
-        request_id = context.create_session_request(session_request_id)
+        context.create_session_request(session_request_id)
 
-        # Store request in session
-        request_key = str(request_id)
-        session.requests[request_key] = cleaned_request
-        
-        # Add to request index for easier lookup
-        if session_request_id not in session.request_index:
-            session.request_index[session_request_id] = []
-        session.request_index[session_request_id].append(request_key)
-        
-        # Add to events chronologically
-        session.events.append({
-            "type": "request",
-            "timestamp": datetime.now().isoformat(),
-            "request_id": request_key,
-            "session_request_id": session_request_id,
-            "tool_name": cleaned_request.payload.tool_name
-        })
-        
-        await self.repository.update_session(session)
+        # Create tool_request_received event
+        request_received_event = ToolEvent(
+            event_type="tool_request_received",
+            tool_name=cleaned_request.payload.tool_name,
+            parameters=cleaned_request.payload.parameters,
+        )
+        await self.repository.add_event_to_request(session_id, request_id, request_received_event)
+        cleaned_request.event_ids.append(request_received_event.event_id)
         
         # Get the appropriate agent for this tool
         agent = get_agent_for_toolset(cleaned_request.payload.tool_name)
         
         try:
-            # Log the start of tool execution
+            # Create tool_execution_started event
             start_time = datetime.now()
-            context.register_event(
-                cleaned_request.payload.tool_name, 
-                cleaned_request.payload.parameters
+            execution_started_event = ToolEvent(
+                event_type="tool_execution_started",
+                tool_name=cleaned_request.payload.tool_name,
+                parameters=cleaned_request.payload.parameters,
+                status="pending"
             )
+            await self.repository.add_event_to_request(session_id, request_id, execution_started_event)
+            cleaned_request.event_ids.append(execution_started_event.event_id)
             
             # Execute the tool via agent
             prompt = cleaned_request.payload.prompt or f"Execute the {cleaned_request.payload.tool_name} tool"
             
-            # Log the prompt and parameters for debugging
             logger.info(f"Running tool {cleaned_request.payload.tool_name} with parameters: {cleaned_request.payload.parameters}")
-            logger.info(f"Using prompt: {prompt}")
             
-            # Direct execution for example_tool and another_example_tool
+            # Direct execution for example tools
             tool_name = cleaned_request.payload.tool_name
             tool_params = cleaned_request.payload.parameters
             
-            logger.info(f"Tool name: {tool_name}")
-            logger.info(f"Tool parameters: {tool_params}")
-            
-            # Try direct tool execution first
             if tool_name == "example_tool":
-                logger.info("Executing example_tool directly")
-                try:
-                    # Import and call directly for testing
-                    from ..pydantic_ai_integration.tools.enhanced_example_tools import example_tool
-                    value = tool_params.get("value", 42)  # Default to 42 if not provided
-                    logger.info(f"Calling example_tool with value={value}")
-                    result_data = await example_tool(context, value)
-                    logger.info(f"Got result: {result_data}")
-                    result = type('AgentResult', (), {'output': result_data})
-                except Exception as e:
-                    logger.exception(f"Error executing example_tool directly: {e}")
-                    raise
+                from ..pydantic_ai_integration.tools.enhanced_example_tools import example_tool
+                value = tool_params.get("value", 42)
+                result_data = await example_tool(context, value)
+                result = type('AgentResult', (), {'output': result_data})
             elif tool_name == "another_example_tool":
-                logger.info("Executing another_example_tool directly")
-                try:
-                    # Import and call directly for testing
-                    from ..pydantic_ai_integration.tools.enhanced_example_tools import another_example_tool
-                    name = tool_params.get("name", "Example User")
-                    count = tool_params.get("count", 3)
-                    logger.info(f"Calling another_example_tool with name={name}, count={count}")
-                    result_data = await another_example_tool(context, name, count)
-                    logger.info(f"Got result: {result_data}")
-                    result = type('AgentResult', (), {'output': result_data})
-                except Exception as e:
-                    logger.exception(f"Error executing another_example_tool directly: {e}")
-                    raise
+                from ..pydantic_ai_integration.tools.enhanced_example_tools import another_example_tool
+                name = tool_params.get("name", "Example User")
+                count = tool_params.get("count", 3)
+                result_data = await another_example_tool(context, name, count)
+                result = type('AgentResult', (), {'output': result_data})
             else:
-                # Make sure we include the parameters in the prompt for the agent's simple parsing
                 if cleaned_request.payload.parameters:
                     import json
                     params_json = json.dumps(cleaned_request.payload.parameters)
                     prompt = f"{prompt} with parameters: {params_json}"
-                    
-                # Use the agent for other tools
-                logger.info(f"Using agent for tool: {tool_name}")
                 result = await agent.run(prompt, deps=context)
             
             # Calculate duration
             duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            
+            # Create tool_execution_completed event
+            execution_completed_event = ToolEvent(
+                event_type="tool_execution_completed",
+                tool_name=cleaned_request.payload.tool_name,
+                parameters=cleaned_request.payload.parameters,
+                result_summary=result.output,
+                duration_ms=duration_ms,
+                status="success"
+            )
+            await self.repository.add_event_to_request(session_id, request_id, execution_completed_event)
+            cleaned_request.event_ids.append(execution_completed_event.event_id)
             
             # Create response
             response = ToolResponse(
@@ -199,21 +179,29 @@ class ToolSessionService:
                 status=RequestStatus.COMPLETED,
                 payload=ToolResponsePayload(
                     result=result.output,
-                    events=[event.model_dump() for event in context.tool_events],
+                    events=[],
                     session_request_id=session_request_id
                 ),
                 timestamp=datetime.now().isoformat()
             )
             
-            # Update the last event with result summary and duration
-            if context.tool_events:
-                last_event = context.tool_events[-1]
-                last_event.duration_ms = duration_ms
-                last_event.result_summary = {"status": "success"}
-            
         except Exception as e:
-            # Log the error
             logger.exception(f"Error executing tool {cleaned_request.payload.tool_name}: {e}")
+            
+            # Calculate duration
+            duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            
+            # Create tool_execution_failed event
+            execution_failed_event = ToolEvent(
+                event_type="tool_execution_failed",
+                tool_name=cleaned_request.payload.tool_name,
+                parameters=cleaned_request.payload.parameters,
+                duration_ms=duration_ms,
+                status="error",
+                error_message=str(e)
+            )
+            await self.repository.add_event_to_request(session_id, request_id, execution_failed_event)
+            cleaned_request.event_ids.append(execution_failed_event.event_id)
             
             # Create error response
             response = ToolResponse(
@@ -221,35 +209,29 @@ class ToolSessionService:
                 status=RequestStatus.FAILED,
                 payload=ToolResponsePayload(
                     result={},
-                    events=[event.model_dump() for event in context.tool_events],
+                    events=[],
                     session_request_id=session_request_id
                 ),
                 timestamp=datetime.now().isoformat(),
                 error=str(e)
             )
-            
-            # Update the last event with error information
-            if context.tool_events:
-                last_event = context.tool_events[-1]
-                last_event.result_summary = {"status": "error", "message": str(e)}
         
-        # Session request ID is already set in the payload
+        # Create tool_response_sent event  
+        response_sent_event = ToolEvent(
+            event_type="tool_response_sent",
+            tool_name=cleaned_request.payload.tool_name,
+            parameters={},
+            status="success" if response.error is None else "error",
+            result_summary={"response_status": response.status.value, "has_error": response.error is not None}
+        )
+        await self.repository.add_event_to_request(session_id, request_id, response_sent_event)
+        cleaned_request.event_ids.append(response_sent_event.event_id)
         
-        # Store response in session
-        response_id = request_key
-        session.responses[response_id] = response
+        # Update response in repository
+        await self.repository.update_request_response(session_id, request_id, response)
+        
+        # Update session timestamp
         session.updated_at = datetime.now().isoformat()
-        
-        # Add to events chronologically
-        session.events.append({
-            "type": "response",
-            "timestamp": datetime.now().isoformat(),
-            "request_id": response_id,
-            "session_request_id": session_request_id,
-            "tool_name": cleaned_request.payload.tool_name,
-            "status": "success" if response.error is None else "error"
-        })
-        
         await self.repository.update_session(session)
         
         return response
@@ -292,7 +274,7 @@ class ToolSessionService:
                 "casefile_id": session.casefile_id if session.casefile_id else None,
                 "created_at": session.created_at,
                 "updated_at": session.updated_at,
-                "request_count": len(session.requests),
+                "request_count": len(session.request_ids),
                 "active": session.active
             }
             for session in sessions
@@ -350,20 +332,8 @@ class ToolSessionService:
             session.updated_at = datetime.now().isoformat()
             await self.repository.update_session(session)
             
-        # Get last request and response IDs
-        last_request_id = None
-        last_response_id = None
-        
-        if session.events:
-            # Find the last event of each type
-            for event in reversed(session.events):
-                if event["type"] == "request" and not last_request_id:
-                    last_request_id = event["request_id"]
-                if event["type"] == "response" and not last_response_id:
-                    last_response_id = event["request_id"]
-                    
-                if last_request_id and last_response_id:
-                    break
+        # Get last request ID
+        last_request_id = session.request_ids[-1] if session.request_ids else None
         
         # Create context summary
         context_summary = {
@@ -377,8 +347,8 @@ class ToolSessionService:
         return SessionResumeResponse(
             session_id=session_id,
             last_request_id=last_request_id,
-            last_response_id=last_response_id,
+            last_response_id=last_request_id,  # Same as request ID in new structure
             updated_at=session.updated_at,
-            request_count=len(session.requests),
+            request_count=len(session.request_ids),
             context_summary=context_summary
         )

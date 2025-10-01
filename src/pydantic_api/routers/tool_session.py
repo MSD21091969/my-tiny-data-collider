@@ -26,8 +26,8 @@ def get_casefile_service() -> CasefileService:
 
 @router.post("/")
 async def create_session(
+    casefile_id: str,  # Make casefile_id required
     session_id: Optional[str] = None,
-    casefile_id: Optional[str] = None,
     title: Optional[str] = None,
     service: ToolSessionService = Depends(get_tool_session_service),
     casefile_service: CasefileService = Depends(get_casefile_service),
@@ -35,71 +35,51 @@ async def create_session(
 ) -> Dict[str, str]:
     """Create or resume a tool session.
     
-    Three scenarios:
-    1. If session_id is provided, resume that session (requires matching user)
-    2. If casefile_id is provided, create a new session for that casefile
-    3. If neither is provided but title is, create a new casefile and session
+    Requires casefile_id - sessions must be associated with a casefile.
+    
+    Two scenarios:
+    1. If session_id is provided, resume that session (requires matching user and casefile)
+    2. Create a new session for the specified casefile
     """
     user_id = current_user["user_id"]
+    
+    # Verify user has access to casefile
+    try:
+        casefile = await casefile_service.get_casefile(casefile_id)
+        
+        # Verify ownership
+        if casefile["metadata"]["created_by"] != user_id and "admin" not in current_user.get("roles", []):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have access to this casefile"
+            )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=f"Casefile not found: {str(e)}")
     
     # Scenario 1: Resume existing session
     if session_id:
         try:
-            # This will validate that the session exists and belongs to user
+            # Verify session exists and belongs to user AND casefile
+            session_data = await service.get_session(session_id)
+            if session_data["user_id"] != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You do not have access to this session"
+                )
+            if session_data["casefile_id"] != casefile_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Session does not belong to the specified casefile"
+                )
+            
             resume_request = SessionResumeRequest(session_id=session_id)
             resume_response = await service.resume_session(user_id, resume_request)
             return {"session_id": resume_response.session_id}
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
     
-    # Scenario 2: Use existing casefile
-    elif casefile_id:
-        # Verify user has access to casefile
-        try:
-            casefile = await casefile_service.get_casefile(casefile_id)
-            
-            # Verify ownership
-            if casefile["metadata"]["created_by"] != user_id and "admin" not in current_user.get("roles", []):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You do not have access to this casefile"
-                )
-                
-            # Create new session with existing casefile
-            return await service.create_session(user_id=user_id, casefile_id=casefile_id)
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=f"Casefile not found: {str(e)}")
-    
-    # Scenario 3: Create new casefile and session
-    elif title:
-        # Create a new casefile first
-        casefile_response = await casefile_service.create_casefile(
-            user_id=user_id,
-            title=title,
-            description=f"Casefile created on {datetime.now().isoformat()}"
-        )
-        
-        # Then create a session for it
-        new_casefile_id = casefile_response["casefile_id"]
-        session_response = await service.create_session(user_id=user_id, casefile_id=new_casefile_id)
-        
-        # Link the session to the casefile
-        await casefile_service.add_session_to_casefile(
-            casefile_id=new_casefile_id,
-            session_id=UUID(session_response["session_id"])
-        )
-        
-        return {
-            "session_id": session_response["session_id"],
-            "casefile_id": new_casefile_id
-        }
-    
-    # Error if no parameters provided
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Either session_id, casefile_id, or title must be provided"
-        )
+    # Scenario 2: Create new session for existing casefile
+    return await service.create_session(user_id=user_id, casefile_id=casefile_id)
 
 @router.post("/execute")
 async def execute_tool(

@@ -33,7 +33,7 @@ class CasefileModel(BaseModel):
     id: str = Field(default_factory=generate_casefile_id, description="Unique casefile ID in format cf_yymmdd_code")
     metadata: CasefileMetadata = Field(..., description="Casefile metadata")
     resources: Dict[str, List[ResourceReference]] = Field(default_factory=dict, description="Linked resources by type")
-    sessions: List[str] = Field(default_factory=list, description="Tool sessions associated with this casefile")
+    session_ids: List[str] = Field(default_factory=list, description="Tool session IDs associated with this casefile")
     notes: Optional[str] = Field(None, description="Additional notes")
     
     @computed_field

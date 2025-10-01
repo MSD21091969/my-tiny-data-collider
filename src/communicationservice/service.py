@@ -28,16 +28,12 @@ import_tools()
 logger = logging.getLogger(__name__)
 
 class CommunicationService:
-    """Service for handling chat sessions and message processing."""
+    """Service for handling chat sessions and message processing (Firestore only)."""
     
-    def __init__(self, use_mocks: Optional[bool] = None) -> None:
+    def __init__(self) -> None:
         """Initialize the communication and tool session services."""
-
-        from ..coreservice.config import get_use_mocks
-
-        self.use_mocks = use_mocks if use_mocks is not None else get_use_mocks()
-        self.repository = ChatSessionRepository(use_mocks=self.use_mocks)
-        self.tool_service = ToolSessionService(use_mocks=self.use_mocks)
+        self.repository = ChatSessionRepository()
+        self.tool_service = ToolSessionService()
         self.id_service = get_id_service()
         
     async def create_session(self, user_id: str, casefile_id: Optional[str] = None) -> Dict[str, str]:
@@ -85,7 +81,6 @@ class CommunicationService:
             user_id=session.user_id,
             session_id=tool_session_id,
             casefile_id=session.casefile_id,
-            use_mocks=self.use_mocks,
             environment="development",
         )
 

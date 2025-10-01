@@ -7,23 +7,16 @@ from datetime import datetime
 import logging
 
 from ..pydantic_models.casefile.models import CasefileModel, CasefileMetadata, CasefileSummary
-from ..coreservice.config import get_use_mocks
 from .repository import CasefileRepository
 
 logger = logging.getLogger(__name__)
 
 class CasefileService:
-    """Service for managing casefiles."""
+    """Service for managing casefiles (Firestore only)."""
     
-    def __init__(self, use_mocks: bool = None):
-        """Initialize the service.
-        
-        Args:
-            use_mocks: Whether to use mock implementations. If None, determined from environment.
-        """
-        from ..coreservice.config import get_use_mocks
-        self.use_mocks = use_mocks if use_mocks is not None else get_use_mocks()
-        self.repository = CasefileRepository(use_mocks=self.use_mocks)
+    def __init__(self):
+        """Initialize the service."""
+        self.repository = CasefileRepository()
         
     async def create_casefile(self, user_id: str, title: str, description: str = "", tags: List[str] = None) -> Dict[str, str]:
         """Create a new casefile.
@@ -171,8 +164,8 @@ class CasefileService:
             raise ValueError(f"Casefile {casefile_id} not found")
             
         # Add session if not already present
-        if session_id not in casefile.sessions:
-            casefile.sessions.append(session_id)
+        if session_id not in casefile.session_ids:
+            casefile.session_ids.append(session_id)
             casefile.metadata.updated_at = datetime.now().isoformat()
             
             # Store updated casefile

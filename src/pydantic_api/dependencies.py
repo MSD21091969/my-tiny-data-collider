@@ -8,13 +8,12 @@ from functools import lru_cache
 from fastapi import Depends, HTTPException, status
 
 from ..tool_sessionservice import ToolSessionService
-from ..coreservice.config import get_use_mocks
 from ..authservice import get_current_user
 
 @lru_cache()
-def get_tool_session_service(use_mocks: bool = Depends(get_use_mocks)) -> ToolSessionService:
+def get_tool_session_service() -> ToolSessionService:
     """Get an instance of the ToolSessionService."""
-    return ToolSessionService(use_mocks=use_mocks)
+    return ToolSessionService()
 
 def get_current_user_id(current_user: Dict[str, Any] = Depends(get_current_user)) -> str:
     """Get the current authenticated user ID.

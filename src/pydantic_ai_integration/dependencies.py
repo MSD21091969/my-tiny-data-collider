@@ -13,65 +13,7 @@ from functools import wraps
 logger = logging.getLogger(__name__)
 
 from ..coreservice.id_service import get_id_service
-
-class ToolEvent(BaseModel):
-    """Record of a tool execution within a session."""
-    event_id: str = Field(default_factory=lambda: get_id_service().new_tool_event_id())
-    tool_name: str
-    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
-    parameters: Dict[str, Any] = Field(default_factory=dict)
-    result_summary: Optional[Dict[str, Any]] = None
-    duration_ms: Optional[int] = None
-    
-    # Enhanced tracking for agent integration
-    initiator: str = Field(default="user", description="Who/what initiated this tool execution")
-    chain_position: Optional[int] = None
-    chain_id: Optional[str] = Field(default_factory=lambda: str(uuid4()), description="Unique identifier for a chain of tool executions")
-    reasoning: Optional[str] = None
-    source_message_id: Optional[str] = None
-    related_events: List[str] = Field(default_factory=list)
-    
-    @model_validator(mode='after')
-    def ensure_serializable(self) -> 'ToolEvent':
-        """Ensure all fields are JSON serializable for storage."""
-        # Convert any non-serializable values in parameters
-        self.parameters = self._ensure_serializable_dict(self.parameters)
-        
-        # Convert any non-serializable values in result_summary
-        if self.result_summary:
-            self.result_summary = self._ensure_serializable_dict(self.result_summary)
-            
-        return self
-    
-    def _ensure_serializable_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Recursively ensure dictionary is JSON serializable."""
-        if not isinstance(data, dict):
-            return data
-            
-        result = {}
-        for k, v in data.items():
-            if isinstance(v, dict):
-                result[k] = self._ensure_serializable_dict(v)
-            elif isinstance(v, list):
-                result[k] = [self._ensure_serializable_dict(item) if isinstance(item, dict) else item for item in v]
-            elif hasattr(v, 'model_dump'):
-                # Handle Pydantic models
-                result[k] = v.model_dump()
-            elif isinstance(v, (str, int, float, bool, type(None))):
-                # Basic types are fine
-                result[k] = v
-            else:
-                # Convert anything else to string
-                try:
-                    result[k] = str(v)
-                except:
-                    result[k] = f"<non-serializable-{type(v).__name__}>"
-        
-        return result
-        
-    def to_storage_format(self) -> Dict[str, Any]:
-        """Convert to a format suitable for database storage."""
-        return self.model_dump(mode='json')
+from ..pydantic_models.tool_session.models import ToolEvent
 
 def with_persistence(method):
     """Decorator to automatically persist context after method execution."""
@@ -117,7 +59,6 @@ class MDSContext(BaseModel):
     knowledge_graph: Dict[str, Any] = Field(default_factory=dict, description="Structured knowledge for the session")
     
     # Environment configuration
-    use_mocks: bool = Field(False, description="Whether to use mock services")
     environment: str = Field("development", description="Current deployment environment")
     
     # Persistence configuration
@@ -247,8 +188,21 @@ class MDSContext(BaseModel):
     def register_event(self, tool_name: str, parameters: Dict[str, Any], 
                       result_summary: Optional[Dict[str, Any]] = None,
                       duration_ms: Optional[int] = None,
-                      chain_context: Optional[Dict[str, Any]] = None) -> str:
-        """Register a tool event in the audit trail and return its ID."""
+                      chain_context: Optional[Dict[str, Any]] = None,
+                      event_type: str = "tool_execution_completed") -> str:
+        """Register a tool event in the audit trail and return its ID.
+        
+        Args:
+            tool_name: Name of the tool being executed
+            parameters: Tool parameters
+            result_summary: Summary of tool results
+            duration_ms: Execution duration in milliseconds
+            chain_context: Context for tool chaining
+            event_type: Type of event (default: "tool_execution_completed")
+        
+        Returns:
+            Event ID
+        """
         # Create chain ID if this is part of a chain
         chain_id = None
         if chain_context:
@@ -284,6 +238,7 @@ class MDSContext(BaseModel):
         
         # Create the event
         event = ToolEvent(
+            event_type=event_type,
             tool_name=tool_name,
             parameters=parameters,
             result_summary=result_summary,
