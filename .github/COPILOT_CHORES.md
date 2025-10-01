@@ -23,7 +23,7 @@ This document contains **tactical preparation chores** for GitHub Copilot to exe
 | # | Title | Type | Effort | Status | Branch | PR | Completed |
 |---|-------|------|--------|--------|--------|----|-----------| 
 | 1 | Audit all imports for unused/circular deps | Check | 30m | ✅ | copilot/fix-a67eac1a | TBD | 2025-01-09 |
-| 2 | Validate all Pydantic models have examples | Check | 1h | ⏳ | - | - | - |
+| 2 | Validate all Pydantic models have examples | Check | 1h | ✅ | copilot/fix-a67eac1a | TBD | 2025-01-09 |
 | 3 | Check test coverage gaps | Check | 30m | ⏳ | - | - | - |
 | 4 | Verify environment variable documentation | Check | 30m | ⏳ | - | - | - |
 | 5 | Create test fixtures for common scenarios | Prep | 1h | ⏳ | - | - | - |
