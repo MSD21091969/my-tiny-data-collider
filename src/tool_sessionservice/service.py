@@ -5,11 +5,17 @@ Service for handling tool sessions and tool execution.
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import logging
+from pydantic import ValidationError
 
 from ..pydantic_models.tool_session import ToolRequest, ToolResponse, ToolSession, ToolRequestPayload, ToolResponsePayload, ToolEvent
 from ..pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
 from ..pydantic_ai_integration.dependencies import MDSContext
 from ..pydantic_ai_integration.agents.base import get_agent_for_toolset
+from ..pydantic_ai_integration.tool_decorator import (
+    get_tool_definition,
+    validate_tool_exists,
+    get_tool_names
+)
 from ..pydantic_models.shared.base_models import RequestStatus
 from .repository import ToolSessionRepository
 from ..coreservice.id_service import get_id_service
@@ -60,7 +66,14 @@ class ToolSessionService:
         return {"session_id": session_id}
     
     async def process_tool_request(self, request: ToolRequest) -> ToolResponse:
-        """Process a tool request.
+        """Process a tool request using the unified MANAGED_TOOLS registry.
+        
+        This method:
+        1. Validates the session exists
+        2. Validates the tool is registered in MANAGED_TOOLS
+        3. Validates parameters using the tool's Pydantic model
+        4. Executes the tool with validated parameters
+        5. Records audit events throughout
         
         Args:
             request: The tool request to process
@@ -82,9 +95,24 @@ class ToolSessionService:
         
         session = await self.repository.get_session(session_id)
         if not session:
-            raise ValueError(f"Session {cleaned_request.session_id} not found")
+            raise ValueError(f"Session {session_id} not found")
             
         request_id = str(cleaned_request.request_id)
+        tool_name = cleaned_request.payload.tool_name
+        
+        # Validate tool is registered in MANAGED_TOOLS
+        if not validate_tool_exists(tool_name):
+            available = ', '.join(get_tool_names())
+            raise ValueError(f"Tool '{tool_name}' not registered. Available tools: {available}")
+        
+        # Get tool definition (single source of truth)
+        tool_def = get_tool_definition(tool_name)
+        
+        # Validate parameters using tool's Pydantic model
+        try:
+            validated_params = tool_def.validate_params(cleaned_request.payload.parameters)
+        except ValidationError as e:
+            raise ValueError(f"Invalid parameters for {tool_name}: {e}")
         
         # Add request to session
         session.request_ids.append(request_id)
@@ -110,53 +138,31 @@ class ToolSessionService:
         # Create tool_request_received event
         request_received_event = ToolEvent(
             event_type="tool_request_received",
-            tool_name=cleaned_request.payload.tool_name,
+            tool_name=tool_name,
             parameters=cleaned_request.payload.parameters,
         )
         await self.repository.add_event_to_request(session_id, request_id, request_received_event)
         cleaned_request.event_ids.append(request_received_event.event_id)
-        
-        # Get the appropriate agent for this tool
-        agent = get_agent_for_toolset(cleaned_request.payload.tool_name)
         
         try:
             # Create tool_execution_started event
             start_time = datetime.now()
             execution_started_event = ToolEvent(
                 event_type="tool_execution_started",
-                tool_name=cleaned_request.payload.tool_name,
+                tool_name=tool_name,
                 parameters=cleaned_request.payload.parameters,
                 status="pending"
             )
             await self.repository.add_event_to_request(session_id, request_id, execution_started_event)
             cleaned_request.event_ids.append(execution_started_event.event_id)
             
-            # Execute the tool via agent
-            prompt = cleaned_request.payload.prompt or f"Execute the {cleaned_request.payload.tool_name} tool"
+            logger.info(f"Executing tool {tool_name} with validated parameters: {validated_params}")
             
-            logger.info(f"Running tool {cleaned_request.payload.tool_name} with parameters: {cleaned_request.payload.parameters}")
-            
-            # Direct execution for example tools
-            tool_name = cleaned_request.payload.tool_name
-            tool_params = cleaned_request.payload.parameters
-            
-            if tool_name == "example_tool":
-                from ..pydantic_ai_integration.tools.enhanced_example_tools import example_tool
-                value = tool_params.get("value", 42)
-                result_data = await example_tool(context, value)
-                result = type('AgentResult', (), {'output': result_data})
-            elif tool_name == "another_example_tool":
-                from ..pydantic_ai_integration.tools.enhanced_example_tools import another_example_tool
-                name = tool_params.get("name", "Example User")
-                count = tool_params.get("count", 3)
-                result_data = await another_example_tool(context, name, count)
-                result = type('AgentResult', (), {'output': result_data})
-            else:
-                if cleaned_request.payload.parameters:
-                    import json
-                    params_json = json.dumps(cleaned_request.payload.parameters)
-                    prompt = f"{prompt} with parameters: {params_json}"
-                result = await agent.run(prompt, deps=context)
+            # Execute tool via tool definition (parameters already validated)
+            result_data = await tool_def.implementation(
+                context,
+                **validated_params.model_dump()
+            )
             
             # Calculate duration
             duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -164,9 +170,9 @@ class ToolSessionService:
             # Create tool_execution_completed event
             execution_completed_event = ToolEvent(
                 event_type="tool_execution_completed",
-                tool_name=cleaned_request.payload.tool_name,
+                tool_name=tool_name,
                 parameters=cleaned_request.payload.parameters,
-                result_summary=result.output,
+                result_summary=result_data,
                 duration_ms=duration_ms,
                 status="success"
             )
@@ -178,7 +184,7 @@ class ToolSessionService:
                 request_id=cleaned_request.request_id,
                 status=RequestStatus.COMPLETED,
                 payload=ToolResponsePayload(
-                    result=result.output,
+                    result=result_data,
                     events=[],
                     session_request_id=session_request_id
                 ),
@@ -186,7 +192,7 @@ class ToolSessionService:
             )
             
         except Exception as e:
-            logger.exception(f"Error executing tool {cleaned_request.payload.tool_name}: {e}")
+            logger.exception(f"Error executing tool {tool_name}: {e}")
             
             # Calculate duration
             duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -194,7 +200,7 @@ class ToolSessionService:
             # Create tool_execution_failed event
             execution_failed_event = ToolEvent(
                 event_type="tool_execution_failed",
-                tool_name=cleaned_request.payload.tool_name,
+                tool_name=tool_name,
                 parameters=cleaned_request.payload.parameters,
                 duration_ms=duration_ms,
                 status="error",
@@ -219,7 +225,7 @@ class ToolSessionService:
         # Create tool_response_sent event  
         response_sent_event = ToolEvent(
             event_type="tool_response_sent",
-            tool_name=cleaned_request.payload.tool_name,
+            tool_name=tool_name,
             parameters={},
             status="success" if response.error is None else "error",
             result_summary={"response_status": response.status.value, "has_error": response.error is not None}

@@ -10,6 +10,11 @@ from uuid import UUID
 from ...tool_sessionservice import ToolSessionService
 from ...pydantic_models.tool_session import ToolRequest, ToolResponse
 from ...pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
+from ...pydantic_ai_integration.tool_decorator import (
+    get_registered_tools,
+    get_tool_definition,
+    list_tools_by_category,
+)
 from ..dependencies import get_tool_session_service, get_current_user_id, verify_casefile_access
 from ...authservice import get_current_user
 from ...casefileservice import CasefileService
@@ -175,3 +180,100 @@ async def resume_session(
         return await service.resume_session(current_user["user_id"], request)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ============================================================================
+# TOOL DISCOVERY ENDPOINTS (query MANAGED_TOOLS registry)
+# ============================================================================
+
+@router.get("/tools", response_model=Dict[str, Any])
+async def list_available_tools(
+    category: Optional[str] = None,
+    enabled_only: bool = True
+) -> Dict[str, Any]:
+    """
+    List available tools from MANAGED_TOOLS registry.
+    
+    Query params:
+    - category: Filter by category (e.g., "examples", "documents")
+    - enabled_only: Only show enabled tools (default: true)
+    
+    Returns:
+        Dictionary with tools array and count
+    """
+    if category:
+        tools = list_tools_by_category(category, enabled_only)
+        tool_dict = {t.metadata.name: t for t in tools}
+    else:
+        tool_dict = get_registered_tools()
+        if enabled_only:
+            tool_dict = {
+                name: tool for name, tool in tool_dict.items()
+                if tool.business_rules.enabled
+            }
+    
+    return {
+        "tools": [
+            tool.to_discovery_format()
+            for tool in tool_dict.values()
+        ],
+        "count": len(tool_dict)
+    }
+
+
+@router.get("/tools/{tool_name}", response_model=Dict[str, Any])
+async def get_tool_info(tool_name: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific tool.
+    
+    Includes:
+    - Metadata (name, description, category)
+    - Business rules (permissions, timeout)
+    - Parameter schema (OpenAPI format)
+    
+    Args:
+        tool_name: Name of the tool
+        
+    Returns:
+        Tool definition in discovery format
+        
+    Raises:
+        HTTPException: If tool not found
+    """
+    tool = get_tool_definition(tool_name)
+    if not tool:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Tool '{tool_name}' not found"
+        )
+    
+    return tool.to_discovery_format()
+
+
+@router.get("/tools/{tool_name}/schema", response_model=Dict[str, Any])
+async def get_tool_parameter_schema(tool_name: str) -> Dict[str, Any]:
+    """
+    Get OpenAPI parameter schema for a tool.
+    
+    Used by clients to generate forms or validate input.
+    
+    Args:
+        tool_name: Name of the tool
+        
+    Returns:
+        Dictionary with tool_name and schema
+        
+    Raises:
+        HTTPException: If tool not found
+    """
+    tool = get_tool_definition(tool_name)
+    if not tool:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Tool '{tool_name}' not found"
+        )
+    
+    return {
+        "tool_name": tool_name,
+        "schema": tool.get_openapi_schema()
+    }

@@ -2,7 +2,7 @@
 Models for tool sessions, requests and responses.
 """
 
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator, field_validator
 from typing import Dict, Any, List, Optional, Union, Literal
 from datetime import datetime
 from uuid import uuid4
@@ -110,6 +110,21 @@ class ToolRequestPayload(BaseModel):
     prompt: Optional[str] = Field(None, description="Optional prompt for AI-assisted tool execution")
     casefile_id: Optional[str] = Field(None, description="Optional casefile context")
     session_request_id: Optional[str] = Field(None, description="Client-provided session request ID for tracking")
+    
+    @field_validator('tool_name')
+    @classmethod
+    def validate_tool_exists(cls, v: str) -> str:
+        """Validate tool is registered in MANAGED_TOOLS."""
+        # Import here to avoid circular dependency
+        from ...pydantic_ai_integration.tool_decorator import validate_tool_exists, get_tool_names
+        
+        if not validate_tool_exists(v):
+            available = ', '.join(get_tool_names())
+            raise ValueError(
+                f"Tool '{v}' not registered. Available tools: {available}"
+            )
+        
+        return v
 
 # Tool response specific payload
 class ToolResponsePayload(BaseModel):
