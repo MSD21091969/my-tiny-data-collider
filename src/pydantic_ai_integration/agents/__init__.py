@@ -2,10 +2,6 @@
 Initialization file for agent module.
 """
 
-from .base import (
-    get_agent_for_toolset as get_agent_for_toolset,
-    register_agent as register_agent,
-    Agent as Agent,
-)
+from .base import Agent, get_agent_for_toolset, register_agent
 
-__all__ = ["get_agent_for_toolset", "register_agent", "Agent"]
+__all__ = ["Agent", "get_agent_for_toolset", "register_agent"]
