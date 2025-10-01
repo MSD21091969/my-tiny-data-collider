@@ -1,660 +1,611 @@
 # GitHub Copilot Chore List
-## Tiny Data Collider - Post-Refactoring Implementation Tasks
 
-**Created:** October 1, 2025  
-**Status:** Ready for Copilot Automation  
-**Context:** Following successful unified tool system refactoring (commit `b6b7955`)
-
----
-
-## 🎯 Overview
-
-This document provides structured, well-defined tasks for GitHub Copilot to work on in the cloud repository. Each chore is independent, testable, and follows established patterns from the refactoring.
+**Project:** MDS Objects API  
+**Date Created:** October 1, 2025  
+**Status:** Ready for automated execution  
+**Focus:** Code quality checks, documentation gaps, test prep, environment validation
 
 ---
 
-## 📋 Priority 1: SOLID Pod Integration (Foundation)
+## Overview
 
-### Chore #1: Create Solid Pod Client Service
-**Priority:** HIGH  
-**Estimated Effort:** 2-3 hours  
-**Dependencies:** None
+This document contains **tactical preparation chores** for GitHub Copilot to execute autonomously. These are NOT feature implementations - they are checks, audits, documentation gaps, test scaffolding, and environment validation tasks that prepare for strategic work.
 
-**Description:**  
-Implement `src/solidservice/client.py` following the pattern in `docs/SOLID_INTEGRATION_PLAN.md`.
+**Related Documents:**
+- `docs/SOLID_INTEGRATION_PLAN.md` - Strategy context (not implemented here)
+- `docs/pydantic toolengineering.txt` - Vision context (not implemented here)
+- `.github/copilot-instructions.md` - Project guidelines
 
-**Requirements:**
-1. Create `SolidPodClient` class with methods:
-   - `read_resource(path)` - Read RDF data from pod
-   - `write_resource(path, data)` - Write RDF data to pod
-   - `create_container(path)` - Create folder structure
-2. Use `rdflib` for RDF parsing/serialization
-3. Support authentication via bearer token
-4. Convert Python dicts ↔ RDF Turtle format
-5. Handle HTTP responses (200, 201, 404, 403)
+---
 
-**Acceptance Criteria:**
-- [ ] Client can connect to Solid Pod
-- [ ] Can create containers (folders)
-- [ ] Can write/read Turtle RDF data
-- [ ] Includes error handling for common cases
-- [ ] Has docstrings and type hints
+## Chore Progress Tracker
 
-**Test Script:**
-```python
-# scripts/test_solid_client.py
-async def test_solid_client():
-    client = SolidPodClient(
-        pod_url="http://localhost:3000/test/",
-        webid="http://localhost:3000/test/profile/card#me"
-    )
-    
-    # Test create container
-    assert await client.create_container("test-data/")
-    
-    # Test write
-    data = {"title": "Test", "value": 42}
-    assert await client.write_resource("test-data/sample.ttl", data)
-    
-    # Test read
-    retrieved = await client.read_resource("test-data/sample.ttl")
-    assert retrieved["title"] == "Test"
+| # | Title | Type | Effort | Status | Branch | PR | Completed |
+|---|-------|------|--------|--------|--------|----|-----------| 
+| 1 | Audit all imports for unused/circular deps | Check | 30m | ⏳ | - | - | - |
+| 2 | Validate all Pydantic models have examples | Check | 1h | ⏳ | - | - | - |
+| 3 | Check test coverage gaps | Check | 30m | ⏳ | - | - | - |
+| 4 | Verify environment variable documentation | Check | 30m | ⏳ | - | - | - |
+| 5 | Create test fixtures for common scenarios | Prep | 1h | ⏳ | - | - | - |
+| 6 | Document API error response formats | Doc | 1h | ⏳ | - | - | - |
+| 7 | Verify Firestore indexes are documented | Check | 30m | ⏳ | - | - | - |
+| 8 | Create pytest markers for test categories | Prep | 30m | ⏳ | - | - | - |
+| 9 | Audit logging consistency across services | Check | 1h | ⏳ | - | - | - |
+| 10 | Verify all routes have proper docstrings | Check | 1h | ⏳ | - | - | - |
+
+**Status Legend:** ⏳ Not Started | 🚧 In Progress | ✅ Completed | ❌ Blocked  
+**Type Legend:** Check (audit/validation) | Prep (scaffolding) | Doc (documentation)
+
+---
+
+## Chore #1: Audit All Imports for Unused/Circular Dependencies
+
+**Type:** Check  
+**Effort:** 30 minutes  
+**Files to Inspect:** `src/**/*.py`
+
+### Description
+Scan all Python files in `src/` to identify:
+1. Unused imports (imported but never referenced)
+2. Circular import patterns (A imports B, B imports A)
+3. Duplicate imports (same module imported multiple times)
+4. Wildcard imports (`from x import *`)
+
+### Requirements
+- Use `pylint --disable=all --enable=unused-import,cyclic-import` or similar
+- Generate a report listing violations by file
+- Do NOT fix issues - just report them
+- Output format: Markdown table with file path, line number, issue type, description
+
+### Acceptance Criteria
+- [ ] Report generated in `docs/IMPORT_AUDIT_REPORT.md`
+- [ ] All `src/**/*.py` files scanned
+- [ ] Table includes: File | Line | Type | Description
+- [ ] Summary counts by issue type at top
+- [ ] No false positives (manual spot-check 5 random findings)
+
+### Test Script
+```bash
+# Run audit
+pylint --disable=all --enable=unused-import,cyclic-import src/ > audit.txt
+
+# Verify report exists
+test -f docs/IMPORT_AUDIT_REPORT.md
+
+# Check report has content
+grep -q "| File | Line | Type |" docs/IMPORT_AUDIT_REPORT.md
 ```
 
-**Files to Create:**
-- `src/solidservice/__init__.py`
-- `src/solidservice/client.py`
-- `tests/test_solid_client.py`
-- `scripts/test_solid_client.py`
+### Dependencies
+- None (first chore)
 
 ---
 
-### Chore #2: Add Solid Mirror to CasefileService
-**Priority:** HIGH  
-**Estimated Effort:** 1-2 hours  
-**Dependencies:** Chore #1
+## Chore #2: Validate All Pydantic Models Have Examples
 
-**Description:**  
-Extend `CasefileService` to mirror casefiles to Solid Pod (dual persistence pattern from SOLID_INTEGRATION_PLAN.md Option 1).
+**Type:** Check  
+**Effort:** 1 hour  
+**Files to Inspect:** `src/pydantic_models/**/*.py`
 
-**Requirements:**
-1. Add `solid_client` attribute to `CasefileService.__init__()`
-2. Update `create_casefile()` to also write to Solid Pod
-3. Update `get_casefile()` to fallback to Solid Pod if Firestore fails
-4. Only activate if `SOLID_ENABLED=true` in config
-5. Log all Solid operations (info level)
+### Description
+Check every Pydantic model class to ensure it has a `model_config` with example data for API documentation. OpenAPI/FastAPI uses these for interactive docs.
 
-**Acceptance Criteria:**
-- [ ] Casefiles written to both Firestore AND Solid Pod
-- [ ] Can retrieve from Solid if Firestore unavailable
-- [ ] Gracefully handles Solid Pod failures (doesn't break existing flow)
-- [ ] Config flag controls Solid integration
-- [ ] Logging shows Solid operations
+### Requirements
+- Find all classes inheriting from `BaseModel`
+- Check for `model_config = ConfigDict(json_schema_extra={"example": {...}})`
+- Generate report of models missing examples
+- Do NOT add examples - just report missing ones
 
-**Test Script:**
-```python
-# tests/test_casefile_solid_mirror.py
-async def test_casefile_dual_persistence():
-    service = CasefileService()  # SOLID_ENABLED=true in .env.test
-    
-    casefile_id = await service.create_casefile(
-        user_id="test_user",
-        title="Test Casefile"
-    )
-    
-    # Verify in Firestore
-    from_firestore = await service.repository.get_casefile(casefile_id)
-    assert from_firestore is not None
-    
-    # Verify in Solid Pod
-    solid_path = f"tiny-data-collider/casefiles/{casefile_id}.ttl"
-    from_solid = await service.solid_client.read_resource(solid_path)
-    assert from_solid["metadata"]["title"] == "Test Casefile"
+### Acceptance Criteria
+- [ ] Report generated in `docs/PYDANTIC_EXAMPLES_AUDIT.md`
+- [ ] All models in `src/pydantic_models/` checked
+- [ ] Table includes: File | Class Name | Has Example | Fields Count
+- [ ] Summary: X models with examples, Y without
+- [ ] No false positives (check 3 "missing" cases manually)
+
+### Test Script
+```bash
+# Run check
+python scripts/audit_pydantic_examples.py
+
+# Verify report
+test -f docs/PYDANTIC_EXAMPLES_AUDIT.md
+
+# Check format
+grep -q "| File | Class Name | Has Example |" docs/PYDANTIC_EXAMPLES_AUDIT.md
 ```
 
-**Files to Modify:**
-- `src/casefileservice/service.py`
-- `src/coreservice/config.py` (add SOLID_ENABLED, SOLID_POD_URL, SOLID_WEBID)
-
-**Files to Create:**
-- `tests/test_casefile_solid_mirror.py`
-- `.env.example` (add SOLID_* variables)
-
----
-
-## 📋 Priority 2: Tool Engineering Factory
-
-### Chore #3: Create ToolDefinitionValidator
-**Priority:** MEDIUM  
-**Estimated Effort:** 2 hours  
-**Dependencies:** None
-
-**Description:**  
-Build a validator that analyzes new tool definitions for completeness and consistency (supports pydantic toolengineering.txt vision).
-
-**Requirements:**
-1. Create `src/pydantic_ai_integration/tool_validator.py`
-2. Validate tool definition has:
-   - All required metadata fields
-   - Valid parameter model (extends BaseModel)
-   - Consistent field types
-   - Proper docstrings
-3. Check for common anti-patterns:
-   - Missing `ge=`/`le=` constraints on integers
-   - Missing `min_length=` on strings
-   - Missing descriptions on Fields
-4. Return validation report with warnings/errors
-
-**Acceptance Criteria:**
-- [ ] Can validate `ManagedToolDefinition` instances
-- [ ] Detects missing metadata
-- [ ] Warns about missing constraints
-- [ ] Returns structured validation report
-- [ ] Includes severity levels (error, warning, info)
-
-**Test Script:**
+### Example Script Stub
 ```python
-# tests/test_tool_validator.py
-def test_tool_validator():
-    from src.pydantic_ai_integration.tool_validator import ToolDefinitionValidator
-    from src.pydantic_ai_integration.tool_decorator import get_tool_definition
+# scripts/audit_pydantic_examples.py
+import ast
+from pathlib import Path
+
+def find_models_without_examples():
+    models_dir = Path("src/pydantic_models")
+    results = []
     
-    validator = ToolDefinitionValidator()
+    for py_file in models_dir.rglob("*.py"):
+        # Parse AST, find BaseModel classes, check for model_config
+        # Append to results
+        pass
     
-    # Test valid tool
-    tool = get_tool_definition("example_tool")
-    report = validator.validate(tool)
-    assert report.is_valid
-    assert len(report.errors) == 0
-    
-    # Test incomplete tool
-    class BadParams(BaseModel):
-        value: int  # Missing constraints!
-    
-    incomplete_tool = ManagedToolDefinition(
-        metadata=ToolMetadata(name="bad_tool", description="..."),
-        business_rules=ToolBusinessRules(),
-        execution=ToolExecution(
-            params_model=BadParams,
-            implementation=lambda ctx, value: {"result": value}
-        )
-    )
-    
-    report = validator.validate(incomplete_tool)
-    assert not report.is_valid
-    assert any("constraint" in err.message.lower() for err in report.warnings)
+    return results
+
+if __name__ == "__main__":
+    results = find_models_without_examples()
+    # Write to docs/PYDANTIC_EXAMPLES_AUDIT.md
 ```
 
-**Files to Create:**
-- `src/pydantic_ai_integration/tool_validator.py`
-- `tests/test_tool_validator.py`
+### Dependencies
+- None
 
 ---
 
-### Chore #4: Implement Tool Template Generator
-**Priority:** MEDIUM  
-**Estimated Effort:** 2-3 hours  
-**Dependencies:** Chore #3
+## Chore #3: Check Test Coverage Gaps
 
-**Description:**  
-Create a CLI tool that generates boilerplate for new tools (declarative tool engineering from pydantic toolengineering.txt).
+**Type:** Check  
+**Effort:** 30 minutes  
+**Files to Inspect:** `tests/**/*.py` vs `src/**/*.py`
 
-**Requirements:**
-1. Create `scripts/generate_tool.py`
-2. Accept tool metadata via command line:
-   ```bash
-   python scripts/generate_tool.py \
-     --name my_tool \
-     --description "Does something" \
-     --category utilities \
-     --param name:str \
-     --param count:int:ge=1:le=100
-   ```
-3. Generate three files:
-   - Parameter model in `tool_params.py`
-   - Implementation in `tools/my_tool.py`
-   - Test in `tests/test_my_tool.py`
-4. Follow existing patterns from `unified_example_tools.py`
-5. Include TODO comments for business logic
+### Description
+Generate pytest coverage report and identify modules/functions with <80% coverage. Do NOT write tests - just report gaps.
 
-**Acceptance Criteria:**
-- [ ] CLI script accepts tool metadata
-- [ ] Generates valid parameter model with constraints
-- [ ] Generates implementation stub with decorator
-- [ ] Generates test template
-- [ ] Generated code passes validation (Chore #3)
-- [ ] Includes comprehensive docstrings
+### Requirements
+- Run `pytest --cov=src --cov-report=term-missing`
+- Extract modules with <80% coverage
+- List specific uncovered line ranges
+- Generate report in Markdown
 
-**Example Output:**
+### Acceptance Criteria
+- [ ] Report generated in `docs/TEST_COVERAGE_GAPS.md`
+- [ ] Coverage report run successfully
+- [ ] Table includes: Module | Coverage % | Uncovered Lines | Priority
+- [ ] Priority assigned: HIGH (<50%), MEDIUM (50-79%), LOW (80%+)
+- [ ] Summary: X modules need attention
+
+### Test Script
+```bash
+# Run coverage
+pytest --cov=src --cov-report=term-missing --cov-report=json
+
+# Verify report exists
+test -f docs/TEST_COVERAGE_GAPS.md
+
+# Check has priority column
+grep -q "Priority" docs/TEST_COVERAGE_GAPS.md
+```
+
+### Dependencies
+- Requires `pytest-cov` installed
+
+---
+
+## Chore #4: Verify Environment Variable Documentation
+
+**Type:** Check  
+**Effort:** 30 minutes  
+**Files to Inspect:** `src/**/*.py`, `docs/**/*.md`, `.env.example`
+
+### Description
+Find all environment variables used in code (`os.getenv()`, `os.environ[]`) and check if they're documented in `.env.example` or README. Report undocumented variables.
+
+### Requirements
+- Scan for `os.getenv`, `os.environ`, `config.get()`
+- Extract variable names
+- Check if listed in `.env.example` or `docs/` files
+- Generate report of undocumented vars
+
+### Acceptance Criteria
+- [ ] Report generated in `docs/ENV_VAR_AUDIT.md`
+- [ ] All environment variables found in code
+- [ ] Table includes: Variable | File | Line | Documented? | Has Default?
+- [ ] List of undocumented vars at top
+- [ ] Suggestions for `.env.example` additions
+
+### Test Script
+```bash
+# Run audit
+python scripts/audit_env_vars.py
+
+# Verify report
+test -f docs/ENV_VAR_AUDIT.md
+
+# Check has undocumented section
+grep -q "Undocumented Variables" docs/ENV_VAR_AUDIT.md
+```
+
+### Dependencies
+- None
+
+---
+
+## Chore #5: Create Test Fixtures for Common Scenarios
+
+**Type:** Prep  
+**Effort:** 1 hour  
+**Files to Create:** `tests/fixtures/common.py`
+
+### Description
+Create pytest fixtures for frequently used test data: sample users, casefiles, tool sessions, contexts. This reduces boilerplate in tests.
+
+### Requirements
+- Create `tests/fixtures/common.py`
+- Define fixtures: `sample_user`, `sample_casefile`, `sample_tool_session`, `sample_mds_context`
+- Use Pydantic models from `src/pydantic_models/`
+- Add docstrings explaining each fixture
+- Follow existing pytest fixture patterns
+
+### Acceptance Criteria
+- [ ] File created: `tests/fixtures/common.py`
+- [ ] At least 5 fixtures defined
+- [ ] Each fixture has docstring
+- [ ] Fixtures use proper Pydantic models
+- [ ] Example test file uses fixtures successfully
+- [ ] Run `pytest tests/fixtures/test_common_fixtures.py` passes
+
+### Test Script
+```bash
+# Verify file exists
+test -f tests/fixtures/common.py
+
+# Check fixtures are importable
+python -c "from tests.fixtures.common import sample_user, sample_casefile"
+
+# Run example test
+pytest tests/fixtures/test_common_fixtures.py -v
+```
+
+### Example Code
 ```python
-# Generated: src/pydantic_ai_integration/tools/tool_params.py (append)
-class MyToolParams(BaseModel):
-    """Parameters for my_tool."""
-    name: str = Field(..., min_length=1, description="Name parameter")
-    count: int = Field(..., ge=1, le=100, description="Count parameter")
+# tests/fixtures/common.py
+import pytest
+from src.pydantic_models.casefile.models import Casefile
 
-# Generated: src/pydantic_ai_integration/tools/my_tool.py
-@register_mds_tool(
-    name="my_tool",
-    description="Does something",
-    category="utilities",
-    version="1.0.0",
-    enabled=True,
-    requires_auth=True,
-    params_model=MyToolParams,
-    timeout_seconds=30
-)
-async def my_tool(ctx: MDSContext, name: str, count: int) -> Dict[str, Any]:
+@pytest.fixture
+def sample_casefile() -> Casefile:
+    """Provides a sample casefile for testing."""
+    return Casefile(
+        id="251001_ABC123",
+        user_id="test_user_123",
+        title="Sample Investigation",
+        description="Test casefile for unit tests",
+        created_at="2025-10-01T10:00:00",
+        sessions=[]
+    )
+
+# ... more fixtures
+```
+
+### Dependencies
+- None
+
+---
+
+## Chore #6: Document API Error Response Formats
+
+**Type:** Doc  
+**Effort:** 1 hour  
+**Files to Create:** `docs/API_ERROR_RESPONSES.md`
+
+### Description
+Document the standard error response format for all API endpoints. Check current error handling in routers and document the actual structure returned.
+
+### Requirements
+- Inspect error handling in `src/pydantic_api/routers/*.py`
+- Document HTTP status codes used
+- Document error response JSON structure
+- Provide examples for each error type
+- Include validation error format
+
+### Acceptance Criteria
+- [ ] File created: `docs/API_ERROR_RESPONSES.md`
+- [ ] Documents HTTP status codes (400, 401, 404, 500, etc.)
+- [ ] Shows JSON structure for each error type
+- [ ] Includes 3+ real examples
+- [ ] Documents validation error format (Pydantic errors)
+- [ ] Table of status codes with descriptions
+
+### Test Script
+```bash
+# Verify file exists
+test -f docs/API_ERROR_RESPONSES.md
+
+# Check has status codes
+grep -q "400" docs/API_ERROR_RESPONSES.md
+grep -q "404" docs/API_ERROR_RESPONSES.md
+grep -q "500" docs/API_ERROR_RESPONSES.md
+
+# Check has JSON examples
+grep -q '```json' docs/API_ERROR_RESPONSES.md
+```
+
+### Example Content
+```markdown
+# API Error Response Formats
+
+## Standard Error Structure
+
+```json
+{
+  "detail": "Human-readable error message",
+  "error_code": "ERROR_TYPE",
+  "timestamp": "2025-10-01T10:00:00Z"
+}
+```
+
+## Status Codes
+
+| Code | Meaning | When Used |
+|------|---------|-----------|
+| 400 | Bad Request | Invalid parameters |
+| 401 | Unauthorized | Missing/invalid JWT |
+| 404 | Not Found | Resource doesn't exist |
+| 500 | Internal Error | Server-side failure |
+```
+
+### Dependencies
+- None
+
+---
+
+## Chore #7: Verify Firestore Indexes Are Documented
+
+**Type:** Check  
+**Effort:** 30 minutes  
+**Files to Inspect:** `src/persistence/firestore/*.py`, `docs/**/*.md`
+
+### Description
+Find all Firestore queries that use multiple fields (compound queries) and verify indexes are documented. Firestore requires composite indexes for multi-field queries.
+
+### Requirements
+- Scan for `.where()` chained queries
+- Identify compound queries (2+ fields)
+- Check if indexes documented in `docs/` or code comments
+- Generate report of undocumented index needs
+
+### Acceptance Criteria
+- [ ] Report generated in `docs/FIRESTORE_INDEXES_AUDIT.md`
+- [ ] All compound queries identified
+- [ ] Table includes: Collection | Fields | Query File | Line | Documented?
+- [ ] Suggested `firestore.indexes.json` snippet for undocumented indexes
+- [ ] Summary count of required indexes
+
+### Test Script
+```bash
+# Run audit
+python scripts/audit_firestore_indexes.py
+
+# Verify report
+test -f docs/FIRESTORE_INDEXES_AUDIT.md
+
+# Check has suggested indexes
+grep -q "firestore.indexes.json" docs/FIRESTORE_INDEXES_AUDIT.md
+```
+
+### Dependencies
+- None
+
+---
+
+## Chore #8: Create Pytest Markers for Test Categories
+
+**Type:** Prep  
+**Effort:** 30 minutes  
+**Files to Modify:** `pytest.ini`, `tests/**/*.py`
+
+### Description
+Define pytest markers to categorize tests (unit, integration, firestore, mock, slow). This allows selective test runs like `pytest -m "not slow"`.
+
+### Requirements
+- Add markers to `pytest.ini`
+- Document each marker's purpose
+- Add example marker usage to 3 test files
+- Update README with marker usage examples
+
+### Acceptance Criteria
+- [ ] Markers defined in `pytest.ini`: unit, integration, firestore, mock, slow
+- [ ] Each marker has description in `pytest.ini`
+- [ ] At least 3 test files use markers with `@pytest.mark.X`
+- [ ] README updated with `pytest -m` examples
+- [ ] Run `pytest -m unit` executes only unit tests
+- [ ] Run `pytest -m "not firestore"` skips Firestore tests
+
+### Test Script
+```bash
+# Check markers defined
+grep -q "markers =" pytest.ini
+
+# Verify marker works
+pytest -m unit --collect-only | grep -q "test_"
+
+# Check README updated
+grep -q "pytest -m" README.md
+```
+
+### Example Code
+```ini
+# pytest.ini additions
+[pytest]
+markers =
+    unit: Unit tests (fast, no external deps)
+    integration: Integration tests (slower, may use mocks)
+    firestore: Tests requiring Firestore connection
+    mock: Tests using mock backends
+    slow: Tests that take >5 seconds
+```
+
+```python
+# tests/test_example.py
+import pytest
+
+@pytest.mark.unit
+def test_fast_function():
+    assert 1 + 1 == 2
+
+@pytest.mark.firestore
+@pytest.mark.slow
+def test_firestore_query():
+    # ... slow Firestore test
+    pass
+```
+
+### Dependencies
+- None
+
+---
+
+## Chore #9: Audit Logging Consistency Across Services
+
+**Type:** Check  
+**Effort:** 1 hour  
+**Files to Inspect:** `src/*service/*.py`, `src/pydantic_api/*.py`
+
+### Description
+Check all service and API files for logging usage. Ensure consistent patterns: proper log levels, structured data, no sensitive info logged.
+
+### Requirements
+- Scan for `logger.info()`, `logger.error()`, etc.
+- Check if loggers named consistently (`__name__`)
+- Identify logs that might leak sensitive data (tokens, passwords)
+- Check for missing error logs in exception handlers
+- Generate report of inconsistencies
+
+### Acceptance Criteria
+- [ ] Report generated in `docs/LOGGING_AUDIT.md`
+- [ ] All service files checked
+- [ ] Table includes: File | Issue Type | Line | Current Code | Suggestion
+- [ ] Issue types: inconsistent level, missing context, sensitive data, missing error log
+- [ ] Summary: X issues by type
+- [ ] Suggested logging standards section
+
+### Test Script
+```bash
+# Run audit
+python scripts/audit_logging.py
+
+# Verify report
+test -f docs/LOGGING_AUDIT.md
+
+# Check has issue types
+grep -q "Issue Type" docs/LOGGING_AUDIT.md
+
+# Check has standards section
+grep -q "Logging Standards" docs/LOGGING_AUDIT.md
+```
+
+### Dependencies
+- None
+
+---
+
+## Chore #10: Verify All Routes Have Proper Docstrings
+
+**Type:** Check  
+**Effort:** 1 hour  
+**Files to Inspect:** `src/pydantic_api/routers/*.py`
+
+### Description
+Check all FastAPI route functions for proper docstrings. FastAPI uses these for OpenAPI docs, so they should describe the endpoint, parameters, and responses.
+
+### Requirements
+- Find all `@router.get`, `@router.post`, etc. decorated functions
+- Check if docstring exists and is non-empty
+- Check if docstring mentions parameters and return value
+- Generate report of routes missing proper docs
+
+### Acceptance Criteria
+- [ ] Report generated in `docs/ROUTE_DOCSTRINGS_AUDIT.md`
+- [ ] All routes in `src/pydantic_api/routers/` checked
+- [ ] Table includes: File | Route | HTTP Method | Has Docstring | Quality Score
+- [ ] Quality Score: 3 (good), 2 (partial), 1 (missing/poor)
+- [ ] Example good docstring provided in report
+- [ ] Summary: X routes need improvement
+
+### Test Script
+```bash
+# Run audit
+python scripts/audit_route_docstrings.py
+
+# Verify report
+test -f docs/ROUTE_DOCSTRINGS_AUDIT.md
+
+# Check has quality scores
+grep -q "Quality Score" docs/ROUTE_DOCSTRINGS_AUDIT.md
+
+# Check has example
+grep -q "Example Good Docstring" docs/ROUTE_DOCSTRINGS_AUDIT.md
+```
+
+### Example Good Docstring
+```python
+@router.post("/casefiles", response_model=CreateCasefileResponse)
+async def create_casefile(request: CreateCasefileRequest):
     """
-    Implementation for my_tool.
+    Create a new casefile for investigation tracking.
     
     Args:
-        ctx: MDS context with session info
-        name: Name parameter
-        count: Count parameter (1-100)
+        request: Casefile creation details including title and description
         
     Returns:
-        Result dictionary
+        CreateCasefileResponse with the new casefile ID and metadata
+        
+    Raises:
+        400: Invalid request parameters
+        401: Unauthorized (missing/invalid JWT)
+        500: Server error during creation
     """
-    # TODO: Implement business logic
-    return {"result": "pending"}
+    # ... implementation
 ```
 
-**Files to Create:**
-- `scripts/generate_tool.py`
-- `tests/test_tool_generator.py`
+### Dependencies
+- None
 
 ---
 
-## 📋 Priority 3: Google Workspace Mock Tools
+## Execution Guidelines for GitHub Copilot
 
-### Chore #5: Create MockGoogleDriveClient
-**Priority:** MEDIUM  
-**Estimated Effort:** 3-4 hours  
-**Dependencies:** None
+### Workflow
+1. Pick a chore (start with #1, proceed sequentially)
+2. Create branch: `git checkout -b chore/N-short-description`
+3. Execute the chore (follow requirements exactly)
+4. Run test script to verify acceptance criteria
+5. Commit: `git commit -m "chore: [Title from chore]"`
+6. Push: `git push origin chore/N-short-description`
+7. Update this file: mark status as ✅, add branch name, date
+8. Create PR linking to this file
 
-**Description:**  
-Build mock Google Drive client for testing casefile CRUD operations (supports "mock google workspace tools casefile crud" from pydantic toolengineering.txt).
+### Commit Message Format
+```
+chore: [Title from chore table]
 
-**Requirements:**
-1. Create `src/integrations/google_workspace/mock_drive.py`
-2. Implement in-memory file system:
-   ```python
-   class MockGoogleDriveClient:
-       async def create_file(self, name, content, parent_id=None)
-       async def read_file(self, file_id)
-       async def update_file(self, file_id, content)
-       async def delete_file(self, file_id)
-       async def list_files(self, parent_id=None, query=None)
-       async def create_folder(self, name, parent_id=None)
-   ```
-3. Return Google Drive API-compatible responses
-4. Support metadata (created_at, modified_at, owner)
-5. Implement search by name/query
+- [Acceptance criteria 1]
+- [Acceptance criteria 2]
+- [Acceptance criteria 3]
 
-**Acceptance Criteria:**
-- [ ] Full CRUD operations work
-- [ ] Folder hierarchy supported
-- [ ] Search/query functionality
-- [ ] Returns API-compatible responses
-- [ ] In-memory persistence (no external dependencies)
-- [ ] Thread-safe operations
-
-**Test Script:**
-```python
-# tests/test_mock_google_drive.py
-async def test_mock_drive_crud():
-    client = MockGoogleDriveClient()
-    
-    # Create folder
-    folder = await client.create_folder("My Casefiles")
-    assert folder["id"] is not None
-    
-    # Create file
-    file = await client.create_file(
-        name="casefile_001.json",
-        content='{"title": "Test"}',
-        parent_id=folder["id"]
-    )
-    assert file["id"] is not None
-    
-    # Read file
-    content = await client.read_file(file["id"])
-    assert "Test" in content
-    
-    # Update file
-    await client.update_file(file["id"], '{"title": "Updated"}')
-    
-    # List files
-    files = await client.list_files(parent_id=folder["id"])
-    assert len(files) == 1
-    
-    # Delete file
-    await client.delete_file(file["id"])
-    files = await client.list_files(parent_id=folder["id"])
-    assert len(files) == 0
+Refs: .github/COPILOT_CHORES.md#chore-N
 ```
 
-**Files to Create:**
-- `src/integrations/__init__.py`
-- `src/integrations/google_workspace/__init__.py`
-- `src/integrations/google_workspace/mock_drive.py`
-- `tests/test_mock_google_drive.py`
+### Important Notes
+- **DO NOT** implement features - only prep/check/doc tasks
+- **DO NOT** fix issues found - just report them
+- **DO** follow project patterns in `.github/copilot-instructions.md`
+- **DO** run test scripts before committing
+- **DO** update the progress tracker table in this file
 
 ---
 
-### Chore #6: Create Google Drive Tools
-**Priority:** MEDIUM  
-**Estimated Effort:** 2-3 hours  
-**Dependencies:** Chore #5
+## Success Metrics
 
-**Description:**  
-Implement tools that use MockGoogleDriveClient for casefile data operations.
-
-**Requirements:**
-1. Create 4 tools in `src/pydantic_ai_integration/tools/google_drive_tools.py`:
-   - `drive_create_casefile_folder` - Create folder for casefile
-   - `drive_upload_casefile_data` - Upload casefile data as JSON
-   - `drive_list_casefile_files` - List files in casefile folder
-   - `drive_download_casefile_data` - Download casefile data
-2. Each tool uses `@register_mds_tool` decorator
-3. Parameter models in `tool_params.py`
-4. Tools use casefile_id to organize data
-5. Integration test shows full workflow
-
-**Acceptance Criteria:**
-- [ ] 4 tools registered in MANAGED_TOOLS
-- [ ] Tools work with MockGoogleDriveClient
-- [ ] Parameter validation enforced
-- [ ] Can create/upload/list/download casefile data
-- [ ] E2E test demonstrates workflow
-- [ ] Error handling for common cases
-
-**Test Script:**
-```python
-# scripts/test_google_drive_workflow.py
-async def test_drive_workflow():
-    # 1. Create casefile
-    casefile_id = "cf_251001_test123"
-    
-    # 2. Create folder tool
-    request = ToolRequest(
-        user_id="test",
-        operation="tool_execution",
-        session_id="ts_test",
-        payload=ToolRequestPayload(
-            tool_name="drive_create_casefile_folder",
-            parameters={"casefile_id": casefile_id, "folder_name": "Test Case"}
-        )
-    )
-    response = await tool_service.process_tool_request(request)
-    folder_id = response.payload.result["folder_id"]
-    
-    # 3. Upload data
-    request2 = ToolRequest(
-        user_id="test",
-        operation="tool_execution",
-        session_id="ts_test",
-        payload=ToolRequestPayload(
-            tool_name="drive_upload_casefile_data",
-            parameters={
-                "casefile_id": casefile_id,
-                "file_name": "metadata.json",
-                "content": '{"title": "Test"}',
-                "folder_id": folder_id
-            }
-        )
-    )
-    response2 = await tool_service.process_tool_request(request2)
-    
-    # 4. List files
-    request3 = ToolRequest(
-        user_id="test",
-        operation="tool_execution",
-        session_id="ts_test",
-        payload=ToolRequestPayload(
-            tool_name="drive_list_casefile_files",
-            parameters={"casefile_id": casefile_id, "folder_id": folder_id}
-        )
-    )
-    response3 = await tool_service.process_tool_request(request3)
-    assert len(response3.payload.result["files"]) == 1
-```
-
-**Files to Create:**
-- `src/pydantic_ai_integration/tools/google_drive_tools.py`
-- Update `src/pydantic_ai_integration/tools/tool_params.py`
-- `scripts/test_google_drive_workflow.py`
-- `tests/test_google_drive_tools.py`
+After all chores complete:
+- [ ] 10 audit reports generated in `docs/`
+- [ ] Test infrastructure improved (fixtures, markers)
+- [ ] Documentation gaps filled
+- [ ] Code quality baseline established
+- [ ] Ready for strategic feature work
+- [ ] All chores marked ✅ in tracker
 
 ---
 
-## 📋 Priority 4: Observability & Metrics
-
-### Chore #7: Add Tool Execution Metrics
-**Priority:** LOW  
-**Estimated Effort:** 2 hours  
-**Dependencies:** None
-
-**Description:**  
-Track tool usage statistics for monitoring and analytics.
-
-**Requirements:**
-1. Create `src/coreservice/metrics.py`
-2. Track per tool:
-   - Execution count
-   - Success/failure rate
-   - Average duration
-   - Parameter patterns
-3. Store metrics in memory (dict)
-4. Provide summary endpoint
-5. Optional: Export to Prometheus format
-
-**Acceptance Criteria:**
-- [ ] Metrics tracked per tool execution
-- [ ] Can retrieve metrics summary
-- [ ] Includes success/failure breakdown
-- [ ] Shows average/p50/p95/p99 durations
-- [ ] Lightweight (< 10ms overhead)
-
-**Test Script:**
-```python
-# tests/test_tool_metrics.py
-def test_metrics_tracking():
-    from src.coreservice.metrics import ToolMetrics
-    
-    metrics = ToolMetrics()
-    
-    # Record executions
-    metrics.record_execution("example_tool", success=True, duration_ms=100)
-    metrics.record_execution("example_tool", success=True, duration_ms=150)
-    metrics.record_execution("example_tool", success=False, duration_ms=50)
-    
-    # Get summary
-    summary = metrics.get_summary("example_tool")
-    assert summary["total_executions"] == 3
-    assert summary["success_rate"] == 2/3
-    assert summary["avg_duration_ms"] == 100
-```
-
-**Files to Create:**
-- `src/coreservice/metrics.py`
-- `src/pydantic_api/routers/metrics.py` (GET /metrics/tools)
-- `tests/test_tool_metrics.py`
-
----
-
-### Chore #8: Implement Structured Logging
-**Priority:** LOW  
-**Estimated Effort:** 1-2 hours  
-**Dependencies:** None
-
-**Description:**  
-Enhance logging with structured JSON output for better observability.
-
-**Requirements:**
-1. Create `src/coreservice/logging_config.py`
-2. Configure structured JSON logging:
-   - timestamp
-   - level
-   - message
-   - tool_name
-   - session_id
-   - user_id
-   - duration_ms
-3. Environment-aware (dev: pretty, prod: JSON)
-4. Include correlation IDs
-
-**Acceptance Criteria:**
-- [ ] Logs output as JSON in production
-- [ ] Pretty-printed in development
-- [ ] Includes context (session_id, user_id, tool_name)
-- [ ] Easy to parse for log aggregation
-- [ ] Backwards compatible
-
-**Files to Create:**
-- `src/coreservice/logging_config.py`
-- Update `src/tool_sessionservice/service.py` to use structured logging
-
----
-
-## 📋 Priority 5: Documentation & Examples
-
-### Chore #9: Create Tool Development Guide
-**Priority:** LOW  
-**Estimated Effort:** 1-2 hours  
-**Dependencies:** Chore #4
-
-**Description:**  
-Write comprehensive guide for tool developers.
-
-**Requirements:**
-1. Create `docs/TOOL_DEVELOPMENT_GUIDE.md`
-2. Sections:
-   - Quick start (5-minute tool)
-   - Field categorization explained
-   - Parameter validation patterns
-   - Best practices
-   - Testing guidelines
-   - Common pitfalls
-3. Include code examples
-4. Link to generated templates
-
-**Acceptance Criteria:**
-- [ ] New developer can create tool in <10 minutes
-- [ ] Explains all decorator parameters
-- [ ] Shows validation patterns
-- [ ] Includes full example
-- [ ] Links to relevant files
-
----
-
-### Chore #10: Create API Usage Examples
-**Priority:** LOW  
-**Estimated Effort:** 1 hour  
-**Dependencies:** None
-
-**Description:**  
-Document API usage with curl/Python examples.
-
-**Requirements:**
-1. Create `docs/API_EXAMPLES.md`
-2. Show examples for:
-   - List tools (`GET /tool-sessions/tools`)
-   - Get tool schema (`GET /tool-sessions/tools/{name}/schema`)
-   - Execute tool (`POST /tool-sessions/execute`)
-   - Create casefile + session + execute workflow
-3. Include both curl and Python requests
-4. Show error handling
-
-**Acceptance Criteria:**
-- [ ] Working examples for all endpoints
-- [ ] Both curl and Python versions
-- [ ] Shows authentication
-- [ ] Includes error scenarios
-- [ ] Copy-pasteable code
-
----
-
-## 🔧 Execution Guidelines for Copilot
-
-### General Principles
-1. **Follow existing patterns** - Study `unified_example_tools.py` before creating new tools
-2. **Test-driven** - Write tests first or alongside implementation
-3. **Type hints** - Use full type annotations everywhere
-4. **Docstrings** - Every function needs comprehensive docstrings
-5. **Error handling** - Graceful degradation, clear error messages
-6. **Logging** - Log important operations at appropriate levels
-
-### Code Style
-- **Black** formatting
-- **isort** for imports
-- **flake8** compliant
-- **mypy** type checking passes
-
-### Testing Requirements
-- Unit tests for all new functions
-- Integration tests for workflows
-- E2E tests for major features
-- Minimum 80% coverage
-
-### Git Workflow
-- One chore = one branch
-- Branch name: `chore/{number}-{short-description}`
-- Example: `chore/1-solid-pod-client`
-- PR title: "Chore #{number}: {title}"
-- Link to this file in PR description
-
----
-
-## 📊 Progress Tracking
-
-| Chore | Status | Branch | PR | Completed |
-|-------|--------|--------|-----|-----------|
-| #1: Solid Pod Client | ⏳ | - | - | - |
-| #2: Solid Mirror | ⏳ | - | - | - |
-| #3: Tool Validator | ⏳ | - | - | - |
-| #4: Tool Generator | ⏳ | - | - | - |
-| #5: Mock Drive Client | ⏳ | - | - | - |
-| #6: Drive Tools | ⏳ | - | - | - |
-| #7: Metrics | ⏳ | - | - | - |
-| #8: Structured Logging | ⏳ | - | - | - |
-| #9: Dev Guide | ⏳ | - | - | - |
-| #10: API Examples | ⏳ | - | - | - |
-
-**Legend:** ⏳ Not Started | 🚧 In Progress | ✅ Complete | ❌ Blocked
-
----
-
-## 🎯 Success Metrics
-
-Each completed chore should:
-- [ ] Pass all tests (unit + integration)
-- [ ] Have >80% code coverage
-- [ ] Include comprehensive documentation
-- [ ] Follow existing architectural patterns
-- [ ] Be reviewed and merged to main
-
----
-
-## 📝 Notes
-
-- **Context Files:**
-  - `docs/REFACTORING_COMPLETE.md` - Recent refactoring details
-  - `docs/SOLID_INTEGRATION_PLAN.md` - Solid Pod integration architecture
-  - `docs/pydantic toolengineering.txt` - Tool engineering vision
-  - `.github/copilot-instructions.md` - General project guidelines
-
-- **Key Patterns:**
-  - Tool registration: `@register_mds_tool` decorator
-  - Parameter validation: Pydantic BaseModel with Field() constraints
-  - Service layer: Queries `get_tool_definition()` from MANAGED_TOOLS
-  - Testing: Use `scripts/test_*.py` for manual tests, `tests/test_*.py` for pytest
-
-- **Contact:**
-  - Issues with chores: Create GitHub issue with `copilot-chore` label
-  - Questions: Reference this file and relevant docs
-
----
-
-**Ready for Copilot automation! 🤖**
+**Last Updated:** October 1, 2025  
+**Next Review:** After 5 chores completed
