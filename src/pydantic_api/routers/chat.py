@@ -3,13 +3,10 @@ Router for chat API endpoints.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, List, Optional
-from uuid import UUID
+from typing import Optional
 
-from ...pydantic_models.communication.models import ChatRequest, ChatResponse
 from ...communicationservice.service import CommunicationService
 from ...pydantic_models.shared.base_models import RequestEnvelope
-from ...pydantic_ai_integration.dependencies import MDSContext
 
 router = APIRouter(
     prefix="/api/chat",

@@ -2,8 +2,7 @@
 Repository for casefile data persistence (Firestore only).
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import List, Optional
 import os
 import logging
 

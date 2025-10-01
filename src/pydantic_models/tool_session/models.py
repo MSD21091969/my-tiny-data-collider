@@ -3,11 +3,11 @@ Models for tool sessions, requests and responses.
 """
 
 from pydantic import BaseModel, Field, computed_field, model_validator, field_validator
-from typing import Dict, Any, List, Optional, Union, Literal
+from typing import Dict, Any, List, Optional, Literal
 from datetime import datetime
 from uuid import uuid4
 
-from ..shared.base_models import BaseRequest, BaseResponse, RequestStatus
+from ..shared.base_models import BaseRequest, BaseResponse
 
 class ToolParameter(BaseModel):
     """Represents a parameter for a tool with validation rules."""

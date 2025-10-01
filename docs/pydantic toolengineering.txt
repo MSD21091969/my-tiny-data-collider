@@ -1,9 +1,0 @@
-### TOOLENGINEERING FOUNDATION.MD ###
-
-INVESTIGATE STRATEGIES FOR A MVP OF A NEW PYDANTIC TOOLENGINEERING MODULE AND MANAGER CLASS WITH THESE: src\pydantic_models\tool_session\tool_definition.py OR EVEN BROADER src\pydantic_models
-
-PLEASE BE CRITICAL OR OFFER ALTERNATIVE
-
-IDEA: MAKE TOOLDEFINTION.PY (NOT SURE ABOUT THIS ONE, MAYBE IS MORE ADMINISTRATIVE) AND src\pydantic_ai_integration\tools\unified_example_tools.py AND src\pydantic_ai_integration\tools\tool_params.py AND SOME MANAGER WORK TOGETHER IN A FACTORY SERVICE WITH USER/AI SUPERVISION TO TEST NEW TOOL MODELS/FUNCTIONS WHILE WE WRITE THE src\pydantic_ai_integration\tools\anothertool.py and have them analyse and devise tests knowing the finnesses of all models in terms of fields relations between models and the valuabe metadata itsself. This has to be done CICD style to produce the collection of toolsets we need. Maybe we could work a side project to design 1 grand model ,thereby making engineering of new tools declarative and therefore mass executable 
-
-Also datasets, how are we going to use casefile for data, and what data. starting with mock google workspace tools casefile crud 

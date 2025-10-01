@@ -2,7 +2,7 @@
 Main FastAPI application.
 """
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 

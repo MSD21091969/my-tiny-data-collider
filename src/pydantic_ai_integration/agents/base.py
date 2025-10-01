@@ -2,9 +2,8 @@
 Base agent factory and agent definitions.
 """
 
-from typing import Dict, Any, Type, Optional, List, Callable
+from typing import Dict, Any
 import logging
-import importlib
 import inspect
 
 # This is a placeholder for the actual Pydantic AI Agent class
@@ -35,7 +34,6 @@ class Agent:
                 # In a real agent, this would be done by the LLM
                 import re
                 import json
-                import logging
                 
                 # Try to find JSON-like parameters in the prompt
                 json_match = re.search(r'{.*}', prompt)
@@ -103,7 +101,7 @@ class Agent:
         self.tools[func.__name__] = func
         return func
         
-    def get_available_tools(self) -> List[str]:
+    def get_available_tools(self) -> list[str]:
         """Get list of available tool names."""
         return list(self.tools.keys())
 
@@ -149,37 +147,37 @@ default_agent = register_agent("default", Agent(
 ))
 
 def import_tools():
-    """Import all tool modules to register their tools."""
+    """
+    Import all tool modules to register their tools.
+    
+    This function uses lazy imports to avoid circular dependencies.
+    Tools import default_agent from this module, so we only import
+    tools AFTER default_agent is defined.
+    """
     try:
-        # Import example tools
-        import importlib
-        
         # Try to import example tools
         try:
-            from ..tools import example_tools
+            from ..tools import example_tools  # noqa: F401
             logging.info("Imported example_tools successfully")
         except ImportError as e:
             logging.warning(f"Could not import example_tools: {e}")
         
-        # Try to import enhanced example tools
+        # Try to import unified example tools
         try:
-            from ..tools import enhanced_example_tools
-            logging.info("Imported enhanced_example_tools successfully")
+            from ..tools import unified_example_tools  # noqa: F401
+            logging.info("Imported unified_example_tools successfully")
         except ImportError as e:
-            logging.warning(f"Could not import enhanced_example_tools: {e}")
+            logging.warning(f"Could not import unified_example_tools: {e}")
             
         # Try to import agent-aware tools
         try:
-            from ..tools import agent_aware_tools
+            from ..tools import agent_aware_tools  # noqa: F401
             logging.info("Imported agent_aware_tools successfully")
         except ImportError as e:
             logging.warning(f"Could not import agent_aware_tools: {e}")
             
     except Exception as e:
         logging.exception(f"Error importing tools: {e}")
-
-# Import tools on module load
-import_tools()
 
 # Register specific tool names to use the default agent
 register_agent("example_tool", default_agent)
@@ -189,3 +187,6 @@ register_agent("hello_world", default_agent)
 register_agent("echo_data", default_agent)
 register_agent("chain_aware_tool", default_agent)
 register_agent("context_enrichment_tool", default_agent)
+
+# Import tools AFTER default_agent is defined to avoid circular imports
+import_tools()

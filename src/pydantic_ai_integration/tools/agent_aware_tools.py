@@ -2,7 +2,7 @@
 Agent-aware tools that demonstrate enhanced MDSContext usage.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 import asyncio
 
 from ..agents.base import default_agent

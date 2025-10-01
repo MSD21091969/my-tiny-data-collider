@@ -2,10 +2,9 @@
 Authentication service routes and logic.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from .token import validate_credentials, create_token, get_current_user
 

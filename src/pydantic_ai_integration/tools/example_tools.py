@@ -2,11 +2,10 @@
 Example tool implementation.
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 import asyncio
 
 from ..agents.base import default_agent
-from ...pydantic_ai_integration.dependencies import MDSContext
 
 @default_agent.tool
 async def hello_world(ctx: Any, name: str) -> Dict[str, Any]:

@@ -7,9 +7,7 @@ import traceback
 import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-from uuid import UUID
 
-from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from ..firestore import get_firestore_client, DEFAULT_DATABASE

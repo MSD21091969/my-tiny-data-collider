@@ -4,8 +4,6 @@ Tool session API router.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
-from datetime import datetime
-from uuid import UUID
 
 from ...tool_sessionservice import ToolSessionService
 from ...pydantic_models.tool_session import ToolRequest, ToolResponse
@@ -15,7 +13,7 @@ from ...pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
     list_tools_by_category,
 )
-from ..dependencies import get_tool_session_service, get_current_user_id, verify_casefile_access
+from ..dependencies import get_tool_session_service, verify_casefile_access
 from ...authservice import get_current_user
 from ...casefileservice import CasefileService
 
