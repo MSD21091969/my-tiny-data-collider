@@ -1,0 +1,43 @@
+# Echo Tool - Simple example for testing tool factory
+name: echo_tool
+display_name: "Echo Tool"
+description: "Echoes input message back with metadata"
+category: examples
+version: "1.0.0"
+tags:
+  - example
+  - testing
+  - echo
+
+# Business rules
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions:
+    - tools:execute
+  requires_casefile: false
+  timeout_seconds: 10
+  max_retries: 0
+
+# Parameters
+parameters:
+  - name: message
+    type: string
+    required: true
+    default: null
+    min_length: 1
+    max_length: 500
+    description: "Message to echo back"
+    
+  - name: repeat_count
+    type: integer
+    required: false
+    default: 1
+    min_value: 1
+    max_value: 10
+    description: "Number of times to repeat the message"
+
+# Implementation
+implementation:
+  template: simple
+  stores_in_casefile: false
