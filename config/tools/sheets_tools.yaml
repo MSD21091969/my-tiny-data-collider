@@ -1,0 +1,169 @@
+# Google Sheets Tools Configuration
+# Week 2: Mock tools for testing
+# These tools follow the pattern from TOOLENGINEERING_FOUNDATION.md
+
+tools:
+  - name: sheets_batch_get
+    display_name: "Sheets Batch Get"
+    description: "Read data from multiple ranges in a Google Spreadsheet"
+    category: "google_workspace"
+    version: "1.0.0"
+    tags: ["sheets", "read", "batch", "google-workspace", "mock"]
+    
+    business_rules:
+      enabled: true
+      requires_auth: true
+      required_permissions: ["sheets:read"]
+      requires_casefile: false
+      timeout_seconds: 30
+      max_retries: 0
+    
+    parameters:
+      - name: spreadsheet_id
+        type: string
+        required: true
+        description: "The ID of the spreadsheet to read from"
+        min_length: 1
+        max_length: 100
+        pattern: "^[a-zA-Z0-9_-]+$"
+      
+      - name: ranges
+        type: array
+        required: true
+        description: "List of A1 notation ranges to read (e.g., ['Sheet1!A1:D10', 'Sheet2!B2:C5'])"
+        min_length: 1
+        max_length: 10
+      
+      - name: major_dimension
+        type: string
+        required: false
+        default_value: "ROWS"
+        description: "The major dimension that results should use (ROWS or COLUMNS)"
+        enum_values: ["ROWS", "COLUMNS"]
+
+  - name: sheets_batch_update
+    display_name: "Sheets Batch Update"
+    description: "Update data in multiple ranges in a Google Spreadsheet"
+    category: "google_workspace"
+    version: "1.0.0"
+    tags: ["sheets", "write", "batch", "google-workspace", "mock"]
+    
+    business_rules:
+      enabled: true
+      requires_auth: true
+      required_permissions: ["sheets:write"]
+      requires_casefile: false
+      timeout_seconds: 45
+      max_retries: 1
+    
+    parameters:
+      - name: spreadsheet_id
+        type: string
+        required: true
+        description: "The ID of the spreadsheet to update"
+        min_length: 1
+        max_length: 100
+        pattern: "^[a-zA-Z0-9_-]+$"
+      
+      - name: data
+        type: array
+        required: true
+        description: "List of value ranges to update (each with range and values)"
+        min_length: 1
+        max_length: 10
+      
+      - name: value_input_option
+        type: string
+        required: false
+        default_value: "USER_ENTERED"
+        description: "How input data should be interpreted (USER_ENTERED or RAW)"
+        enum_values: ["USER_ENTERED", "RAW"]
+
+  - name: sheets_append
+    display_name: "Sheets Append"
+    description: "Append rows of data to a Google Spreadsheet"
+    category: "google_workspace"
+    version: "1.0.0"
+    tags: ["sheets", "write", "append", "google-workspace", "mock"]
+    
+    business_rules:
+      enabled: true
+      requires_auth: true
+      required_permissions: ["sheets:write"]
+      requires_casefile: false
+      timeout_seconds: 30
+      max_retries: 1
+    
+    parameters:
+      - name: spreadsheet_id
+        type: string
+        required: true
+        description: "The ID of the spreadsheet to append to"
+        min_length: 1
+        max_length: 100
+        pattern: "^[a-zA-Z0-9_-]+$"
+      
+      - name: range
+        type: string
+        required: true
+        description: "The A1 notation range to append to (e.g., 'Sheet1!A1')"
+        min_length: 1
+        max_length: 100
+      
+      - name: values
+        type: array
+        required: true
+        description: "2D array of values to append (each inner array is a row)"
+        min_length: 1
+        max_length: 1000
+      
+      - name: value_input_option
+        type: string
+        required: false
+        default_value: "USER_ENTERED"
+        description: "How input data should be interpreted (USER_ENTERED or RAW)"
+        enum_values: ["USER_ENTERED", "RAW"]
+      
+      - name: insert_data_option
+        type: string
+        required: false
+        default_value: "INSERT_ROWS"
+        description: "How data should be inserted (INSERT_ROWS or OVERWRITE)"
+        enum_values: ["INSERT_ROWS", "OVERWRITE"]
+
+  - name: sheets_create
+    display_name: "Sheets Create"
+    description: "Create a new Google Spreadsheet"
+    category: "google_workspace"
+    version: "1.0.0"
+    tags: ["sheets", "create", "google-workspace", "mock"]
+    
+    business_rules:
+      enabled: true
+      requires_auth: true
+      required_permissions: ["sheets:create"]
+      requires_casefile: false
+      timeout_seconds: 30
+      max_retries: 0
+    
+    parameters:
+      - name: title
+        type: string
+        required: true
+        description: "The title of the new spreadsheet"
+        min_length: 1
+        max_length: 255
+      
+      - name: sheets
+        type: array
+        required: false
+        description: "List of sheet configurations (each with title, and optionally row_count, column_count)"
+        max_length: 10
+      
+      - name: locale
+        type: string
+        required: false
+        default_value: "en_US"
+        description: "The locale of the spreadsheet"
+        min_length: 2
+        max_length: 10
