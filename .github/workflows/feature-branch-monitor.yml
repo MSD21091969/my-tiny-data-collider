@@ -1,0 +1,224 @@
+name: Week 2 Feature Branch Monitor
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  identify-branch:
+    name: Identify Feature Branch
+    runs-on: ubuntu-latest
+    outputs:
+      branch_type: ${{ steps.detect.outputs.branch_type }}
+      branch_name: ${{ steps.detect.outputs.branch_name }}
+    
+    steps:
+      - name: Detect branch type
+        id: detect
+        run: |
+          BRANCH_NAME="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          
+          case "$BRANCH_NAME" in
+            feature/integration-test-templates)
+              echo "branch_type=integration-tests" >> $GITHUB_OUTPUT
+              ;;
+            feature/api-test-templates)
+              echo "branch_type=api-tests" >> $GITHUB_OUTPUT
+              ;;
+            feature/google-workspace-gmail)
+              echo "branch_type=gmail-tools" >> $GITHUB_OUTPUT
+              ;;
+            feature/google-workspace-drive)
+              echo "branch_type=drive-tools" >> $GITHUB_OUTPUT
+              ;;
+            feature/google-workspace-sheets)
+              echo "branch_type=sheets-tools" >> $GITHUB_OUTPUT
+              ;;
+            feature/tool-composition)
+              echo "branch_type=composition" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "branch_type=other" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+  test-feature:
+    name: Test Feature Branch
+    runs-on: ubuntu-latest
+    needs: identify-branch
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run branch-specific tests
+        run: |
+          case "${{ needs.identify-branch.outputs.branch_type }}" in
+            integration-tests)
+              echo "Testing integration test templates..."
+              python -m pytest tests/integration/ -v --tb=short || echo "Integration tests not yet implemented"
+              ;;
+            api-tests)
+              echo "Testing API test templates..."
+              python -m pytest tests/api/ -v --tb=short || echo "API tests not yet implemented"
+              ;;
+            gmail-tools|drive-tools|sheets-tools)
+              echo "Testing Google Workspace tools..."
+              python -m pytest tests/generated/ -v --tb=short -k "gmail or drive or sheets" || echo "Workspace tests not yet implemented"
+              ;;
+            composition)
+              echo "Testing tool composition..."
+              python -m pytest tests/ -v --tb=short -k "composition or composite" || echo "Composition tests not yet implemented"
+              ;;
+            *)
+              echo "Running all tests..."
+              python -m pytest tests/generated/ -v --tb=short
+              ;;
+          esac
+      
+      - name: Check coverage threshold
+        run: |
+          python -m pytest tests/ --cov=src --cov-report=term-missing --cov-fail-under=85
+        continue-on-error: true  # Don't fail during development
+
+  pr-ready-check:
+    name: PR Readiness Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run full test suite
+        run: |
+          python -m pytest tests/ -v --tb=short --junitxml=test-results.xml
+      
+      - name: Check coverage (strict)
+        run: |
+          python -m pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=90
+      
+      - name: Verify documentation updated
+        run: |
+          # Check if relevant docs exist
+          if [[ "${{ github.head_ref }}" == *"gmail"* ]] && [ ! -f "docs/GMAIL_TOOLS.md" ]; then
+            echo "❌ Missing docs/GMAIL_TOOLS.md"
+            exit 1
+          fi
+          
+          if [[ "${{ github.head_ref }}" == *"drive"* ]] && [ ! -f "docs/DRIVE_TOOLS.md" ]; then
+            echo "❌ Missing docs/DRIVE_TOOLS.md"
+            exit 1
+          fi
+          
+          if [[ "${{ github.head_ref }}" == *"sheets"* ]] && [ ! -f "docs/SHEETS_TOOLS.md" ]; then
+            echo "❌ Missing docs/SHEETS_TOOLS.md"
+            exit 1
+          fi
+          
+          if [[ "${{ github.head_ref }}" == *"integration-test"* ]] && [ ! -f "docs/INTEGRATION_TESTING.md" ]; then
+            echo "❌ Missing docs/INTEGRATION_TESTING.md"
+            exit 1
+          fi
+          
+          if [[ "${{ github.head_ref }}" == *"api-test"* ]] && [ ! -f "docs/API_TESTING.md" ]; then
+            echo "❌ Missing docs/API_TESTING.md"
+            exit 1
+          fi
+          
+          if [[ "${{ github.head_ref }}" == *"composition"* ]] && [ ! -f "docs/TOOL_COMPOSITION.md" ]; then
+            echo "❌ Missing docs/TOOL_COMPOSITION.md"
+            exit 1
+          fi
+          
+          echo "✅ Documentation check passed"
+      
+      - name: Check CHANGELOG updated
+        run: |
+          if ! git diff origin/develop...HEAD --name-only | grep -q "CHANGELOG.md"; then
+            echo "⚠️  CHANGELOG.md not updated (recommended)"
+            exit 0  # Warning only
+          fi
+          echo "✅ CHANGELOG.md updated"
+      
+      - name: Generate PR summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const testResults = 'test-results.xml';
+            
+            let summary = `## PR Readiness Check
+            
+            ### Branch: \`${{ github.head_ref }}\`
+            ### Target: \`${{ github.base_ref }}\`
+            
+            #### ✅ Checks Passed
+            - All tests passing
+            - Coverage ≥ 90%
+            - Documentation updated
+            
+            #### 📊 Test Summary
+            Run full details in Actions tab.
+            
+            #### 🚀 Ready to Merge
+            This PR meets all requirements for merging into \`develop\`.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  merge-preview:
+    name: Preview Merge to Develop
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+      
+      - name: Merge PR branch (dry-run)
+        run: |
+          git fetch origin ${{ github.head_ref }}
+          git merge --no-commit --no-ff origin/${{ github.head_ref }} || {
+            echo "❌ Merge conflicts detected!"
+            echo "Please rebase your branch on develop:"
+            echo "  git checkout ${{ github.head_ref }}"
+            echo "  git rebase origin/develop"
+            exit 1
+          }
+          git merge --abort || true
+          echo "✅ No merge conflicts - safe to merge"

@@ -1,0 +1,41 @@
+# yamllint configuration for tool specifications
+---
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    level: warning
+  
+  indentation:
+    spaces: 2
+    indent-sequences: true
+  
+  comments:
+    min-spaces-from-content: 1
+  
+  comments-indentation: {}
+  
+  document-start: disable
+  
+  empty-lines:
+    max: 2
+  
+  trailing-spaces: {}
+  
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no']
+  
+  key-duplicates: {}
+  
+  octal-values:
+    forbid-implicit-octal: true
+  
+  quoted-strings:
+    quote-type: any
+    required: only-when-needed
+
+ignore: |
+  .venv/
+  venv/
+  node_modules/
