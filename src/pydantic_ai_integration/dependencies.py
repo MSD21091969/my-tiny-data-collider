@@ -573,6 +573,84 @@ class MDSContext(BaseModel):
         
         return {"error": "Chain not found"}
     
+    def get_chain_results(self, chain_id: str = None, chain_name: str = None) -> List[Dict[str, Any]]:
+        """Get the results from all tools executed in a chain.
+        
+        Args:
+            chain_id: The ID of the chain to get results for
+            chain_name: The name of the chain to get results for (alternative to ID)
+            
+        Returns:
+            List of tool results in execution order
+        """
+        # Find chain ID from name if provided
+        if chain_name and not chain_id:
+            if chain_name in self.active_chains:
+                chain_id = self.active_chains[chain_name].get("chain_id")
+        
+        if not chain_id:
+            logger.warning("Cannot get chain results: no chain ID or valid chain name provided")
+            return []
+        
+        # Get all events for this chain, ordered by position
+        chain_events = [event for event in self.tool_events 
+                       if event.chain_id == chain_id]
+        
+        # Sort by chain position
+        chain_events.sort(key=lambda e: e.chain_position or 0)
+        
+        # Extract results
+        results = []
+        for event in chain_events:
+            result = {
+                "tool_name": event.tool_name,
+                "event_id": event.event_id,
+                "position": event.chain_position,
+                "timestamp": event.timestamp,
+                "parameters": event.parameters,
+                "result_summary": event.result_summary,
+                "duration_ms": event.duration_ms
+            }
+            results.append(result)
+        
+        return results
+    
+    def validate_chain(self, tools: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Validate a tool chain before execution.
+        
+        Args:
+            tools: List of tool definitions to validate
+            
+        Returns:
+            Validation result with any errors or warnings
+        """
+        errors = []
+        warnings = []
+        
+        if not tools:
+            errors.append("Chain must contain at least one tool")
+            return {"valid": False, "errors": errors, "warnings": warnings}
+        
+        for i, tool in enumerate(tools):
+            position = i + 1
+            
+            # Check required fields
+            if "tool_name" not in tool:
+                errors.append(f"Tool at position {position} is missing 'tool_name'")
+                continue
+            
+            # Check if parameters is present (can be empty dict)
+            if "parameters" not in tool:
+                warnings.append(f"Tool '{tool['tool_name']}' at position {position} has no parameters field")
+                tool["parameters"] = {}
+        
+        return {
+            "valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "tool_count": len(tools)
+        }
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format for storage or transmission.
         

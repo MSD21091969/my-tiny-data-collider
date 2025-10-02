@@ -51,6 +51,10 @@ logger = logging.getLogger(__name__)
 # Services, API routes, and validators query this registry
 MANAGED_TOOLS: Dict[str, ManagedToolDefinition] = {}
 
+# Composite tools registry
+# Tools that are compositions of other tools
+COMPOSITE_TOOLS: Dict[str, 'CompositeToolDefinition'] = {}
+
 
 def register_mds_tool(
     name: str,
@@ -425,3 +429,170 @@ def get_tool_schema(tool_name: str) -> Optional[Dict[str, Any]]:
 # TOOLSETS:
 # Group tools via category or create ToolsetDefinition model.
 # API can list/filter by toolset for easier discovery.
+
+
+# =============================================================================
+# Composite Tool Support
+# =============================================================================
+
+class CompositeToolDefinition(BaseModel):
+    """
+    Definition for a composite tool that chains multiple tools together.
+    
+    A composite tool is a predefined sequence of tools that work together
+    to accomplish a higher-level task. It provides:
+    - Reusable tool chains
+    - Consistent execution patterns
+    - Simplified complex workflows
+    - Built-in error handling
+    
+    Example:
+        A "data_enrichment" composite tool might chain:
+        1. validate_data
+        2. fetch_metadata
+        3. enrich_with_context
+        4. format_output
+    """
+    name: str = Field(..., description="Unique composite tool identifier")
+    description: str = Field(..., description="What the composite tool does")
+    category: str = Field(default="composite", description="Tool category")
+    version: str = Field(default="1.0.0", description="Composite tool version")
+    
+    # The chain of tools to execute
+    tool_chain: List[Dict[str, Any]] = Field(..., description="Ordered list of tools to execute")
+    
+    # Execution configuration
+    execution_mode: str = Field(default="sequential", description="sequential or parallel")
+    stop_on_error: bool = Field(default=True, description="Stop chain if a tool fails")
+    pass_results: bool = Field(default=True, description="Pass results between tools")
+    
+    # Metadata
+    enabled: bool = Field(default=True, description="Whether composite tool is available")
+    requires_auth: bool = Field(default=True, description="Whether authentication is required")
+    required_permissions: List[str] = Field(default_factory=list, description="Required permissions")
+    timeout_seconds: int = Field(default=300, description="Max execution time for entire chain")
+    
+    model_config = {"arbitrary_types_allowed": True}
+
+
+def register_composite_tool(
+    name: str,
+    description: str,
+    tool_chain: List[Dict[str, Any]],
+    category: str = "composite",
+    version: str = "1.0.0",
+    execution_mode: str = "sequential",
+    stop_on_error: bool = True,
+    pass_results: bool = True,
+    enabled: bool = True,
+    requires_auth: bool = True,
+    required_permissions: Optional[List[str]] = None,
+    timeout_seconds: int = 300
+) -> CompositeToolDefinition:
+    """
+    Register a composite tool - a predefined chain of tools.
+    
+    Composite tools provide reusable workflows by chaining multiple tools
+    together with predefined parameters and execution patterns.
+    
+    Args:
+        name: Unique identifier for the composite tool
+        description: What the composite tool does
+        tool_chain: List of tool definitions with tool_name and parameters
+        category: Tool category for organization
+        version: Composite tool version
+        execution_mode: How to execute the chain (sequential or parallel)
+        stop_on_error: Whether to stop the chain if a tool fails
+        pass_results: Whether to pass results from one tool to the next
+        enabled: Whether the composite tool is available
+        requires_auth: Whether authentication is required
+        required_permissions: List of required permissions
+        timeout_seconds: Max execution time for the entire chain
+        
+    Returns:
+        CompositeToolDefinition instance
+        
+    Example:
+        >>> register_composite_tool(
+        ...     name="data_enrichment_chain",
+        ...     description="Validates, fetches metadata, and enriches data",
+        ...     tool_chain=[
+        ...         {"tool_name": "validate_data", "parameters": {}},
+        ...         {"tool_name": "fetch_metadata", "parameters": {}},
+        ...         {"tool_name": "enrich_with_context", "parameters": {}}
+        ...     ],
+        ...     execution_mode="sequential",
+        ...     pass_results=True
+        ... )
+    """
+    # Create composite tool definition
+    composite_def = CompositeToolDefinition(
+        name=name,
+        description=description,
+        category=category,
+        version=version,
+        tool_chain=tool_chain,
+        execution_mode=execution_mode,
+        stop_on_error=stop_on_error,
+        pass_results=pass_results,
+        enabled=enabled,
+        requires_auth=requires_auth,
+        required_permissions=required_permissions or [],
+        timeout_seconds=timeout_seconds
+    )
+    
+    # Store in registry
+    COMPOSITE_TOOLS[name] = composite_def
+    
+    logger.info(
+        f"Registered composite tool '{name}' with {len(tool_chain)} tools "
+        f"(mode: {execution_mode}, category: {category})"
+    )
+    
+    return composite_def
+
+
+def get_composite_tool(name: str) -> Optional[CompositeToolDefinition]:
+    """
+    Get a composite tool definition by name.
+    
+    Args:
+        name: Name of the composite tool
+        
+    Returns:
+        CompositeToolDefinition or None if not found
+    """
+    return COMPOSITE_TOOLS.get(name)
+
+
+def get_all_composite_tools() -> Dict[str, CompositeToolDefinition]:
+    """
+    Get all registered composite tools.
+    
+    Returns:
+        Dictionary mapping composite tool name to definition
+    """
+    return COMPOSITE_TOOLS
+
+
+def list_composite_tools_by_category(category: str, enabled_only: bool = True) -> List[CompositeToolDefinition]:
+    """
+    List composite tools filtered by category.
+    
+    Args:
+        category: Category to filter by
+        enabled_only: Whether to only return enabled tools
+        
+    Returns:
+        List of matching composite tool definitions
+    """
+    tools = [
+        tool for tool in COMPOSITE_TOOLS.values()
+        if tool.category == category
+    ]
+    
+    if enabled_only:
+        tools = [t for t in tools if t.enabled]
+    
+    return tools
+
