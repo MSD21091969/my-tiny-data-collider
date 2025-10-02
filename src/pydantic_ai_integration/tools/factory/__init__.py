@@ -378,8 +378,9 @@ class ToolFactory:
             config: Tool configuration dictionary
             
         Returns:
-            Path to generated test file
+            Path to generated unit test file
         """
+        # Generate unit tests
         template = self.jinja_env.get_template('test_template.py.jinja2')
         output = template.render(tool=config)
         
@@ -392,7 +393,41 @@ class ToolFactory:
         with open(output_file, 'w') as f:
             f.write(output)
         
-        logger.info(f"Generated tests: {output_file.relative_to(self.project_root)}")
+        logger.info(f"Generated unit tests: {output_file.relative_to(self.project_root)}")
+        
+        # Generate integration tests
+        self.generate_integration_tests(config)
+        
+        return output_file
+    
+    def generate_integration_tests(self, config: Dict[str, Any]) -> Path:
+        """Generate integration test suite from config.
+        
+        Args:
+            config: Tool configuration dictionary
+            
+        Returns:
+            Path to generated integration test file
+        """
+        # Check if integration test template exists
+        try:
+            template = self.jinja_env.get_template('integration_test_template.py.jinja2')
+        except Exception as e:
+            logger.warning(f"Integration test template not found, skipping: {e}")
+            return None
+        
+        output = template.render(tool=config)
+        
+        # Write to tests/integration directory
+        integration_output_dir = self.project_root / "tests" / "integration"
+        integration_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_file = integration_output_dir / f"test_{config['name']}_integration.py"
+        
+        with open(output_file, 'w') as f:
+            f.write(output)
+        
+        logger.info(f"Generated integration tests: {output_file.relative_to(self.project_root)}")
         return output_file
     
     def generate_init_files(self):
@@ -414,8 +449,15 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
         # tests/generated/__init__.py
         test_init = self.project_root / "tests" / "generated" / "__init__.py"
         if not test_init.exists():
-            test_init.write_text('"""Auto-generated test suites."""\n')
+            test_init.write_text('"""Auto-generated unit test suites."""\n')
             logger.info(f"Created {test_init.relative_to(self.project_root)}")
+        
+        # tests/integration/__init__.py
+        integration_init = self.project_root / "tests" / "integration" / "__init__.py"
+        if not integration_init.exists():
+            integration_init.parent.mkdir(parents=True, exist_ok=True)
+            integration_init.write_text('"""Auto-generated integration test suites."""\n')
+            logger.info(f"Created {integration_init.relative_to(self.project_root)}")
     
     def process_tool(self, yaml_file: Path, validate_only: bool = False) -> bool:
         """Process a single tool configuration.
