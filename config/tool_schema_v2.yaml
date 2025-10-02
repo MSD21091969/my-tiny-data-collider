@@ -1,0 +1,135 @@
+# Tool Definition Schema (v2)
+#
+# Purpose:
+#   Canonical schema for declarative tool definitions consumed by the Tool Factory.
+#   This version captures implementation patterns, audit requirements, and
+#   session/casefile policies needed to maintain a complete audit trail.
+#
+# Notes:
+#   - Schema is expressed informally using YAML annotations to keep dependencies light.
+#   - Validation helpers in the factory will enforce these rules programmatically.
+#
+# Top-level structure:
+#
+# name:           string  (required, snake_case)
+# display_name:   string  (optional, defaults to title case)
+# description:    string  (required)
+# category:       string  (required)
+# version:        string  (semver, default "1.0.0")
+# tags:           list[string] (default [])
+# metadata:       map (optional) - arbitrary key/value annotations
+#
+# business_rules:
+#   enabled:                  bool (default true)
+#   requires_auth:            bool (default true)
+#   required_permissions:     list[string] (default [])
+#   timeout_seconds:          int (default 30)
+#   rate_limit_per_minute:    int (optional)
+#   visibility:               enum [public, internal, experimental] (optional)
+#
+# session_policies:  # ✅ ensures audit trail consistency for session lifecycle
+#   requires_active_session:  bool (default true)
+#   allow_new_session:        bool (default false)
+#   allow_session_resume:     bool (default true)
+#   session_event_type:       enum [request, resume, system] (default request)
+#   log_request_payload:      bool (default true)
+#   log_full_response:        bool (default true)
+#
+# casefile_policies: # ✅ enforces user/casefile rules for audit trail
+#   requires_casefile:        bool (default false)
+#   allowed_casefile_states:  list[string] (default ["active"])
+#   create_if_missing:        bool (default false)
+#   enforce_access_control:   bool (default true)
+#   audit_casefile_changes:   bool (default true)
+#
+# parameters:   # list of parameter definitions (at least one item)
+#   - name:        string (required)
+#     type:        enum [string, integer, float, boolean, array, object] (required)
+#     description: string (required)
+#     required:    bool (default false)
+#     default:     any  (optional; must conform to type)
+#     allow_null:  bool (default false)
+#     # String/array constraints
+#     min_length:  int (optional)
+#     max_length:  int (optional)
+#     pattern:     regex (optional)
+#     # Numeric constraints
+#     min_value:   number (optional)
+#     max_value:   number (optional)
+#     multiple_of: number (optional)
+#     # Array/object constraints
+#     items:       map    (optional, for nested schemas)
+#     properties:  map    (optional, for object parameters)
+#     examples:    list   (optional, sample values)
+#
+# implementation:   # descriptive definition of how the tool executes
+#   type: enum [simple, api_call, data_transform, composite]
+#
+#   simple:  # used when type == simple
+#     logic: |
+#       # Python source code executed in generated tool body.
+#       # Must return a value matching the `returns` schema.
+#
+#   api_call: # used when type == api_call
+#     client_class: string  # import path to client wrapper
+#     method:       string  # method name to invoke
+#     request_mapping: map  # maps parameters to client kwargs
+#     response_mapping: |
+#       # Python snippet that maps the client response into the `returns` schema.
+#     retry_policy:
+#       max_attempts: int (default 1)
+#       backoff_seconds: float (default 0)
+#
+#   data_transform: # used when type == data_transform
+#     source: string  # e.g., "casefile.gmail_data.messages"
+#     transform_logic: |
+#       # Python snippet receiving `source_data` variable. Must set `result`.
+#
+#   composite:  # orchestrates multiple sub-tools (future use)
+#     steps:
+#       - tool: string  # name of tool to invoke
+#         inputs: map   # maps current context to sub-tool parameters
+#         on_success: map (optional)
+#         on_failure: map (optional)
+#
+# returns:  # description of tool output aligned with audit records
+#   type: string  # JSON schema type (object, array, string, etc.)
+#   description: string (optional)
+#   properties:  map  # when type == object
+#   items:       map  # when type == array
+#   required:    list[string] (optional)
+#
+# audit_events:  # metadata to enforce audit trail completeness
+#   success_event: string (default "tool_success")
+#   failure_event: string (default "tool_failure")
+#   log_response_fields: list[string] (optional)
+#   redact_fields: list[string] (optional)
+#   emit_casefile_event: bool (default true)
+#
+# examples:  # drives test generation and documentation
+#   - description: string (required)
+#     context:
+#       session:
+#         user_id: string
+#         session_id: string
+#         casefile_id: string (optional)
+#       permissions: list[string] (optional)
+#     input: map (required)
+#     expected_output: map (required)
+#     expect_casefile_changes: bool (default false)
+#
+# error_scenarios:  # (optional) define expected failures for negative tests
+#   - description: string
+#     input: map
+#     expected_error: map
+#
+# documentation:  # optional doc-specific metadata
+#   summary: string
+#   changelog:
+#     - version: string
+#       date: string
+#       notes: string
+#
+# ---
+# Any additional custom keys should live under `metadata` to keep the schema
+# forward-compatible.

@@ -1,106 +1,110 @@
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
-- [ ] Verify that the copilot-instructions.md file in the .github directory is created.
+# My Tiny Data Collider - Copilot Instructions
 
-- [ ] Clarify Project Requirements
-	<!-- Ask for project type, language, and frameworks if not specified. Skip if already provided. -->
+## Project Overview
 
-- [ ] Scaffold the Project
-	<!--
-	Ensure that the previous step has been marked as completed.
-	Call project setup tool with projectType parameter.
-	Run scaffolding command to create project files and folders.
-	Use '.' as the working directory.
-	If no appropriate projectType is available, search documentation using available tools.
-	Otherwise, create the project structure manually using available file creation tools.
-	-->
+**My Tiny Data Collider** is a Pydantic-based tool engineering framework for AI agents and users. The project is organized as an N-tier layered architecture with YAML-driven tool generation.
 
-- [ ] Customize the Project
-	<!--
-	Verify that all previous steps have been completed successfully and you have marked the step as completed.
-	Develop a plan to modify codebase according to user requirements.
-	Apply modifications using appropriate tools and user-provided references.
-	Skip this step for "Hello World" projects.
-	-->
+## Architecture
 
-- [ ] Install Required Extensions
-	<!-- ONLY install extensions provided mentioned in the get_project_setup_info. Skip this step otherwise and mark as completed. -->
+### Layered Structure
+1. **API Layer** (`src/pydantic_api/routers/`): FastAPI HTTP endpoints, JWT auth, RequestEnvelope models
+2. **Service Layer** (`src/communicationservice/`, `src/tool_sessionservice/`): Business logic, policy enforcement, orchestration
+3. **Tool Layer** (`src/pydantic_ai_integration/tools/`): Tool implementations, MDSContext, execution logic
+4. **Persistence Layer** (`src/casefileservice/`, repositories): Firestore storage for sessions, casefiles, events
 
-- [ ] Compile the Project
-	<!--
-	Verify that all previous steps have been completed.
-	Install any missing dependencies.
-	Run diagnostics and resolve any issues.
-	Check for markdown files in project folder for relevant instructions on how to do this.
-	-->
+### Key Components
+- **Tool Factory** (`src/pydantic_ai_integration/tools/factory/`): Generates Python tools from YAML definitions
+- **MDSContext** (`src/pydantic_ai_integration/dependencies.py`): Unified context carrying user_id, session_id, casefile_id
+- **Policy System**: Declarative policies (business_rules, session_policies, casefile_policies, audit_config) defined in YAML, enforced at service layer
+- **SOLID Integration** (`src/solidservice/`): Experimental Solid Pod storage (side project)
 
-- [ ] Create and Run Task
-	<!--
-	Verify that all previous steps have been completed.
-	Check https://code.visualstudio.com/docs/debugtest/tasks to determine if the project needs a task. If so, use the create_and_run_task to create and launch a task based on package.json, README.md, and project structure.
-	Skip this step otherwise.
-	 -->
+## Development Guidelines
 
-- [ ] Launch the Project
-	<!--
-	Verify that all previous steps have been completed.
-	Prompt user for debug mode, launch only if confirmed.
-	 -->
+### Adding New Tools
+1. Create YAML definition in `config/tools/`
+2. Run tool factory: `python -m scripts.main config/tools/your_tool.yaml`
+3. Generated files: `src/pydantic_ai_integration/tools/generated/your_tool.py`, `tests/generated/test_your_tool.py`
+4. Run tests: `python -m pytest tests/generated/test_your_tool.py -v`
 
-- [ ] Ensure Documentation is Complete
-	<!--
-	Verify that all previous steps have been completed.
-	Verify that README.md and the copilot-instructions.md file in the .github directory exists and contains current project information.
-	Clean up the copilot-instructions.md file in the .github directory by removing all HTML comments.
-	 -->
+### Testing Strategy
+- **Unit Tests** (`tests/generated/`): Tool layer only, test business logic, use MDSContext directly
+- **Integration Tests** (`tests/integration/`): Service layer, test policy enforcement, use ToolRequest/ToolResponse
+- **API Tests** (`tests/api/`): HTTP layer, test end-to-end with JWT auth, use RequestEnvelope
 
-<!--
-## Execution Guidelines
-PROGRESS TRACKING:
-- If any tools are available to manage the above todo list, use it to track progress through this checklist.
-- After completing each step, mark it complete and add a summary.
-- Read current todo list status before starting each new step.
+### Request/Response Models by Layer
+- **API Layer**: `RequestEnvelope` → JSON response
+- **Service Layer**: `ToolRequest`/`ChatRequest` → `ToolResponse`/`ChatResponse`
+- **Tool Layer**: `MDSContext` + params → `Dict[str, Any]`
+- **Persistence Layer**: Pydantic models → Firestore dicts
 
-COMMUNICATION RULES:
-- Avoid verbose explanations or printing full command outputs.
-- If a step is skipped, state that briefly (e.g. "No extensions needed").
-- Do not explain project structure unless asked.
-- Keep explanations concise and focused.
+### Policy Enforcement Flow
+1. Policies defined in YAML (business_rules, session_policies, casefile_policies)
+2. Tool factory generates code with `@register_mds_tool` decorator
+3. Policies stored in `MANAGED_TOOLS` registry
+4. Service layer enforces policies before tool execution
+5. Tool executes if all policies pass
+6. Audit trail created per audit_config
 
-DEVELOPMENT RULES:
-- Use '.' as the working directory unless user specifies otherwise.
-- Avoid adding media or external links unless explicitly requested.
-- Use placeholders only with a note that they should be replaced.
-- Use VS Code API tool only for VS Code extension projects.
-- Once the project is created, it is already opened in Visual Studio Code—do not suggest commands to open this project in Visual Studio again.
-- If the project setup information has additional rules, follow them strictly.
+### Code Generation
+- **Templates**: `templates/tool_template.py.jinja2`, `templates/test_template.py.jinja2`
+- **Factory**: Uses Jinja2 to render Python code from YAML specifications
+- **Validation**: Pydantic v2 models for parameters, automatic constraint checking
 
-FOLDER CREATION RULES:
-- Always use the current directory as the project root.
-- If you are running any terminal commands, use the '.' argument to ensure that the current working directory is used ALWAYS.
-- Do not create a new folder unless the user explicitly requests it besides a .vscode folder for a tasks.json file.
-- If any of the scaffolding commands mention that the folder name is not correct, let the user know to create a new folder with the correct name and then reopen it again in vscode.
+## Important Patterns
 
-EXTENSION INSTALLATION RULES:
-- Only install extension specified by the get_project_setup_info tool. DO NOT INSTALL any other extensions.
+### Context Propagation
+```
+JWT → user_id → MDSContext(user_id, session_id, casefile_id) → Tool → Audit Trail
+```
 
-PROJECT CONTENT RULES:
-- If the user has not specified project details, assume they want a "Hello World" project as a starting point.
-- Avoid adding links of any type (URLs, files, folders, etc.) or integrations that are not explicitly required.
-- Avoid generating images, videos, or any other media files unless explicitly requested.
-- If you need to use any media assets as placeholders, let the user know that these are placeholders and should be replaced with the actual assets later.
-- Ensure all generated components serve a clear purpose within the user's requested workflow.
-- If a feature is assumed but not confirmed, prompt the user for clarification before including it.
-- If you are working on a VS Code extension, use the VS Code API tool with a query to find relevant VS Code API references and samples related to that query.
+### Separation of Concerns
+- API layer: HTTP handling, authentication extraction
+- Service layer: Policy enforcement, orchestration (PRIMARY ENFORCEMENT POINT)
+- Tool layer: Business logic execution only (NO policy checks)
+- Persistence layer: Data storage only
 
-TASK COMPLETION RULES:
-- Your task is complete when:
-  - Project is successfully scaffolded and compiled without errors
-  - copilot-instructions.md file in the .github directory exists in the project
-  - README.md file exists and is up to date
-  - User is provided with clear instructions to debug/launch the project
+### When to Use What
+- **Direct tool call**: Unit tests, agent integration
+- **Service layer call**: When policies need enforcement
+- **API endpoint**: When HTTP auth/routing needed
 
-Before starting a new task in the above plan, update progress in the plan.
--->
-- Work through each checklist item systematically.
-- Keep communication concise and focused.
-- Follow development best practices.
+## Tech Stack
+- Python 3.12+, Pydantic v2, FastAPI
+- Firestore (firebase-admin SDK)
+- PyYAML, Jinja2, pytest, pytest-asyncio
+
+## Documentation
+- `README.md`: Project overview, quick start, testing philosophy
+- `docs/POLICY_AND_USER_ID_FLOW.md`: Policy and user_id propagation
+- `docs/LAYERED_ARCHITECTURE_FLOW.md`: N-tier architecture, request/response patterns
+- `docs/TOOLENGINEERING_FOUNDATION.md`: Core design principles
+
+## Current Status
+- ✅ Week 1 Complete: Tool Factory MVP with echo_tool (9/9 tests passing)
+- 🚧 Week 2: Google Workspace toolset, integration test templates
+- 📋 Planned: Tool composition, agent-driven selection, document analysis
+
+## Development Commands
+```bash
+# Generate tool from YAML
+python -m scripts.main config/tools/tool_name.yaml
+
+# Run tests by layer
+python -m pytest tests/generated/ -v        # Unit tests
+python -m pytest tests/integration/ -v      # Integration tests
+python -m pytest tests/api/ -v              # API tests
+
+# Run all tests
+python -m pytest tests/ -v --tb=short
+
+# Coverage
+python -m pytest tests/ --cov=src --cov-report=html
+```
+
+## Copilot Assistance Guidelines
+- When modifying tools, always regenerate from YAML (don't edit generated files directly)
+- When adding features, identify correct layer first
+- For policy questions, refer to `docs/POLICY_AND_USER_ID_FLOW.md`
+- For architecture questions, refer to `docs/LAYERED_ARCHITECTURE_FLOW.md`
+- Test at appropriate layer: unit for logic, integration for policies, API for HTTP
+- Follow existing patterns in `src/pydantic_ai_integration/tools/unified_example_tools.py`

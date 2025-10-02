@@ -30,7 +30,7 @@ ge=1,le=10,        description="Number of times to repeat the message"
         json_schema_extra = {
             "examples": [
                 {
-                    "message": "None",                    "repeat_count": 1                }
+                    "message": 'hello',                    "repeat_count": 1                }
             ]
         }
 
@@ -48,6 +48,9 @@ ge=1,le=10,        description="Number of times to repeat the message"
     requires_casefile=False,
     timeout_seconds=10,
     params_model=EchotoolParams,
+    session_policies={'requires_active_session': True, 'allow_new_session': False, 'allow_session_resume': True, 'session_event_type': 'request', 'log_request_payload': True, 'log_full_response': True},
+    casefile_policies={'requires_casefile': False, 'allowed_casefile_states': ['active'], 'create_if_missing': False, 'enforce_access_control': True, 'audit_casefile_changes': True},
+    audit_config={'success_event': 'tool_success', 'failure_event': 'tool_failure', 'log_response_fields': ['original_message', 'repeat_count', 'total_length'], 'redact_fields': [], 'emit_casefile_event': False},
 )
 async def echo_tool(
     ctx: MDSContext,
@@ -69,11 +72,16 @@ async def echo_tool(
             "message": message,            "repeat_count": repeat_count        }
     )
     
-    # Tool implementation
+    # Simple implementation
+    echoed_messages = [message for _ in range(repeat_count)]
+    total_length = sum(len(msg) for msg in echoed_messages)
     result = {
-        "tool": "echo_tool",
-        "status": "success",
-        "message": message,        "repeat_count": repeat_count    }
+      "original_message": message,
+      "repeat_count": repeat_count,
+      "echoed_messages": echoed_messages,
+      "total_length": total_length,
+    }
+
     
     # Update audit trail
     if ctx.tool_events:

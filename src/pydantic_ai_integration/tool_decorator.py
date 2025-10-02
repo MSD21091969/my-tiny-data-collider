@@ -41,7 +41,10 @@ from src.pydantic_models.tool_session.tool_definition import (
     ToolMetadata,
     ToolBusinessRules,
     ToolParameterDef,
-    ParameterType
+    ParameterType,
+    ToolSessionPolicies,
+    ToolCasefilePolicies,
+    ToolAuditConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -66,6 +69,9 @@ def register_mds_tool(
     timeout_seconds: int = 30,
     tags: Optional[List[str]] = None,
     docs_url: Optional[str] = None,
+    session_policies: Optional[ToolSessionPolicies | Dict[str, Any]] = None,
+    casefile_policies: Optional[ToolCasefilePolicies | Dict[str, Any]] = None,
+    audit_config: Optional[ToolAuditConfig | Dict[str, Any]] = None,
 ) -> Callable:
     """
     Unified tool registration decorator.
@@ -154,13 +160,35 @@ def register_mds_tool(
             timeout_seconds=timeout_seconds
         )
         
+        # Normalize optional policy inputs (allow dicts from templates)
+        session_policy_obj: Optional[ToolSessionPolicies]
+        if isinstance(session_policies, dict):
+            session_policy_obj = ToolSessionPolicies(**session_policies)
+        else:
+            session_policy_obj = session_policies
+
+        casefile_policy_obj: Optional[ToolCasefilePolicies]
+        if isinstance(casefile_policies, dict):
+            casefile_policy_obj = ToolCasefilePolicies(**casefile_policies)
+        else:
+            casefile_policy_obj = casefile_policies
+
+        audit_config_obj: Optional[ToolAuditConfig]
+        if isinstance(audit_config, dict):
+            audit_config_obj = ToolAuditConfig(**audit_config)
+        else:
+            audit_config_obj = audit_config
+
         # Create complete tool definition (single source of truth)
         tool_def = ManagedToolDefinition(
             metadata=metadata,
             business_rules=business_rules,
             parameters=parameters,
             implementation=func,
-            params_model=params_model
+            params_model=params_model,
+            session_policies=session_policy_obj,
+            casefile_policies=casefile_policy_obj,
+            audit_config=audit_config_obj,
         )
         
         # Store in global registry

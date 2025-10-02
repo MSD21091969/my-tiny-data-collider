@@ -65,9 +65,9 @@ class CasefileRepository:
             ID of the created casefile
         """
         casefile_id = casefile.id  # Now it's already a string
-        
+
         # Convert to dict for Firestore
-        casefile_dict = casefile.model_dump()
+        casefile_dict = casefile.model_dump(exclude_none=True)
         casefile_dict["session_ids"] = list(casefile.session_ids)
 
         self.casefiles_collection.document(casefile_id).set(casefile_dict)
@@ -87,7 +87,9 @@ class CasefileRepository:
         if doc.exists:
             # Convert back to CasefileModel
             casefile_data = doc.to_dict()
-            casefile_data["sessions"] = casefile_data.get("sessions", [])
+            if "sessions" in casefile_data and "session_ids" not in casefile_data:
+                casefile_data["session_ids"] = casefile_data.pop("sessions")
+            casefile_data.setdefault("session_ids", [])
 
             return CasefileModel.model_validate(casefile_data)
         return None
@@ -99,7 +101,7 @@ class CasefileRepository:
             casefile: The casefile to update
         """
         # Convert to dict for Firestore
-        casefile_dict = casefile.model_dump()
+        casefile_dict = casefile.model_dump(exclude_none=True)
         casefile_dict["session_ids"] = list(casefile.session_ids)
 
         self.casefiles_collection.document(casefile.id).set(casefile_dict)
@@ -125,9 +127,11 @@ class CasefileRepository:
         results = []
         for doc in docs:
             data = doc.to_dict()
-            
+
             # Convert sessions back to UUIDs for model validation
-            data["sessions"] = data.get("sessions", [])
+            if "sessions" in data and "session_ids" not in data:
+                data["session_ids"] = data.pop("sessions")
+            data.setdefault("session_ids", [])
 
             casefile = CasefileModel.model_validate(data)
             

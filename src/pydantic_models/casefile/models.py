@@ -7,6 +7,11 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from ...coreservice.id_service import get_id_service
+from ..workspace import (
+    CasefileDriveData,
+    CasefileGmailData,
+    CasefileSheetsData,
+)
 
 def generate_casefile_id() -> str:
     """Generate a casefile ID using the centralized ID service."""
@@ -30,16 +35,42 @@ class ResourceReference(BaseModel):
 
 class CasefileModel(BaseModel):
     """Complete casefile model with metadata and linked resources."""
+
     id: str = Field(default_factory=generate_casefile_id, description="Unique casefile ID in format cf_yymmdd_code")
     metadata: CasefileMetadata = Field(..., description="Casefile metadata")
-    resources: Dict[str, List[ResourceReference]] = Field(default_factory=dict, description="Linked resources by type")
+    resources: Dict[str, List[ResourceReference]] = Field(
+        default_factory=dict,
+        description="Legacy resource references by type (deprecated)",
+        json_schema_extra={"deprecated": True},
+    )
     session_ids: List[str] = Field(default_factory=list, description="Tool session IDs associated with this casefile")
     notes: Optional[str] = Field(None, description="Additional notes")
+
+    # Typed workspace data containers (preferred over `resources`)
+    gmail_data: Optional[CasefileGmailData] = Field(
+        None,
+        description="Typed Gmail data captured for this casefile",
+    )
+    drive_data: Optional[CasefileDriveData] = Field(
+        None,
+        description="Typed Google Drive data captured for this casefile",
+    )
+    sheets_data: Optional[CasefileSheetsData] = Field(
+        None,
+        description="Typed Google Sheets data captured for this casefile",
+    )
     
     @computed_field
     def resource_count(self) -> int:
         """Total number of resources linked to this casefile."""
-        return sum(len(resources) for resources in self.resources.values())
+        total = sum(len(resources) for resources in self.resources.values())
+        if self.gmail_data:
+            total += len(self.gmail_data.messages)
+        if self.drive_data:
+            total += len(self.drive_data.files)
+        if self.sheets_data:
+            total += sum(len(sheet.ranges) for sheet in self.sheets_data.spreadsheets.values())
+        return total
 
 class CasefileSummary(BaseModel):
     """Summary view of a casefile."""

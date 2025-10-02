@@ -23,6 +23,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from typing import Dict, Any, List, Optional
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -33,14 +34,38 @@ TYPE_MAPPING = {
     "integer": "int",
     "float": "float",
     "boolean": "bool",
-    "array": "List",
-    "object": "Dict",
+    "array": "List[Any]",
+    "object": "Dict[str, Any]",
 }
 
 
 class ToolFactory:
     """Factory for generating tools from YAML configurations."""
     
+    @staticmethod
+    def _python_literal(value: Any) -> str:
+        """Render a Python literal suitable for generated code."""
+
+        if isinstance(value, str):
+            return repr(value)
+        if isinstance(value, bool):
+            return "True" if value else "False"
+        if value is None:
+            return "None"
+        if isinstance(value, (int, float)):
+            return str(value)
+        if isinstance(value, (list, dict, tuple, set)):
+            return repr(value)
+        return repr(value)
+
+    @staticmethod
+    def _slugify(text: str, fallback: str = "example") -> str:
+        """Convert text into a slug suitable for identifiers."""
+
+        slug = re.sub(r"[^a-z0-9]+", "_", text.lower())
+        slug = slug.strip("_")
+        return slug or fallback
+
     def __init__(self, project_root: Optional[Path] = None):
         """Initialize the tool factory.
         
@@ -69,67 +94,225 @@ class ToolFactory:
         )
     
     def load_tool_config(self, yaml_file: Path) -> Dict[str, Any]:
-        """Load and validate tool configuration from YAML.
-        
-        Args:
-            yaml_file: Path to YAML configuration file
-            
-        Returns:
-            Parsed and validated configuration dictionary
-            
-        Raises:
-            ValueError: If required fields are missing
-        """
+        """Load and enrich tool configuration from YAML."""
+
         logger.info(f"Loading {yaml_file.name}...")
-        
-        with open(yaml_file, 'r') as f:
+
+        with open(yaml_file, "r") as f:
             config = yaml.safe_load(f)
-        
-        # Validate required fields
-        required_fields = ['name', 'description', 'category', 'parameters']
+
+        # Validate required fields at a high level
+        required_fields = ["name", "description", "category", "parameters"]
         for field in required_fields:
             if field not in config:
                 raise ValueError(f"Missing required field: {field}")
-        
-        # Set defaults
-        config.setdefault('display_name', config['name'].replace('_', ' ').title())
-        config.setdefault('version', '1.0.0')
-        config.setdefault('tags', [])
-        config.setdefault('business_rules', {})
-        config.setdefault('implementation', {})
-        
-        # Set business rule defaults
-        br = config['business_rules']
-        br.setdefault('enabled', True)
-        br.setdefault('requires_auth', True)
-        br.setdefault('required_permissions', [])
-        br.setdefault('requires_casefile', False)
-        br.setdefault('timeout_seconds', 30)
-        
+
+        # Basic defaults
+        config.setdefault("display_name", config["name"].replace("_", " ").title())
+        config.setdefault("version", "1.0.0")
+        config.setdefault("tags", [])
+        config.setdefault("business_rules", {})
+
+        # Business rule defaults
+        business_rules = config["business_rules"]
+        business_rules.setdefault("enabled", True)
+        business_rules.setdefault("requires_auth", True)
+        business_rules.setdefault("required_permissions", [])
+        business_rules.setdefault("requires_casefile", False)
+        business_rules.setdefault("timeout_seconds", 30)
+
+        # Session and casefile policies
+        session_defaults = {
+            "requires_active_session": True,
+            "allow_new_session": False,
+            "allow_session_resume": True,
+            "session_event_type": "request",
+            "log_request_payload": True,
+            "log_full_response": True,
+        }
+        session_policies = config.setdefault("session_policies", {})
+        for key, value in session_defaults.items():
+            session_policies.setdefault(key, value)
+
+        casefile_defaults = {
+            "requires_casefile": business_rules.get("requires_casefile", False),
+            "allowed_casefile_states": ["active"],
+            "create_if_missing": False,
+            "enforce_access_control": True,
+            "audit_casefile_changes": True,
+        }
+        casefile_policies = config.setdefault("casefile_policies", {})
+        for key, value in casefile_defaults.items():
+            casefile_policies.setdefault(key, value)
+
+        # Implementation defaults
+        implementation = config.setdefault("implementation", {})
+        impl_type = implementation.get("type") or implementation.get("template") or "simple"
+        implementation["type"] = impl_type
+        if impl_type == "simple":
+            implementation.setdefault("simple", {})
+        elif impl_type == "api_call":
+            implementation.setdefault("api_call", {})
+        elif impl_type == "data_transform":
+            implementation.setdefault("data_transform", {})
+        elif impl_type == "composite":
+            implementation.setdefault("composite", {})
+        else:
+            raise ValueError(f"Unsupported implementation type: {impl_type}")
+
+        # Return contract defaults
+        returns = config.setdefault("returns", {})
+        returns.setdefault("type", "object")
+        returns.setdefault("description", "Tool result payload")
+        returns.setdefault("properties", {})
+        returns.setdefault("required", [])
+
+        # Audit event defaults
+        audit_defaults = {
+            "success_event": "tool_success",
+            "failure_event": "tool_failure",
+            "log_response_fields": [],
+            "redact_fields": [],
+            "emit_casefile_event": True,
+        }
+        audit_events = config.setdefault("audit_events", {})
+        for key, value in audit_defaults.items():
+            audit_events.setdefault(key, value)
+
+        # Normalise collections
+        config["examples"] = config.get("examples", [])
+        config["error_scenarios"] = config.get("error_scenarios", [])
+
+        # Prepare helper data for examples and defaults
+        example_inputs = [example.get("input", {}) for example in config["examples"]]
+        fallback_examples = {
+            "string": "example",
+            "integer": 1,
+            "float": 1.0,
+            "boolean": True,
+            "array": [],
+            "object": {},
+        }
+
         # Process parameters
-        for param in config['parameters']:
-            param['python_type'] = TYPE_MAPPING.get(param['type'], 'str')
-            
-            # Generate example values for tests
-            if param['type'] == 'string':
-                param['example_value'] = f'"{param.get("default", "example")}"'
-            elif param['type'] == 'integer':
-                param['example_value'] = str(param.get('default', 1))
-            elif param['type'] == 'float':
-                param['example_value'] = str(param.get('default', 1.0))
-            elif param['type'] == 'boolean':
-                param['example_value'] = str(param.get('default', True)).lower()
+        for param in config["parameters"]:
+            param.setdefault("required", False)
+            param.setdefault("description", "")
+            param_type = param.get("type", "string")
+            param["python_type"] = TYPE_MAPPING.get(param_type, "str")
+
+            # Determine example value (prefer explicit examples)
+            example_raw_value = None
+            for example_input in example_inputs:
+                if param["name"] in example_input:
+                    example_raw_value = example_input[param["name"]]
+                    break
+
+            if example_raw_value is None:
+                if "default" in param:
+                    example_raw_value = param.get("default")
+            if example_raw_value is None:
+                # Fallback by type
+                template_value = fallback_examples.get(param_type, None)
+                if isinstance(template_value, list):
+                    example_raw_value = list(template_value)
+                elif isinstance(template_value, dict):
+                    example_raw_value = dict(template_value)
+                else:
+                    example_raw_value = template_value
+
+            param["example_raw_value"] = example_raw_value
+            param["example_value"] = self._python_literal(example_raw_value)
+
+            # Determine default for generated code
+            default_raw = param.get("default", None)
+            if default_raw is None and not param["required"]:
+                param["default_value"] = "None"
+            elif default_raw is not None:
+                param["default_value"] = self._python_literal(default_raw)
             else:
-                param['example_value'] = 'None'
-            
-            # Format default value for Python code
-            if param.get('default') is None:
-                param['default_value'] = 'None'
-            elif param['type'] == 'string':
-                param['default_value'] = f'"{param["default"]}"'
-            else:
-                param['default_value'] = str(param['default'])
-        
+                param["default_value"] = None
+
+        # Process examples for test/template consumption
+        processed_examples: List[Dict[str, Any]] = []
+        for idx, example in enumerate(config["examples"]):
+            description = example.get("description") or f"Example {idx + 1}"
+            context_block = example.get("context", {})
+            session_block = context_block.get("session", {})
+            permissions = context_block.get("permissions", [])
+            input_payload = example.get("input", {})
+            expected_output = example.get("expected_output", {})
+
+            processed_examples.append(
+                {
+                    "name": self._slugify(description, f"example_{idx + 1}"),
+                    "description": description,
+                    "context_user_id": self._python_literal(session_block.get("user_id", "test_user")),
+                    "context_session_id": self._python_literal(session_block.get("session_id", "test_session")),
+                    "context_casefile_id": self._python_literal(session_block.get("casefile_id")) if session_block.get("casefile_id") else None,
+                    "permissions_literal": self._python_literal(permissions) if permissions else None,
+                    "input_kwargs_literal": [
+                        {
+                            "name": param["name"],
+                            "value": self._python_literal(input_payload[param["name"]]),
+                        }
+                        for param in config["parameters"]
+                        if param["name"] in input_payload
+                    ],
+                    "input_raw": {
+                        name: input_payload[name] for name in input_payload
+                    },
+                    "expected_output_literal": self._python_literal(expected_output),
+                    "expect_casefile_changes": example.get("expect_casefile_changes", False),
+                }
+            )
+
+        config["processed_examples"] = processed_examples
+        config["primary_example"] = processed_examples[0] if processed_examples else None
+
+        # Prepare error scenarios
+        base_inputs: Dict[str, Any] = {}
+        if processed_examples:
+            base_inputs = dict(processed_examples[0]["input_raw"])
+        else:
+            for param in config["parameters"]:
+                if param["required"]:
+                    base_inputs[param["name"]] = param["example_raw_value"]
+
+        processed_errors: List[Dict[str, Any]] = []
+        for idx, scenario in enumerate(config["error_scenarios"]):
+            description = scenario.get("description") or f"Error {idx + 1}"
+            override_inputs = scenario.get("input", {})
+            expected_error = scenario.get("expected_error", {})
+
+            scenario_inputs = dict(base_inputs)
+            scenario_inputs.update(override_inputs)
+
+            processed_errors.append(
+                {
+                    "name": self._slugify(description, f"error_{idx + 1}"),
+                    "description": description,
+                    "input_kwargs_literal": [
+                        {
+                            "name": param["name"],
+                            "value": self._python_literal(scenario_inputs[param["name"]]),
+                        }
+                        for param in config["parameters"]
+                        if param["name"] in scenario_inputs
+                    ],
+                    "error_type": expected_error.get("type", "Exception"),
+                    "error_message": expected_error.get("message"),
+                }
+            )
+
+        config["processed_error_tests"] = processed_errors
+        config["requires_validation_error_import"] = any(
+            error["error_type"] == "ValidationError" for error in processed_errors
+        )
+
+        config["has_examples"] = bool(processed_examples)
+        config["has_error_tests"] = bool(processed_errors)
+
         return config
     
     def validate_config(self, config: Dict[str, Any]) -> List[str]:

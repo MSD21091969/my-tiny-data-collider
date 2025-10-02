@@ -153,6 +153,37 @@ class ToolBusinessRules(BaseModel):
     )
 
 
+class ToolSessionPolicies(BaseModel):
+    """Session lifecycle policies controlling request/resume behavior."""
+
+    requires_active_session: bool = Field(True, description="Whether an active session is required before execution")
+    allow_new_session: bool = Field(False, description="Whether the tool may create a new session")
+    allow_session_resume: bool = Field(True, description="Whether the tool may resume an inactive session")
+    session_event_type: str = Field("request", description="Event type emitted to the audit trail (request|resume|system)")
+    log_request_payload: bool = Field(True, description="Whether the tool request payload is persisted to the audit trail")
+    log_full_response: bool = Field(True, description="Whether the tool response is persisted in full")
+
+
+class ToolCasefilePolicies(BaseModel):
+    """Rules governing how a tool interacts with casefiles."""
+
+    requires_casefile: bool = Field(False, description="Whether execution mandates a casefile context")
+    allowed_casefile_states: List[str] = Field(default_factory=lambda: ["active"], description="Allowed casefile lifecycle states")
+    create_if_missing: bool = Field(False, description="Whether the tool may create a casefile automatically")
+    enforce_access_control: bool = Field(True, description="Whether casefile ACL rules are enforced")
+    audit_casefile_changes: bool = Field(True, description="Whether casefile mutations are logged to the audit trail")
+
+
+class ToolAuditConfig(BaseModel):
+    """Audit trail configuration for successful and failed executions."""
+
+    success_event: str = Field("tool_success", description="Event type emitted on successful execution")
+    failure_event: str = Field("tool_failure", description="Event type emitted on failed execution")
+    log_response_fields: List[str] = Field(default_factory=list, description="Subset of response fields to persist in audit logs")
+    redact_fields: List[str] = Field(default_factory=list, description="Fields that should be redacted before logging")
+    emit_casefile_event: bool = Field(True, description="Whether to emit a casefile event alongside the tool event")
+
+
 class ManagedToolDefinition(BaseModel):
     """
     Complete tool definition that serves as the single source of truth.
@@ -186,6 +217,20 @@ class ManagedToolDefinition(BaseModel):
     business_rules: ToolBusinessRules = Field(
         default_factory=ToolBusinessRules,
         description="Business logic and execution policies"
+    )
+
+    # Session lifecycle and casefile policies
+    session_policies: Optional[ToolSessionPolicies] = Field(
+        None,
+        description="Session lifecycle rules enforced during execution"
+    )
+    casefile_policies: Optional[ToolCasefilePolicies] = Field(
+        None,
+        description="Casefile interaction policies"
+    )
+    audit_config: Optional[ToolAuditConfig] = Field(
+        None,
+        description="Audit event configuration"
     )
     
     # Parameters (WHAT inputs)

@@ -1,11 +1,29 @@
-"""
-Example tool implementation.
+"""Legacy example tool implementations.
+
+⚠️ This module exists solely for historical context while the new
+tool factory rolls out. Prefer the @register_mds_tool pattern in
+``unified_example_tools`` or generated tools moving forward.
 """
 
-from typing import Dict, Any
 import asyncio
+import logging
+import warnings
+from typing import Any, Dict
 
 from ..agents.base import default_agent
+
+logger = logging.getLogger(__name__)
+
+warnings.warn(
+    "src.pydantic_ai_integration.tools.example_tools is deprecated; "
+    "use unified_example_tools or generated tools instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+logger.warning(
+    "Importing legacy module 'example_tools'. This module will be removed once "
+    "all tooling is migrated to the declarative factory."
+)
 
 @default_agent.tool
 async def hello_world(ctx: Any, name: str) -> Dict[str, Any]:

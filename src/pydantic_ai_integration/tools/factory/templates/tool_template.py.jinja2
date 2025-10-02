@@ -53,6 +53,15 @@ class {{ tool.name | capitalize | replace('_', '') }}Params(BaseModel):
     requires_casefile={{ tool.business_rules.requires_casefile | capitalize }},
     timeout_seconds={{ tool.business_rules.timeout_seconds }},
     params_model={{ tool.name | capitalize | replace('_', '') }}Params,
+    {% if tool.session_policies %}
+    session_policies={{ tool.session_policies }},
+    {% endif %}
+    {% if tool.casefile_policies %}
+    casefile_policies={{ tool.casefile_policies }},
+    {% endif %}
+    {% if tool.audit_events %}
+    audit_config={{ tool.audit_events }},
+    {% endif %}
 )
 async def {{ tool.name }}(
     ctx: MDSContext,
@@ -81,7 +90,12 @@ async def {{ tool.name }}(
         }
     )
     
-    # Tool implementation
+    {% if tool.implementation.type == 'simple' %}
+    # Simple implementation
+    {% if tool.implementation.simple and tool.implementation.simple.logic %}
+    {{ tool.implementation.simple.logic | indent(4) }}
+    {% else %}
+    # Default simple result
     result = {
         "tool": "{{ tool.name }}",
         "status": "success",
@@ -89,6 +103,18 @@ async def {{ tool.name }}(
         "{{ param.name }}": {{ param.name }}{% if not loop.last %},{% endif %}
         {% endfor %}
     }
+    {% endif %}
+    {% else %}
+    # Placeholder for {{ tool.implementation.type }} implementation
+    result = {
+        "tool": "{{ tool.name }}",
+        "status": "success",
+        "implementation_type": "{{ tool.implementation.type }}",
+        {% for param in tool.parameters %}
+        "{{ param.name }}": {{ param.name }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    }
+    {% endif %}
     
     # Update audit trail
     if ctx.tool_events:
