@@ -1,0 +1,128 @@
+name: gmail_send_message
+display_name: Gmail Send Message
+description: "Send an email message through Gmail"
+version: "1.0.0"
+category: google_workspace
+tags:
+  - gmail
+  - email
+  - google_workspace
+  - communication
+  - send
+
+parameters:
+  - name: to
+    type: string
+    description: "Recipient email address"
+    required: true
+    
+  - name: subject
+    type: string
+    description: "Email subject line"
+    required: true
+    min_length: 1
+    max_length: 500
+    
+  - name: body
+    type: string
+    description: "Email body content (plain text)"
+    required: true
+    min_length: 1
+    
+  - name: cc
+    type: string
+    description: "CC recipient email addresses (comma-separated)"
+    required: false
+    default: ""
+    
+  - name: bcc
+    type: string
+    description: "BCC recipient email addresses (comma-separated)"
+    required: false
+    default: ""
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: ["gmail.send"]
+  requires_casefile: true
+  timeout_seconds: 30
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: "gmail_send"
+  log_request_payload: true
+  log_full_response: true
+
+casefile_policies:
+  requires_casefile: true
+  allowed_casefile_states: ["active"]
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: true
+
+implementation:
+  type: api_call
+  api_call:
+    client_class: "GmailClient"
+    client_module: "src.pydantic_ai_integration.google_workspace.clients"
+    method_name: "send_message"
+    response_type: "GmailSendMessageResponse"
+
+returns:
+  type: object
+  description: "Sent message details"
+  properties:
+    message_id:
+      type: string
+      description: "ID of the sent message"
+    thread_id:
+      type: string
+      description: "Thread ID of the sent message"
+    labels:
+      type: array
+      description: "Labels applied to the sent message"
+
+audit_events:
+  success_event: "gmail_send_success"
+  failure_event: "gmail_send_failure"
+  log_response_fields: ["message_id"]
+  redact_fields: ["body"]
+  emit_casefile_event: true
+
+examples:
+  - description: "Send a basic email"
+    context:
+      session:
+        user_id: "test_user"
+        session_id: "test_session"
+        casefile_id: "cf_001"
+    input:
+      to: "recipient@example.com"
+      subject: "Test Email"
+      body: "This is a test email"
+    expected_output:
+      message_id: "mock-sent-123"
+      thread_id: "mock-thread-456"
+
+error_scenarios:
+  - description: "Missing required field"
+    input:
+      to: "recipient@example.com"
+      body: "Missing subject"
+    expected_error:
+      type: "ValidationError"
+      message: "Field required"
+
+test_scenarios:
+  - name: "send_with_cc"
+    description: "Send email with CC recipients"
+    parameters:
+      to: "primary@example.com"
+      subject: "Test"
+      body: "Test body"
+      cc: "cc1@example.com,cc2@example.com"
+    expected_output:
+      message_id: "mock-sent-123"

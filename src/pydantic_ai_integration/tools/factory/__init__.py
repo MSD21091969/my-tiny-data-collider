@@ -524,22 +524,22 @@ def generate_tools_cli():
     
     factory = ToolFactory()
     
-    print(f"\n🏭 Tool Factory Starting...")
-    print(f"📁 Config directory: {factory.config_dir}")
-    print(f"📁 Output directory: {factory.output_dir}")
+    print(f"\nTool Factory Starting...")
+    print(f"Config directory: {factory.config_dir}")
+    print(f"Output directory: {factory.output_dir}")
     print()
     
     if args.tool_name:
         # Process specific tool
         yaml_file = factory.config_dir / f"{args.tool_name}.yaml"
         if not yaml_file.exists():
-            print(f"❌ Tool configuration not found: {yaml_file}")
+            print(f"ERROR: Tool configuration not found: {yaml_file}")
             sys.exit(1)
         
         success = factory.process_tool(yaml_file, args.validate_only)
         print()
         print("=" * 60)
-        print(f"{'✅' if success else '❌'} {'Validated' if args.validate_only else 'Generated'}: {args.tool_name}")
+        print(f"{'SUCCESS' if success else 'FAILED'} {'Validated' if args.validate_only else 'Generated'}: {args.tool_name}")
         print("=" * 60)
         sys.exit(0 if success else 1)
     else:
@@ -548,9 +548,9 @@ def generate_tools_cli():
         print()
         print("=" * 60)
         success_count = sum(1 for v in results.values() if v)
-        print(f"✅ Successfully processed: {success_count}/{len(results)} tools")
+        print(f"Successfully processed: {success_count}/{len(results)} tools")
         if success_count < len(results):
-            print(f"❌ Failed: {len(results) - success_count} tools")
+            print(f"Failed: {len(results) - success_count} tools")
         print("=" * 60)
         sys.exit(0 if success_count == len(results) else 1)
 
