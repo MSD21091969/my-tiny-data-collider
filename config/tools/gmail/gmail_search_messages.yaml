@@ -1,0 +1,63 @@
+# Gmail Search Messages Tool Definition
+# This tool searches Gmail messages using Gmail query syntax
+
+name: gmail_search_messages
+display_name: "Search Gmail Messages"
+description: "Search Gmail messages using Gmail query syntax (e.g., 'from:user@example.com subject:report')"
+category: google_workspace
+version: "1.0.0"
+tags:
+  - gmail
+  - search
+  - query
+  - google
+
+# Business rules
+requires_auth: true
+required_permissions:
+  - gmail:read
+requires_casefile: true
+timeout_seconds: 30
+enabled: true
+
+# Parameters
+parameters:
+  - name: query
+    type: string
+    required: true
+    min_length: 1
+    max_length: 500
+    description: "Gmail search query (e.g., 'from:user@example.com subject:report')"
+  
+  - name: max_results
+    type: integer
+    required: false
+    default: 10
+    min_value: 1
+    max_value: 100
+    description: "Maximum number of messages to return"
+  
+  - name: label_ids
+    type: array
+    required: false
+    default: null
+    description: "List of label IDs to filter by"
+
+# Implementation details
+stores_in_casefile: true
+casefile_resource_type: gmail_search_results
+
+# Expected response structure
+response_schema:
+  messages:
+    type: array
+    description: "List of matching message objects"
+  result_size_estimate:
+    type: integer
+    description: "Estimated total number of matching messages"
+  message_count:
+    type: integer
+    description: "Actual number of messages returned"
+  query:
+    type: string
+    description: "The search query used"

@@ -1,0 +1,88 @@
+# Gmail Send Message Tool Definition
+# This tool sends an email message via Gmail
+
+name: gmail_send_message
+display_name: "Send Gmail Message"
+description: "Send an email message via Gmail"
+category: google_workspace
+version: "1.0.0"
+tags:
+  - gmail
+  - send
+  - email
+  - google
+
+# Business rules
+requires_auth: true
+required_permissions:
+  - gmail:send
+requires_casefile: true
+timeout_seconds: 30
+enabled: true
+
+# Parameters
+parameters:
+  - name: to
+    type: string
+    required: true
+    min_length: 5
+    max_length: 500
+    pattern: "^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$"
+    description: "Recipient email address"
+  
+  - name: subject
+    type: string
+    required: true
+    min_length: 1
+    max_length: 500
+    description: "Email subject"
+  
+  - name: body
+    type: string
+    required: true
+    min_length: 1
+    max_length: 50000
+    description: "Email body (plain text)"
+  
+  - name: from_email
+    type: string
+    required: false
+    default: null
+    pattern: "^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$"
+    description: "Sender email (optional, uses authenticated user if not provided)"
+  
+  - name: cc
+    type: string
+    required: false
+    default: null
+    max_length: 500
+    description: "CC recipients (comma-separated)"
+  
+  - name: bcc
+    type: string
+    required: false
+    default: null
+    max_length: 500
+    description: "BCC recipients (comma-separated)"
+
+# Implementation details
+stores_in_casefile: true
+casefile_resource_type: gmail_sent_message
+
+# Expected response structure
+response_schema:
+  id:
+    type: string
+    description: "Sent message ID"
+  thread_id:
+    type: string
+    description: "Thread ID"
+  to:
+    type: string
+    description: "Recipient email address"
+  subject:
+    type: string
+    description: "Email subject"
+  status:
+    type: string
+    description: "Send status (sent, failed, etc.)"

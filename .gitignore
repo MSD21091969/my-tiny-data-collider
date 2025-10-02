@@ -37,6 +37,13 @@ ENV/
 .env
 .env.local
 
+# Google OAuth2 credentials and tokens
+credentials.json
+token.json
+oauth2_credentials.json
+*_credentials.json
+*_token.json
+
 # Logs
 logs/
 *.log
