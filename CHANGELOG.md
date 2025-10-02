@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Week 2 kickoff release notes (`docs/WEEK2_KICKOFF_RELEASE_NOTES.md`) covering the new branch topology and readiness tasks.
+- Repository-wide pull request template aligned with Week 2 checklists.
+
 ### Planned
 - Integration test templates
 - API test templates
