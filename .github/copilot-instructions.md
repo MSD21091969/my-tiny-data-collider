@@ -1,44 +1,106 @@
-# Copilot instructions for MDS Objects API
+<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
+- [ ] Verify that the copilot-instructions.md file in the .github directory is created.
 
-## Quick map
-- `main.py` bootstraps the FastAPI server via `src/pydantic_api/app.py`; the app wires auth, casefile, tool-session, and optional chat routers.
-- Service layers live under `src/*service/` and wrap persistence repositories plus domain logic; API routes only compose these services.
-- Data contracts are defined in `src/pydantic_models/**` and carry computed fields used across services, so prefer reusing them over ad-hoc dicts.
+- [ ] Clarify Project Requirements
+	<!-- Ask for project type, language, and frameworks if not specified. Skip if already provided. -->
 
-## Environment & config
-- Defaults assume `ENVIRONMENT=development`; production flips feature flags in `src/coreservice/config.py`.
-- Set `USE_MOCKS=true` (default in non-production) to run everything in-memory; setting it to false expects Firestore credentials (`GOOGLE_APPLICATION_CREDENTIALS`, `FIRESTORE_DATABASE`, `GOOGLE_CLOUD_PROJECT`).
-- `.env` is loaded automatically in `main.py`; keep new config keys there and expose via helper functions in `coreservice.config`.
+- [ ] Scaffold the Project
+	<!--
+	Ensure that the previous step has been marked as completed.
+	Call project setup tool with projectType parameter.
+	Run scaffolding command to create project files and folders.
+	Use '.' as the working directory.
+	If no appropriate projectType is available, search documentation using available tools.
+	Otherwise, create the project structure manually using available file creation tools.
+	-->
 
-## Persistence patterns
-- Repositories (`casefileservice.repository`, `tool_sessionservice.repository`, `communicationservice.repository`) mirror the same API for mock vs Firestore backends. Always call `model_dump(mode="json")` before writing to Firestore to serialize UUIDs.
-- When adding new collections, follow the existing pattern: initialize in `*_init_firestore`, gracefully fall back to mocks if `firebase_admin` import fails, and keep string IDs in Firestore documents.
-- `persistence/firestore/context_persistence.py` chunks oversized fields; reuse `_split_large_context` logic rather than bypassing it.
+- [ ] Customize the Project
+	<!--
+	Verify that all previous steps have been completed successfully and you have marked the step as completed.
+	Develop a plan to modify codebase according to user requirements.
+	Apply modifications using appropriate tools and user-provided references.
+	Skip this step for "Hello World" projects.
+	-->
 
-## Pydantic + agent workflow
-- Request models extend `BaseRequest`; set both `user_id` and `operation` explicitly when constructing them in tests or services.
-- `ToolSessionService.process_tool_request` re-validates input with `model_dump(mode="json", exclude={...})` to strip computed fields—mirror this pattern when you add new services that persist `BaseModel` instances.
-- Agent tools register via `@default_agent.tool` (see `pydantic_ai_integration/tools/enhanced_example_tools.py`) and expect an `MDSContext` as the first argument. Use `context.register_event(...)` to keep the audit trail consistent and update `last_event.result_summary` before returning.
-- New tools should also be registered in `pydantic_ai_integration/agents/base.py` if they need a specific agent binding.
+- [ ] Install Required Extensions
+	<!-- ONLY install extensions provided mentioned in the get_project_setup_info. Skip this step otherwise and mark as completed. -->
 
-## Casefiles, sessions & chat
-- Casefiles use string IDs from `generate_casefile_id()` (`yymmdd_random`) and store session UUIDs; never coerce IDs to UUIDs when writing to Firestore.
-- `ToolSessionService.create_session` links sessions to casefiles through `CasefileService.add_session_to_casefile`; preserve this flow to keep metadata in sync.
-- Session payloads track `session_request_id` to correlate requests/responses—always forward any client-supplied ID.
-- `communicationservice.service` bridges chat messages to tool executions by embedding tool session IDs in `session.metadata`; reuse that contract if you introduce new message types.
+- [ ] Compile the Project
+	<!--
+	Verify that all previous steps have been completed.
+	Install any missing dependencies.
+	Run diagnostics and resolve any issues.
+	Check for markdown files in project folder for relevant instructions on how to do this.
+	-->
 
-## Developer workflows
-- Run the API locally with `python scripts/main.py`; it enables Uvicorn reload automatically when `ENVIRONMENT=development`.
-- `pytest` respects `pytest.ini` (`pythonpath=.` and `asyncio_mode=auto`). Without Firestore access, export `USE_MOCKS=true` or filter out Firestore-heavy scripts (`pytest -k "not firestore"`).
-- Use `python scripts/debug_startup.py` to sanity-check imports and JWT creation without launching the server.
+- [ ] Create and Run Task
+	<!--
+	Verify that all previous steps have been completed.
+	Check https://code.visualstudio.com/docs/debugtest/tasks to determine if the project needs a task. If so, use the create_and_run_task to create and launch a task based on package.json, README.md, and project structure.
+	Skip this step otherwise.
+	 -->
 
-## Copilot chore cadence
-- File recurring maintenance work using the issue template at `.github/ISSUE_TEMPLATE/copilot-chore-checklist.md`; it auto-assigns the `github-copilot` user with `chore` + `automation` labels.
-- Ensure each run captures `pytest` output, FastAPI startup confirmation, and findings from ID prefix/manual smoke tests in the "Observations & follow-ups" section.
-- Open follow-up issues for dependency bumps or regressions instead of packing them into the chore ticket.
+- [ ] Launch the Project
+	<!--
+	Verify that all previous steps have been completed.
+	Prompt user for debug mode, launch only if confirmed.
+	 -->
 
-## Implementation tips
-- When extending repositories or services, accept an optional `use_mocks` flag so tests can force the backend.
-- Prefer storing timestamps via `datetime.now().isoformat()` to match existing documents and computed fields.
-- Keep logging consistent with existing modules (module-level logger + `logging.basicConfig` in entrypoints).
-- Before persisting new context fields, ensure they’re JSON-serializable (follow helpers in `MDSContext._ensure_serializable_dict`).
+- [ ] Ensure Documentation is Complete
+	<!--
+	Verify that all previous steps have been completed.
+	Verify that README.md and the copilot-instructions.md file in the .github directory exists and contains current project information.
+	Clean up the copilot-instructions.md file in the .github directory by removing all HTML comments.
+	 -->
+
+<!--
+## Execution Guidelines
+PROGRESS TRACKING:
+- If any tools are available to manage the above todo list, use it to track progress through this checklist.
+- After completing each step, mark it complete and add a summary.
+- Read current todo list status before starting each new step.
+
+COMMUNICATION RULES:
+- Avoid verbose explanations or printing full command outputs.
+- If a step is skipped, state that briefly (e.g. "No extensions needed").
+- Do not explain project structure unless asked.
+- Keep explanations concise and focused.
+
+DEVELOPMENT RULES:
+- Use '.' as the working directory unless user specifies otherwise.
+- Avoid adding media or external links unless explicitly requested.
+- Use placeholders only with a note that they should be replaced.
+- Use VS Code API tool only for VS Code extension projects.
+- Once the project is created, it is already opened in Visual Studio Code—do not suggest commands to open this project in Visual Studio again.
+- If the project setup information has additional rules, follow them strictly.
+
+FOLDER CREATION RULES:
+- Always use the current directory as the project root.
+- If you are running any terminal commands, use the '.' argument to ensure that the current working directory is used ALWAYS.
+- Do not create a new folder unless the user explicitly requests it besides a .vscode folder for a tasks.json file.
+- If any of the scaffolding commands mention that the folder name is not correct, let the user know to create a new folder with the correct name and then reopen it again in vscode.
+
+EXTENSION INSTALLATION RULES:
+- Only install extension specified by the get_project_setup_info tool. DO NOT INSTALL any other extensions.
+
+PROJECT CONTENT RULES:
+- If the user has not specified project details, assume they want a "Hello World" project as a starting point.
+- Avoid adding links of any type (URLs, files, folders, etc.) or integrations that are not explicitly required.
+- Avoid generating images, videos, or any other media files unless explicitly requested.
+- If you need to use any media assets as placeholders, let the user know that these are placeholders and should be replaced with the actual assets later.
+- Ensure all generated components serve a clear purpose within the user's requested workflow.
+- If a feature is assumed but not confirmed, prompt the user for clarification before including it.
+- If you are working on a VS Code extension, use the VS Code API tool with a query to find relevant VS Code API references and samples related to that query.
+
+TASK COMPLETION RULES:
+- Your task is complete when:
+  - Project is successfully scaffolded and compiled without errors
+  - copilot-instructions.md file in the .github directory exists in the project
+  - README.md file exists and is up to date
+  - User is provided with clear instructions to debug/launch the project
+
+Before starting a new task in the above plan, update progress in the plan.
+-->
+- Work through each checklist item systematically.
+- Keep communication concise and focused.
+- Follow development best practices.
