@@ -27,7 +27,7 @@ DATA_ENRICHMENT_CHAIN = register_composite_tool(
         {
             "tool_name": "example_tool",
             "parameters": {
-                "name": "validation_step"
+                "value": 100
             }
         },
         {
@@ -64,13 +64,13 @@ VALIDATION_CHAIN = register_composite_tool(
         {
             "tool_name": "example_tool",
             "parameters": {
-                "name": "schema_validation"
+                "value": 50
             }
         },
         {
             "tool_name": "example_tool",
             "parameters": {
-                "name": "business_rules_validation"
+                "value": 75
             }
         },
         {
@@ -100,13 +100,13 @@ PARALLEL_PROCESSING_CHAIN = register_composite_tool(
         {
             "tool_name": "example_tool",
             "parameters": {
-                "name": "process_batch_1"
+                "value": 10
             }
         },
         {
             "tool_name": "example_tool",
             "parameters": {
-                "name": "process_batch_2"
+                "value": 20
             }
         },
         {
@@ -136,7 +136,7 @@ ANALYSIS_PIPELINE = register_composite_tool(
         {
             "tool_name": "example_tool",
             "parameters": {
-                "name": "gather_data"
+                "value": 200
             }
         },
         {

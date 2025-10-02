@@ -31,7 +31,7 @@ Example:
 """
 
 from typing import Callable, Type, Dict, Any, List, Optional, Awaitable
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, Field
 from functools import wraps
 import logging
 
