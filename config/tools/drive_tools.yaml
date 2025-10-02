@@ -1,0 +1,215 @@
+# Google Drive Tools Configuration
+# Week 2: Mock implementations for testing tool engineering foundation
+
+tools:
+  - name: drive_list_files
+    display_name: "List Drive Files"
+    description: "List files from Google Drive with optional filtering"
+    category: google_workspace
+    version: "1.0.0"
+    tags: [drive, files, list, google_workspace]
+    
+    # Business Rules
+    enabled: true
+    requires_auth: true
+    required_permissions: [drive:read]
+    requires_casefile: false
+    timeout_seconds: 30
+    max_retries: 2
+    
+    # Parameters
+    parameters:
+      - name: query
+        type: string
+        required: false
+        default: ""
+        max_length: 500
+        description: "Google Drive search query (e.g., 'type:pdf', 'name contains \"report\"')"
+      
+      - name: max_results
+        type: integer
+        required: false
+        default: 10
+        min_value: 1
+        max_value: 100
+        description: "Maximum number of files to return"
+      
+      - name: order_by
+        type: string
+        required: false
+        default: "modifiedTime desc"
+        description: "Sort order (e.g., 'modifiedTime desc', 'name', 'createdTime')"
+    
+    # Mock Implementation
+    mock_data:
+      response_type: file_list
+      stores_in_casefile: true
+      casefile_resource_type: drive_files
+
+  - name: drive_get_file
+    display_name: "Get Drive File"
+    description: "Get metadata and content of a specific file from Google Drive"
+    category: google_workspace
+    version: "1.0.0"
+    tags: [drive, file, get, google_workspace]
+    
+    # Business Rules
+    enabled: true
+    requires_auth: true
+    required_permissions: [drive:read]
+    requires_casefile: false
+    timeout_seconds: 60
+    
+    # Parameters
+    parameters:
+      - name: file_id
+        type: string
+        required: true
+        min_length: 1
+        max_length: 200
+        pattern: "^[a-zA-Z0-9_-]+$"
+        description: "Google Drive file ID"
+      
+      - name: include_content
+        type: boolean
+        required: false
+        default: false
+        description: "Whether to include file content in response"
+    
+    # Mock Implementation
+    mock_data:
+      response_type: file_metadata
+      stores_in_casefile: true
+      casefile_resource_type: drive_files
+
+  - name: drive_upload_file
+    display_name: "Upload File to Drive"
+    description: "Upload a file to Google Drive with optional metadata"
+    category: google_workspace
+    version: "1.0.0"
+    tags: [drive, upload, file, google_workspace]
+    
+    # Business Rules
+    enabled: true
+    requires_auth: true
+    required_permissions: [drive:write]
+    requires_casefile: false
+    timeout_seconds: 120
+    
+    # Parameters
+    parameters:
+      - name: file_name
+        type: string
+        required: true
+        min_length: 1
+        max_length: 255
+        description: "Name for the uploaded file"
+      
+      - name: mime_type
+        type: string
+        required: false
+        default: "application/octet-stream"
+        description: "MIME type of the file"
+      
+      - name: parent_folder_id
+        type: string
+        required: false
+        default: null
+        pattern: "^[a-zA-Z0-9_-]*$"
+        description: "Parent folder ID (optional, defaults to root)"
+      
+      - name: content
+        type: string
+        required: true
+        description: "File content (base64 encoded for binary files)"
+    
+    # Mock Implementation
+    mock_data:
+      response_type: file_uploaded
+      stores_in_casefile: true
+      casefile_resource_type: drive_files
+
+  - name: drive_create_folder
+    display_name: "Create Drive Folder"
+    description: "Create a new folder in Google Drive"
+    category: google_workspace
+    version: "1.0.0"
+    tags: [drive, folder, create, google_workspace]
+    
+    # Business Rules
+    enabled: true
+    requires_auth: true
+    required_permissions: [drive:write]
+    requires_casefile: false
+    timeout_seconds: 30
+    
+    # Parameters
+    parameters:
+      - name: folder_name
+        type: string
+        required: true
+        min_length: 1
+        max_length: 255
+        description: "Name for the new folder"
+      
+      - name: parent_folder_id
+        type: string
+        required: false
+        default: null
+        pattern: "^[a-zA-Z0-9_-]*$"
+        description: "Parent folder ID (optional, defaults to root)"
+    
+    # Mock Implementation
+    mock_data:
+      response_type: folder_created
+      stores_in_casefile: true
+      casefile_resource_type: drive_folders
+
+  - name: drive_share_file
+    display_name: "Share Drive File"
+    description: "Share a Google Drive file with specific users or generate a shareable link"
+    category: google_workspace
+    version: "1.0.0"
+    tags: [drive, share, permissions, google_workspace]
+    
+    # Business Rules
+    enabled: true
+    requires_auth: true
+    required_permissions: [drive:write, drive:share]
+    requires_casefile: false
+    timeout_seconds: 30
+    
+    # Parameters
+    parameters:
+      - name: file_id
+        type: string
+        required: true
+        min_length: 1
+        pattern: "^[a-zA-Z0-9_-]+$"
+        description: "Google Drive file ID to share"
+      
+      - name: email
+        type: string
+        required: false
+        default: null
+        pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        description: "Email address to share with (optional)"
+      
+      - name: role
+        type: string
+        required: false
+        default: "reader"
+        enum_values: [reader, writer, commenter, owner]
+        description: "Permission role to grant"
+      
+      - name: generate_link
+        type: boolean
+        required: false
+        default: false
+        description: "Whether to generate a shareable link"
+    
+    # Mock Implementation
+    mock_data:
+      response_type: permission_created
+      stores_in_casefile: true
+      casefile_resource_type: drive_permissions
