@@ -202,36 +202,135 @@ def register_mds_tool(
         @wraps(func)
         async def validated_wrapper(ctx, **kwargs):
             """
-            Wrapper that validates parameters before execution.
+            Wrapper that validates parameters and wraps response in ToolResponse.
             
-            This is WHERE validation happens - at the boundary between
-            service layer and tool execution.
+            This is WHERE validation and response wrapping happens - at the boundary
+            between service layer and tool execution.
             
             The wrapper:
             1. Validates params using Pydantic model (guardrails!)
-            2. Calls original function with validated params
-            3. Preserves function signature for type checking
+            2. Tracks execution time
+            3. Calls original function with validated params
+            4. Wraps result in ToolResponse envelope (standard structure!)
+            5. Handles errors with proper status and error fields
             """
+            from datetime import datetime
+            from uuid import uuid4
+            from src.pydantic_models.tool_session.models import ToolResponse, ToolResponsePayload
+            from src.pydantic_models.shared.base_models import RequestStatus
+            
+            # Track execution time
+            start_time = datetime.now()
+            
+            # Get request_id from context if available, otherwise generate new one
+            request_id = getattr(ctx, 'request_id', None) or uuid4()
+            
             try:
                 # Validate using Pydantic model
                 validated = params_model(**kwargs)
                 
                 # Call original function with validated params
                 # The .model_dump() ensures we pass plain dict/primitives
-                return await func(ctx, **validated.model_dump())
+                raw_result = await func(ctx, **validated.model_dump())
+                
+                # Calculate execution time
+                execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+                
+                # Serialize tool events to dicts if they exist
+                tool_events = getattr(ctx, 'tool_events', [])
+                serialized_events = []
+                for event in tool_events:
+                    if hasattr(event, 'model_dump'):
+                        serialized_events.append(event.model_dump())
+                    elif isinstance(event, dict):
+                        serialized_events.append(event)
+                    else:
+                        # Fallback: convert to dict if possible
+                        serialized_events.append(dict(event) if hasattr(event, '__dict__') else {})
+                
+                # Wrap raw Dict result in ToolResponsePayload
+                response_payload = ToolResponsePayload(
+                    result=raw_result if isinstance(raw_result, dict) else {"value": raw_result},
+                    events=serialized_events,
+                    session_request_id=getattr(ctx, 'session_request_id', None)
+                )
+                
+                # Wrap in standard ToolResponse envelope
+                tool_response = ToolResponse(
+                    request_id=request_id,
+                    status=RequestStatus.COMPLETED,
+                    payload=response_payload,
+                    metadata={
+                        "tool_name": name,
+                        "execution_time_ms": execution_time_ms,
+                        "user_id": getattr(ctx, 'user_id', None),
+                        "session_id": getattr(ctx, 'session_id', None),
+                        "casefile_id": getattr(ctx, 'casefile_id', None)
+                    }
+                )
+                
+                logger.info(
+                    f"Tool '{name}' completed successfully in {execution_time_ms}ms "
+                    f"(request_id: {request_id})"
+                )
+                
+                return tool_response.model_dump()
                 
             except ValidationError as e:
-                # Pydantic validation failed - return error details
+                # Pydantic validation failed - return error details wrapped in ToolResponse
                 logger.error(f"Validation failed for tool '{name}': {e}")
-                return {
-                    "error": "Parameter validation failed",
-                    "details": e.errors(),
-                    "tool_name": name
-                }
+                
+                execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+                
+                error_response = ToolResponse(
+                    request_id=request_id,
+                    status=RequestStatus.FAILED,
+                    payload=ToolResponsePayload(
+                        result={},
+                        events=[],
+                        session_request_id=getattr(ctx, 'session_request_id', None)
+                    ),
+                    error=f"Parameter validation failed: {str(e)}",
+                    metadata={
+                        "tool_name": name,
+                        "execution_time_ms": execution_time_ms,
+                        "validation_errors": e.errors(),
+                        "user_id": getattr(ctx, 'user_id', None),
+                        "session_id": getattr(ctx, 'session_id', None)
+                    }
+                )
+                
+                return error_response.model_dump()
+                
+            except Exception as e:
+                # Tool execution failed - return error wrapped in ToolResponse
+                logger.error(f"Tool '{name}' execution failed: {e}", exc_info=True)
+                
+                execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+                
+                error_response = ToolResponse(
+                    request_id=request_id,
+                    status=RequestStatus.FAILED,
+                    payload=ToolResponsePayload(
+                        result={},
+                        events=[],
+                        session_request_id=getattr(ctx, 'session_request_id', None)
+                    ),
+                    error=f"Tool execution failed: {str(e)}",
+                    metadata={
+                        "tool_name": name,
+                        "execution_time_ms": execution_time_ms,
+                        "error_type": type(e).__name__,
+                        "user_id": getattr(ctx, 'user_id', None),
+                        "session_id": getattr(ctx, 'session_id', None)
+                    }
+                )
+                
+                return error_response.model_dump()
         
         # Register with agent runtime
         # This makes the tool callable by the agent
-        from .agents.base import default_agent
+        from .tools.agents.base import default_agent
         default_agent.tool(validated_wrapper)
         
         logger.info(f"Tool '{name}' registered with agent runtime")
@@ -430,6 +529,302 @@ def get_tool_schema(tool_name: str) -> Optional[Dict[str, Any]]:
         return None
     
     return tool.get_openapi_schema()
+
+
+# Hierarchical Discovery API (Classification System)
+# These methods enable filtering and discovery based on the new classification metadata
+
+
+def get_tools_by_domain(domain: str, enabled_only: bool = True) -> List[ManagedToolDefinition]:
+    """
+    List tools filtered by classification domain.
+    
+    Supports hierarchical tool organization with domains:
+    - communication: Email, chat, notifications
+    - workspace: Documents, files, spreadsheets
+    - automation: Workflows, pipelines, orchestration
+    - utilities: Debugging, testing, monitoring
+    
+    Args:
+        domain: Domain to filter by (communication, workspace, automation, utilities)
+        enabled_only: Whether to only return enabled tools
+        
+    Returns:
+        List of matching tool definitions
+        
+    Example:
+        >>> email_tools = get_tools_by_domain("communication")
+        >>> for tool in email_tools:
+        ...     print(tool.metadata.name)
+    """
+    tools = []
+    for tool in MANAGED_TOOLS.values():
+        # Check if tool has classification metadata
+        if hasattr(tool, 'classification') and tool.classification:
+            if tool.classification.get('domain') == domain:
+                tools.append(tool)
+    
+    if enabled_only:
+        tools = [t for t in tools if t.business_rules.enabled]
+    
+    return tools
+
+
+def get_tools_by_subdomain(domain: str, subdomain: str, enabled_only: bool = True) -> List[ManagedToolDefinition]:
+    """
+    List tools filtered by domain and subdomain.
+    
+    Provides more granular filtering within a domain:
+    - communication/email: Gmail, SMTP tools
+    - communication/chat: Slack, Teams tools
+    - workspace/google: Drive, Sheets, Docs
+    - automation/pipelines: Multi-step workflows
+    
+    Args:
+        domain: Parent domain
+        subdomain: Specific area within domain
+        enabled_only: Whether to only return enabled tools
+        
+    Returns:
+        List of matching tool definitions
+        
+    Example:
+        >>> gmail_tools = get_tools_by_subdomain("communication", "email")
+    """
+    tools = []
+    for tool in MANAGED_TOOLS.values():
+        if hasattr(tool, 'classification') and tool.classification:
+            if (tool.classification.get('domain') == domain and 
+                tool.classification.get('subdomain') == subdomain):
+                tools.append(tool)
+    
+    if enabled_only:
+        tools = [t for t in tools if t.business_rules.enabled]
+    
+    return tools
+
+
+def get_tools_by_capability(capability: str, enabled_only: bool = True) -> List[ManagedToolDefinition]:
+    """
+    List tools filtered by capability (operation type).
+    
+    Enables filtering by what the tool does:
+    - create: Creates new resources (send email, create file)
+    - read: Retrieves data (list messages, get document)
+    - update: Modifies existing resources (edit file, update record)
+    - delete: Removes resources (delete message, remove file)
+    - process: Transforms or analyzes data (pipeline, batch)
+    - search: Queries and filters data (search messages, find files)
+    
+    Args:
+        capability: Capability to filter by
+        enabled_only: Whether to only return enabled tools
+        
+    Returns:
+        List of matching tool definitions
+        
+    Example:
+        >>> read_tools = get_tools_by_capability("read")
+        >>> search_tools = get_tools_by_capability("search")
+    """
+    tools = []
+    for tool in MANAGED_TOOLS.values():
+        if hasattr(tool, 'classification') and tool.classification:
+            if tool.classification.get('capability') == capability:
+                tools.append(tool)
+    
+    if enabled_only:
+        tools = [t for t in tools if t.business_rules.enabled]
+    
+    return tools
+
+
+def get_tools_by_complexity(complexity: str, enabled_only: bool = True) -> List[ManagedToolDefinition]:
+    """
+    List tools filtered by complexity level.
+    
+    Enables filtering by composition:
+    - atomic: Single operation, no sub-tools
+    - composite: Combines multiple operations
+    - pipeline: Multi-step workflow with orchestration
+    
+    Args:
+        complexity: Complexity level to filter by
+        enabled_only: Whether to only return enabled tools
+        
+    Returns:
+        List of matching tool definitions
+        
+    Example:
+        >>> simple_tools = get_tools_by_complexity("atomic")
+        >>> workflows = get_tools_by_complexity("pipeline")
+    """
+    tools = []
+    for tool in MANAGED_TOOLS.values():
+        if hasattr(tool, 'classification') and tool.classification:
+            if tool.classification.get('complexity') == complexity:
+                tools.append(tool)
+    
+    if enabled_only:
+        tools = [t for t in tools if t.business_rules.enabled]
+    
+    return tools
+
+
+def get_tools_by_maturity(maturity: str, enabled_only: bool = True) -> List[ManagedToolDefinition]:
+    """
+    List tools filtered by maturity stage.
+    
+    Enables filtering by lifecycle stage:
+    - experimental: Early development, API may change
+    - beta: Feature complete, testing in progress
+    - stable: Production ready, versioned, documented
+    - deprecated: Being phased out, migration path available
+    
+    Args:
+        maturity: Maturity stage to filter by
+        enabled_only: Whether to only return enabled tools
+        
+    Returns:
+        List of matching tool definitions
+        
+    Example:
+        >>> prod_tools = get_tools_by_maturity("stable")
+        >>> beta_tools = get_tools_by_maturity("beta")
+    """
+    tools = []
+    for tool in MANAGED_TOOLS.values():
+        if hasattr(tool, 'classification') and tool.classification:
+            if tool.classification.get('maturity') == maturity:
+                tools.append(tool)
+    
+    if enabled_only:
+        tools = [t for t in tools if t.business_rules.enabled]
+    
+    return tools
+
+
+def get_tools_by_integration_tier(integration_tier: str, enabled_only: bool = True) -> List[ManagedToolDefinition]:
+    """
+    List tools filtered by integration tier.
+    
+    Enables filtering by external dependency scope:
+    - internal: Uses only internal services (casefile, session)
+    - external: Requires external APIs (Gmail, Drive, Sheets)
+    - hybrid: Combines internal and external services
+    
+    Args:
+        integration_tier: Integration tier to filter by
+        enabled_only: Whether to only return enabled tools
+        
+    Returns:
+        List of matching tool definitions
+        
+    Example:
+        >>> internal_tools = get_tools_by_integration_tier("internal")
+        >>> api_tools = get_tools_by_integration_tier("external")
+    """
+    tools = []
+    for tool in MANAGED_TOOLS.values():
+        if hasattr(tool, 'classification') and tool.classification:
+            if tool.classification.get('integration_tier') == integration_tier:
+                tools.append(tool)
+    
+    if enabled_only:
+        tools = [t for t in tools if t.business_rules.enabled]
+    
+    return tools
+
+
+def get_hierarchical_tool_path(tool_name: str) -> Optional[str]:
+    """
+    Get hierarchical path for a tool based on classification.
+    
+    Constructs a path like "communication.email.gmail_send_message"
+    from the tool's classification metadata.
+    
+    Args:
+        tool_name: Name of the tool
+        
+    Returns:
+        Hierarchical path string or None if tool not found or no classification
+        
+    Example:
+        >>> path = get_hierarchical_tool_path("gmail_send_message")
+        >>> print(path)  # "communication.email.gmail_send_message"
+    """
+    tool = MANAGED_TOOLS.get(tool_name)
+    if not tool or not hasattr(tool, 'classification') or not tool.classification:
+        return None
+    
+    domain = tool.classification.get('domain', '')
+    subdomain = tool.classification.get('subdomain', '')
+    
+    if domain and subdomain:
+        return f"{domain}.{subdomain}.{tool_name}"
+    elif domain:
+        return f"{domain}.{tool_name}"
+    else:
+        return tool_name
+
+
+def get_classification_summary() -> Dict[str, Any]:
+    """
+    Get summary statistics of tool classification.
+    
+    Provides overview of:
+    - Tools by domain
+    - Tools by capability
+    - Tools by maturity
+    - Tools by integration tier
+    
+    Returns:
+        Dictionary with classification counts
+        
+    Example:
+        >>> summary = get_classification_summary()
+        >>> print(f"Communication tools: {summary['by_domain']['communication']}")
+    """
+    summary = {
+        'total_tools': len(MANAGED_TOOLS),
+        'by_domain': {},
+        'by_capability': {},
+        'by_complexity': {},
+        'by_maturity': {},
+        'by_integration_tier': {},
+        'unclassified': 0
+    }
+    
+    for tool in MANAGED_TOOLS.values():
+        if hasattr(tool, 'classification') and tool.classification:
+            # Count by domain
+            domain = tool.classification.get('domain')
+            if domain:
+                summary['by_domain'][domain] = summary['by_domain'].get(domain, 0) + 1
+            
+            # Count by capability
+            capability = tool.classification.get('capability')
+            if capability:
+                summary['by_capability'][capability] = summary['by_capability'].get(capability, 0) + 1
+            
+            # Count by complexity
+            complexity = tool.classification.get('complexity')
+            if complexity:
+                summary['by_complexity'][complexity] = summary['by_complexity'].get(complexity, 0) + 1
+            
+            # Count by maturity
+            maturity = tool.classification.get('maturity')
+            if maturity:
+                summary['by_maturity'][maturity] = summary['by_maturity'].get(maturity, 0) + 1
+            
+            # Count by integration tier
+            integration_tier = tool.classification.get('integration_tier')
+            if integration_tier:
+                summary['by_integration_tier'][integration_tier] = summary['by_integration_tier'].get(integration_tier, 0) + 1
+        else:
+            summary['unclassified'] += 1
+    
+    return summary
 
 
 # Notes for future development:

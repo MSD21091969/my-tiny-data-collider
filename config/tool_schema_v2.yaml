@@ -19,6 +19,14 @@
 # tags:           list[string] (default [])
 # metadata:       map (optional) - arbitrary key/value annotations
 #
+# classification: # ✅ systematic tool organization and discovery
+#   domain:             enum [communication, workspace, automation, utilities] (required)
+#   subdomain:          string (required) - specific area within domain
+#   capability:         enum [create, read, update, delete, process, search] (required)
+#   complexity:         enum [atomic, composite, pipeline] (required)
+#   maturity:           enum [experimental, beta, stable, deprecated] (required)
+#   integration_tier:   enum [internal, external, hybrid] (required)
+#
 # business_rules:
 #   enabled:                  bool (default true)
 #   requires_auth:            bool (default true)
@@ -129,6 +137,45 @@
 #     - version: string
 #       date: string
 #       notes: string
+#
+# ---
+# Classification Field Definitions:
+#
+# domain: High-level functional category
+#   - communication: Tools for messaging, email, chat, notifications
+#   - workspace: Tools for document management, file storage, spreadsheets
+#   - automation: Tools for workflows, orchestration, batch processing
+#   - utilities: Tools for debugging, testing, system operations
+#
+# subdomain: Specific area within domain (examples by domain)
+#   communication: email, chat, sms, notifications, calendar
+#   workspace: google, microsoft, files, documents, spreadsheets
+#   automation: pipelines, workflows, schedulers, batch
+#   utilities: debugging, testing, monitoring, diagnostics
+#
+# capability: Primary operation type
+#   - create: Creates new resources (send email, create file)
+#   - read: Retrieves data (list messages, get document)
+#   - update: Modifies existing resources (edit file, update record)
+#   - delete: Removes resources (delete message, remove file)
+#   - process: Transforms or analyzes data (pipeline, batch process)
+#   - search: Queries and filters data (search messages, find files)
+#
+# complexity: Tool composition level
+#   - atomic: Single operation, no sub-tools (send one email)
+#   - composite: Combines multiple operations (fetch and format data)
+#   - pipeline: Multi-step workflow with orchestration (email → drive → sheets)
+#
+# maturity: Development lifecycle stage
+#   - experimental: Early development, API may change
+#   - beta: Feature complete, testing in progress
+#   - stable: Production ready, versioned, documented
+#   - deprecated: Being phased out, migration path available
+#
+# integration_tier: External dependency scope
+#   - internal: Uses only internal services (casefile, session)
+#   - external: Requires external APIs (Gmail, Drive, Sheets)
+#   - hybrid: Combines internal and external services
 #
 # ---
 # Any additional custom keys should live under `metadata` to keep the schema

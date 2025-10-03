@@ -1,0 +1,137 @@
+# Audit Policy Templates
+#
+# Purpose:
+#   Reusable audit configurations that define logging, event tracking,
+#   and compliance requirements for tools.
+#
+# Usage:
+#   Copy audit_config section into tool YAML to ensure consistent
+#   audit trail across all tool executions.
+
+# Standard audit policies by compliance level
+
+minimal_audit: &minimal_audit
+  # Basic audit logging for low-risk operations
+  # Use for: Read-only tools, public APIs, debugging utilities
+  audit_config:
+    success_event: "tool_success"
+    failure_event: "tool_failure"
+    log_response_fields: []
+    redact_fields: []
+    emit_casefile_event: false
+
+standard_audit: &standard_audit
+  # Standard audit trail for authenticated operations
+  # Use for: Most internal tools, authenticated access
+  audit_config:
+    success_event: "tool_success"
+    failure_event: "tool_failure"
+    log_response_fields: ["status", "message", "timestamp"]
+    redact_fields: ["password", "token", "secret"]
+    emit_casefile_event: true
+
+comprehensive_audit: &comprehensive_audit
+  # Full audit logging for sensitive operations
+  # Use for: Data modification, casefile operations, financial transactions
+  audit_config:
+    success_event: "tool_success_detailed"
+    failure_event: "tool_failure_detailed"
+    log_response_fields: ["status", "message", "timestamp", "affected_resources", "data_size"]
+    redact_fields: ["password", "token", "secret", "ssn", "credit_card", "api_key"]
+    emit_casefile_event: true
+
+compliance_audit: &compliance_audit
+  # Strict audit for compliance/regulatory requirements
+  # Use for: PHI/PII access, financial data, legal documents
+  audit_config:
+    success_event: "compliance_tool_success"
+    failure_event: "compliance_tool_failure"
+    log_response_fields: ["status", "message", "timestamp", "user_id", "session_id", "casefile_id", "affected_resources", "operation_type", "data_classification"]
+    redact_fields: ["password", "token", "secret", "ssn", "credit_card", "api_key", "phi", "pii", "bank_account"]
+    emit_casefile_event: true
+
+# Specialized audit policies
+
+external_api_audit: &external_api_audit
+  # Audit policy for external API integrations
+  # Use for: Google Workspace, third-party APIs, webhooks
+  audit_config:
+    success_event: "external_api_success"
+    failure_event: "external_api_failure"
+    log_response_fields: ["status", "message", "timestamp", "api_endpoint", "rate_limit_remaining"]
+    redact_fields: ["password", "token", "secret", "api_key", "oauth_token", "refresh_token"]
+    emit_casefile_event: true
+
+pipeline_audit: &pipeline_audit
+  # Audit policy for multi-step pipelines
+  # Use for: Workflows, orchestration, batch processing
+  audit_config:
+    success_event: "pipeline_success"
+    failure_event: "pipeline_failure"
+    log_response_fields: ["status", "message", "timestamp", "steps_completed", "total_steps", "execution_time", "affected_resources"]
+    redact_fields: ["password", "token", "secret", "api_key"]
+    emit_casefile_event: true
+
+debugging_audit: &debugging_audit
+  # Verbose audit for debugging and development
+  # Use for: Development tools, testing utilities, diagnostics
+  audit_config:
+    success_event: "debug_tool_success"
+    failure_event: "debug_tool_failure"
+    log_response_fields: ["status", "message", "timestamp", "debug_info", "stack_trace", "execution_time"]
+    redact_fields: ["password", "token", "secret"]
+    emit_casefile_event: false
+
+# Common redaction patterns
+
+pii_redaction: &pii_redaction
+  # Personal Identifiable Information
+  redact_fields:
+    - password
+    - token
+    - secret
+    - ssn
+    - social_security
+    - drivers_license
+    - passport
+    - email  # If required for compliance
+    - phone  # If required for compliance
+    - address
+    - birth_date
+
+phi_redaction: &phi_redaction
+  # Protected Health Information (HIPAA)
+  redact_fields:
+    - password
+    - token
+    - secret
+    - ssn
+    - medical_record_number
+    - health_plan_number
+    - diagnosis
+    - treatment
+    - prescription
+    - lab_results
+    - provider_notes
+
+financial_redaction: &financial_redaction
+  # Financial/Payment Information (PCI-DSS)
+  redact_fields:
+    - password
+    - token
+    - secret
+    - credit_card
+    - card_number
+    - cvv
+    - bank_account
+    - routing_number
+    - account_number
+    - transaction_id
+    - amount  # If required for compliance
+
+# Notes:
+# - Choose audit level based on data sensitivity and compliance requirements
+# - Always redact sensitive fields (passwords, tokens, secrets)
+# - Use emit_casefile_event: true for operations affecting user data
+# - Custom event names help with analytics and monitoring
+# - Log response fields for debugging but balance with performance

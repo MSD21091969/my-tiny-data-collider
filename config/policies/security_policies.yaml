@@ -1,0 +1,170 @@
+# Security Policy Templates
+#
+# Purpose:
+#   Reusable security configurations for tools that can be referenced
+#   via YAML anchors or copied into tool definitions.
+#
+# Usage:
+#   1. Copy entire policy section into tool YAML
+#   2. Customize specific fields as needed
+#   3. Use consistent security patterns across tools
+
+# Standard security policies by access level
+
+public_access: &public_access
+  # Tools accessible without authentication
+  # Use for: Public APIs, documentation endpoints, health checks
+  business_rules:
+    enabled: true
+    requires_auth: false
+    required_permissions: []
+    timeout_seconds: 10
+    visibility: public
+  
+  session_policies:
+    requires_active_session: false
+    allow_new_session: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+
+authenticated_access: &authenticated_access
+  # Standard authenticated tools
+  # Use for: Most internal tools requiring user context
+  business_rules:
+    enabled: true
+    requires_auth: true
+    required_permissions: ["tools:execute"]
+    timeout_seconds: 30
+    visibility: internal
+  
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+
+casefile_access: &casefile_access
+  # Tools that require casefile context
+  # Use for: Data modification, casefile operations, user-specific actions
+  business_rules:
+    enabled: true
+    requires_auth: true
+    required_permissions: ["tools:execute", "casefile:read"]
+    timeout_seconds: 60
+    visibility: internal
+  
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+  
+  casefile_policies:
+    requires_casefile: true
+    allowed_casefile_states: ["active"]
+    create_if_missing: false
+    enforce_access_control: true
+    audit_casefile_changes: true
+
+admin_access: &admin_access
+  # Privileged tools requiring admin permissions
+  # Use for: System configuration, user management, data deletion
+  business_rules:
+    enabled: true
+    requires_auth: true
+    required_permissions: ["tools:execute", "system:admin"]
+    timeout_seconds: 120
+    visibility: internal
+  
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: system
+    log_request_payload: true
+    log_full_response: true
+  
+  casefile_policies:
+    requires_casefile: false
+    enforce_access_control: true
+    audit_casefile_changes: true
+
+experimental_access: &experimental_access
+  # Beta/experimental tools in development
+  # Use for: New features, testing, unstable APIs
+  business_rules:
+    enabled: true
+    requires_auth: true
+    required_permissions: ["tools:execute", "tools:beta"]
+    timeout_seconds: 30
+    visibility: experimental
+  
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+
+# External API integration policies
+
+google_workspace_integration: &google_workspace_integration
+  # Tools integrating with Google Workspace APIs
+  # Use for: Gmail, Drive, Sheets, Calendar
+  business_rules:
+    enabled: true
+    requires_auth: true
+    required_permissions: ["tools:execute", "google:workspace:access"]
+    timeout_seconds: 60
+    rate_limit_per_minute: 60
+    visibility: internal
+  
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+  
+  casefile_policies:
+    requires_casefile: true
+    allowed_casefile_states: ["active"]
+    enforce_access_control: true
+    audit_casefile_changes: true
+
+external_api_integration: &external_api_integration
+  # Generic external API integration
+  # Use for: Third-party services, webhooks, external data sources
+  business_rules:
+    enabled: true
+    requires_auth: true
+    required_permissions: ["tools:execute", "api:external:access"]
+    timeout_seconds: 90
+    rate_limit_per_minute: 30
+    visibility: internal
+  
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: false  # May contain sensitive external data
+  
+  casefile_policies:
+    requires_casefile: false
+    enforce_access_control: true
+    audit_casefile_changes: true
+
+# Notes:
+# - Copy relevant policy section into your tool YAML
+# - Customize timeout_seconds, rate_limit, permissions as needed
+# - Visibility levels: public, internal, experimental
+# - Session event types: request, resume, system

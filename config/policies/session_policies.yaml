@@ -1,0 +1,181 @@
+# Session Policy Templates
+#
+# Purpose:
+#   Reusable session lifecycle configurations that define how tools
+#   interact with user sessions and manage state.
+#
+# Usage:
+#   Copy session_policies section into tool YAML to ensure consistent
+#   session management across all tool executions.
+
+# Standard session policies by interaction type
+
+stateless_operation: &stateless_operation
+  # No session required, stateless execution
+  # Use for: Public APIs, health checks, static content
+  session_policies:
+    requires_active_session: false
+    allow_new_session: false
+    allow_session_resume: false
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+
+session_required: &session_required
+  # Must have active session, no new sessions allowed
+  # Use for: Authenticated operations, user-specific actions
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+
+session_optional: &session_optional
+  # Session not required but will be used if present
+  # Use for: Hybrid tools that work with/without auth
+  session_policies:
+    requires_active_session: false
+    allow_new_session: true
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+
+session_creation: &session_creation
+  # Tool can create new sessions
+  # Use for: Login, registration, session initialization
+  session_policies:
+    requires_active_session: false
+    allow_new_session: true
+    allow_session_resume: false
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: false  # May contain auth tokens
+
+system_operation: &system_operation
+  # System-level operations, session managed internally
+  # Use for: Background jobs, cron tasks, admin tools
+  session_policies:
+    requires_active_session: false
+    allow_new_session: false
+    allow_session_resume: false
+    session_event_type: system
+    log_request_payload: true
+    log_full_response: true
+
+# Specialized session policies
+
+long_running_operation: &long_running_operation
+  # For tools with extended execution time
+  # Use for: Batch processing, file uploads, data migration
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: false  # Large responses may timeout
+    # Note: Increase timeout_seconds in business_rules
+
+interactive_operation: &interactive_operation
+  # For tools requiring user interaction/approval
+  # Use for: Confirmations, multi-step wizards, forms
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+    # Note: Session must remain active throughout interaction
+
+background_job: &background_job
+  # For asynchronous/scheduled operations
+  # Use for: Email processing, report generation, cleanup tasks
+  session_policies:
+    requires_active_session: false
+    allow_new_session: false
+    allow_session_resume: false
+    session_event_type: system
+    log_request_payload: true
+    log_full_response: true
+
+# Logging policies by sensitivity
+
+minimal_logging: &minimal_logging
+  # Minimal logging for performance
+  # Use for: High-frequency tools, debugging utilities
+  session_policies:
+    log_request_payload: false
+    log_full_response: false
+
+standard_logging: &standard_logging
+  # Standard logging for most tools
+  # Use for: Regular authenticated operations
+  session_policies:
+    log_request_payload: true
+    log_full_response: true
+
+secure_logging: &secure_logging
+  # Restricted logging for sensitive operations
+  # Use for: Authentication, payment processing, PII access
+  session_policies:
+    log_request_payload: true  # Params may be redacted elsewhere
+    log_full_response: false   # Response may contain sensitive data
+
+# Session event type definitions
+
+request_event: &request_event
+  # Standard user request
+  session_event_type: request
+
+resume_event: &resume_event
+  # Resuming existing session
+  session_event_type: resume
+
+system_event: &system_event
+  # System/background operation
+  session_event_type: system
+
+# Combined policy examples
+
+authenticated_interactive: &authenticated_interactive
+  # Authenticated tool with user interaction
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: true
+
+authenticated_batch: &authenticated_batch
+  # Authenticated bulk/batch operation
+  session_policies:
+    requires_active_session: true
+    allow_new_session: false
+    allow_session_resume: true
+    session_event_type: request
+    log_request_payload: true
+    log_full_response: false  # Large response data
+
+public_readonly: &public_readonly
+  # Public read-only access
+  session_policies:
+    requires_active_session: false
+    allow_new_session: false
+    allow_session_resume: false
+    session_event_type: request
+    log_request_payload: false
+    log_full_response: false
+
+# Notes:
+# - requires_active_session: true = Must authenticate first
+# - allow_new_session: true = Can start new session
+# - allow_session_resume: true = Can continue existing session
+# - session_event_type: request (user), resume (continuation), system (background)
+# - log_request_payload: Balance debugging needs with performance
+# - log_full_response: Disable for large responses or sensitive data
+# - Combine with audit_policies.yaml for complete logging strategy
