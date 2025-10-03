@@ -7,7 +7,13 @@ from datetime import datetime
 import logging
 from pydantic import ValidationError
 
-from ..pydantic_models.tool_session import ToolRequest, ToolResponse, ToolSession, ToolResponsePayload, ToolEvent
+from ..pydantic_models.tool_session import (
+    ToolRequest, ToolResponse, ToolSession, ToolResponsePayload, ToolEvent,
+    CreateSessionRequest, CreateSessionResponse, SessionCreatedPayload,
+    GetSessionRequest, GetSessionResponse, SessionDataPayload,
+    ListSessionsRequest, ListSessionsResponse, SessionSummary, SessionListPayload,
+    CloseSessionRequest, CloseSessionResponse, SessionClosedPayload,
+)
 from ..pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
 from ..pydantic_ai_integration.dependencies import MDSContext
 from ..pydantic_ai_integration.tool_decorator import (
@@ -28,16 +34,19 @@ class ToolSessionService:
         self.repository = ToolSessionRepository()
         self.id_service = get_id_service()
         
-    async def create_session(self, user_id: str, casefile_id: Optional[str] = None) -> Dict[str, str]:
+    async def create_session(self, request: CreateSessionRequest) -> CreateSessionResponse:
         """Create a new tool session.
         
         Args:
-            user_id: ID of the user creating the session
-            casefile_id: Optional casefile ID to associate with the session
+            request: CreateSessionRequest with casefile_id and optional title
             
         Returns:
-            Dictionary with the session ID
+            CreateSessionResponse with session_id and creation details
         """
+        start_time = datetime.now()
+        user_id = request.user_id
+        casefile_id = request.payload.casefile_id
+        
         session_id = self.id_service.new_tool_session_id(user_id=user_id, casefile_id=casefile_id)
         
         # Create session record
@@ -54,7 +63,6 @@ class ToolSessionService:
         if casefile_id:
             try:
                 from ..casefileservice.service import CasefileService
-                # CasefileService signature previously allowed use_mocks; now Firestore-only
                 casefile_service = CasefileService()
                 await casefile_service.add_session_to_casefile(casefile_id, session_id)
                 logger.info(f"Successfully linked session {session_id} to casefile {casefile_id}")
@@ -62,7 +70,22 @@ class ToolSessionService:
                 logger.warning(f"Failed to link session {session_id} to casefile {casefile_id}: {e}")
                 # Don't fail the session creation if casefile linking fails
         
-        return {"session_id": session_id}
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return CreateSessionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=SessionCreatedPayload(
+                session_id=session_id,
+                casefile_id=casefile_id,
+                created_at=session.created_at
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "user_id": user_id,
+                "operation": "create_session"
+            }
+        )
     
     async def process_tool_request(self, request: ToolRequest) -> ToolResponse:
         """Process a tool request using the unified MANAGED_TOOLS registry.
@@ -241,72 +264,191 @@ class ToolSessionService:
         
         return response
     
-    async def get_session(self, session_id: str) -> Dict[str, Any]:
+    async def get_session(self, request: GetSessionRequest) -> GetSessionResponse:
         """Get a session by ID.
         
         Args:
-            session_id: ID of the session to retrieve
+            request: GetSessionRequest with session_id
             
         Returns:
-            The session data
+            GetSessionResponse with full session data and request counts
         """
+        start_time = datetime.now()
+        session_id = request.payload.session_id
+        
         session = await self.repository.get_session(session_id)
         if not session:
-            raise ValueError(f"Session {session_id} not found")
-            
-        return session.model_dump()
+            return GetSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Session {session_id} not found",
+                payload=SessionDataPayload(
+                    session_id=session_id,
+                    user_id="",
+                    casefile_id="",
+                    created_at="",
+                    updated_at="",
+                    active=False,
+                    request_count=0,
+                    event_count=0
+                )
+            )
+        
+        # Count events across all requests
+        event_count = 0
+        for req_id in session.request_ids:
+            events = await self.repository.get_request_events(session_id, req_id)
+            event_count += len(events)
+        
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return GetSessionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=SessionDataPayload(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                casefile_id=session.casefile_id or "",
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                active=session.active,
+                title=None,
+                request_count=len(session.request_ids),
+                event_count=event_count,
+                metadata={}
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "get_session"
+            }
+        )
     
-    async def list_sessions(self, user_id: Optional[str] = None, casefile_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def list_sessions(self, request: ListSessionsRequest) -> ListSessionsResponse:
         """List sessions, optionally filtered by user or casefile.
         
         Args:
-            user_id: Optional user ID to filter by
-            casefile_id: Optional casefile ID to filter by
+            request: ListSessionsRequest with optional user_id, casefile_id filters
             
         Returns:
-            List of session summaries
+            ListSessionsResponse with session summaries and pagination info
         """
+        start_time = datetime.now()
+        payload = request.payload
+        
         sessions = await self.repository.list_sessions(
-            user_id=user_id,
-            casefile_id=casefile_id
+            user_id=payload.user_id,
+            casefile_id=payload.casefile_id
         )
         
-        # Return simplified summary view
-        return [
-            {
-                "session_id": session.session_id,
-                "user_id": session.user_id,
-                "casefile_id": session.casefile_id if session.casefile_id else None,
-                "created_at": session.created_at,
-                "updated_at": session.updated_at,
-                "request_count": len(session.request_ids),
-                "active": session.active
-            }
-            for session in sessions
+        # Filter by active status if requested
+        if payload.active_only:
+            sessions = [s for s in sessions if s.active]
+        
+        # Apply pagination
+        total_count = len(sessions)
+        start_idx = payload.offset
+        end_idx = start_idx + payload.limit
+        paginated_sessions = sessions[start_idx:end_idx]
+        
+        # Build summaries
+        summaries = [
+            SessionSummary(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                casefile_id=session.casefile_id or "",
+                title=None,
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                active=session.active,
+                request_count=len(session.request_ids)
+            )
+            for session in paginated_sessions
         ]
+        
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return ListSessionsResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=SessionListPayload(
+                sessions=summaries,
+                total_count=total_count,
+                offset=payload.offset,
+                limit=payload.limit
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "list_sessions",
+                "filters_applied": {
+                    "user_id": payload.user_id,
+                    "casefile_id": payload.casefile_id,
+                    "active_only": payload.active_only
+                }
+            }
+        )
     
-    async def close_session(self, session_id: str) -> Dict[str, Any]:
+    async def close_session(self, request: CloseSessionRequest) -> CloseSessionResponse:
         """Close a session.
         
         Args:
-            session_id: ID of the session to close
+            request: CloseSessionRequest with session_id
             
         Returns:
-            Status information
+            CloseSessionResponse with closure details and statistics
         """
+        start_time = datetime.now()
+        session_id = request.payload.session_id
+        
         session = await self.repository.get_session(session_id)
         if not session:
-            raise ValueError(f"Session {session_id} not found")
-            
+            return CloseSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Session {session_id} not found",
+                payload=SessionClosedPayload(
+                    session_id=session_id,
+                    closed_at=datetime.now().isoformat(),
+                    total_requests=0,
+                    total_events=0
+                )
+            )
+        
+        # Calculate statistics
+        total_requests = len(session.request_ids)
+        total_events = 0
+        for req_id in session.request_ids:
+            events = await self.repository.get_request_events(session_id, req_id)
+            total_events += len(events)
+        
+        # Calculate duration
+        created_time = datetime.fromisoformat(session.created_at.replace('Z', '+00:00'))
+        closed_time = datetime.now()
+        duration_seconds = int((closed_time - created_time).total_seconds())
+        
+        # Update session
         session.active = False
-        session.updated_at = datetime.now().isoformat()
+        session.updated_at = closed_time.isoformat()
         await self.repository.update_session(session)
         
-        return {
-            "session_id": session.session_id,
-            "status": "closed",
-            "updated_at": session.updated_at
-        }
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return CloseSessionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=SessionClosedPayload(
+                session_id=session.session_id,
+                closed_at=session.updated_at,
+                total_requests=total_requests,
+                total_events=total_events,
+                duration_seconds=duration_seconds
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "close_session",
+                "user_id": session.user_id,
+                "casefile_id": session.casefile_id
+            }
+        )
         
     async def resume_session(self, user_id: str, request: SessionResumeRequest) -> SessionResumeResponse:
         """Resume a previous session.
