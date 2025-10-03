@@ -1,0 +1,122 @@
+name: echo_chain_demo
+display_name: "Echo Chain Demo"
+description: "Demonstration of composite tool that chains multiple echo_tool calls"
+category: "demo"
+version: "1.0.0"
+tags:
+  - composite
+  - demo
+  - echo
+
+metadata:
+  purpose: "Demonstrate tool composition with conditional logic"
+  example_use: "Test chain execution patterns"
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  timeout_seconds: 60
+  requires_casefile: false
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: "request"
+  log_request_payload: true
+  log_full_response: true
+
+casefile_policies:
+  requires_casefile: false
+  allowed_casefile_states: ["active"]
+  enforce_access_control: false
+
+parameters:
+  - name: initial_message
+    type: string
+    description: "Initial message to start the chain"
+    required: true
+    min_length: 1
+    examples:
+      - "Hello from chain"
+
+implementation:
+  type: composite
+  composite:
+    steps:
+      - tool: echo_tool
+        inputs:
+          message: "{{ state.initial_message }}"
+          session_id: "chain_session"
+        on_success:
+          map_outputs:
+            data: "step1_result"
+        on_failure:
+          action: stop
+          
+      - tool: echo_tool
+        inputs:
+          message: "Step 2: Processing result from step 1"
+          session_id: "chain_session"
+        on_success:
+          map_outputs:
+            data: "step2_result"
+        on_failure:
+          action: continue
+          next: echo_tool
+          
+      - tool: echo_tool
+        inputs:
+          message: "Step 3: Final step in chain"
+          session_id: "chain_session"
+        on_success:
+          map_outputs:
+            data: "final_result"
+        on_failure:
+          action: stop
+
+returns:
+  type: object
+  description: "Chain execution results with all step outputs"
+  properties:
+    tool:
+      type: string
+      description: "Tool name"
+    status:
+      type: string
+      description: "Execution status"
+    chain_id:
+      type: string
+      description: "Unique chain identifier"
+    steps_executed:
+      type: integer
+      description: "Number of steps executed"
+    data:
+      type: object
+      description: "Complete chain execution data"
+
+audit_events:
+  success_event: "composite.echo_chain_demo.success"
+  failure_event: "composite.echo_chain_demo.failure"
+  emit_casefile_event: true
+
+examples:
+  - description: "Basic chain execution"
+    context:
+      session:
+        user_id: "user_123"
+        session_id: "session_456"
+    input:
+      initial_message: "Hello from composite tool"
+    expected_output:
+      tool: "echo_chain_demo"
+      status: "success"
+      steps_executed: 3
+
+documentation:
+  summary: "Demonstrates composite tool pattern with conditional execution"
+  changelog:
+    - version: "1.0.0"
+      date: "2025-10-03"
+      notes: "Initial composite tool demonstration"
