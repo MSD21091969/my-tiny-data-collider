@@ -6,6 +6,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
 
 from ...communicationservice.service import CommunicationService
+from ...pydantic_models.communication.session_models import (
+    CloseChatSessionRequest,
+    CloseChatSessionResponse,
+    CreateChatSessionRequest,
+    CreateChatSessionResponse,
+    GetChatSessionRequest,
+    GetChatSessionResponse,
+    ListChatSessionsRequest,
+    ListChatSessionsResponse,
+)
 from ...pydantic_models.shared.base_models import RequestEnvelope
 
 router = APIRouter(
@@ -17,11 +27,11 @@ async def get_communication_service():
     """Dependency to get the communication service."""
     return CommunicationService()
 
-@router.post("/sessions")
+@router.post("/sessions", response_model=CreateChatSessionResponse)
 async def create_session(
     request: RequestEnvelope,
     service: CommunicationService = Depends(get_communication_service)
-):
+) -> CreateChatSessionResponse:
     """Create a new chat session."""
     
     # Extract request data
@@ -31,9 +41,22 @@ async def create_session(
     if not user_id:
         raise HTTPException(status_code=400, detail="Missing user_id")
     
-    # Create session
-    result = await service.create_session(user_id, casefile_id)
-    return {"session_id": result["session_id"], "trace_id": request.trace_id}
+    # Create session request
+    create_request = CreateChatSessionRequest(
+        user_id=user_id,
+        operation="create_chat_session",
+        payload={"casefile_id": casefile_id}
+    )
+    
+    response = await service.create_session(create_request)
+    
+    # Add trace_id to metadata if needed
+    if response.metadata:
+        response.metadata["trace_id"] = request.trace_id
+    else:
+        response.metadata = {"trace_id": request.trace_id}
+    
+    return response
 
 @router.post("/sessions/{session_id}/messages")
 async def send_message(
@@ -91,56 +114,94 @@ async def send_message(
             detail=f"Error processing message: {str(e)}"
         )
 
-@router.get("/sessions/{session_id}")
+@router.get("/sessions/{session_id}", response_model=GetChatSessionResponse)
 async def get_session(
     session_id: str,
+    include_messages: bool = True,
     service: CommunicationService = Depends(get_communication_service)
-):
+) -> GetChatSessionResponse:
     """Get a chat session."""
     try:
-        session = await service.get_session(session_id)
-        return session
-    except ValueError as e:
-        raise HTTPException(
-            status_code=404,
-            detail=str(e)
+        # Create request
+        get_request = GetChatSessionRequest(
+            user_id="anonymous",  # TODO: Get from auth
+            operation="get_chat_session",
+            payload={
+                "session_id": session_id,
+                "include_messages": include_messages
+            }
         )
+        
+        response = await service.get_session(get_request)
+        
+        if response.status.value == "failed":
+            raise HTTPException(status_code=404, detail=response.error or "Session not found")
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving session: {str(e)}"
         )
 
-@router.get("/sessions")
+@router.get("/sessions", response_model=ListChatSessionsResponse)
 async def list_sessions(
     user_id: Optional[str] = None,
     casefile_id: Optional[str] = None,
+    active_only: bool = True,
+    limit: int = 50,
+    offset: int = 0,
     service: CommunicationService = Depends(get_communication_service)
-):
+) -> ListChatSessionsResponse:
     """List chat sessions."""
     try:
-        sessions = await service.list_sessions(user_id, casefile_id)
-        return {"sessions": sessions}
+        # Create request
+        list_request = ListChatSessionsRequest(
+            user_id=user_id or "anonymous",  # TODO: Get from auth
+            operation="list_chat_sessions",
+            payload={
+                "user_id": user_id,
+                "casefile_id": casefile_id,
+                "active_only": active_only,
+                "limit": limit,
+                "offset": offset
+            }
+        )
+        
+        return await service.list_sessions(list_request)
+        
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error listing sessions: {str(e)}"
         )
 
-@router.post("/sessions/{session_id}/close")
+@router.post("/sessions/{session_id}/close", response_model=CloseChatSessionResponse)
 async def close_session(
     session_id: str,
     service: CommunicationService = Depends(get_communication_service)
-):
+) -> CloseChatSessionResponse:
     """Close a chat session."""
     try:
-        result = await service.close_session(session_id)
-        return result
-    except ValueError as e:
-        raise HTTPException(
-            status_code=404,
-            detail=str(e)
+        # Create request
+        close_request = CloseChatSessionRequest(
+            user_id="anonymous",  # TODO: Get from auth
+            operation="close_chat_session",
+            payload={"session_id": session_id}
         )
+        
+        response = await service.close_session(close_request)
+        
+        if response.status.value == "failed":
+            raise HTTPException(status_code=404, detail=response.error or "Session not found")
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
