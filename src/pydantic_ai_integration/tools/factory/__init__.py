@@ -398,16 +398,19 @@ class ToolFactory:
         # Generate integration tests
         self.generate_integration_tests(config)
         
+        # Generate API tests
+        self.generate_api_tests(config)
+        
         return output_file
     
-    def generate_integration_tests(self, config: Dict[str, Any]) -> Path:
+    def generate_integration_tests(self, config: Dict[str, Any]) -> Optional[Path]:
         """Generate integration test suite from config.
         
         Args:
             config: Tool configuration dictionary
             
         Returns:
-            Path to generated integration test file
+            Path to generated integration test file or None if skipped
         """
         # Check if integration test template exists
         try:
@@ -428,6 +431,36 @@ class ToolFactory:
             f.write(output)
         
         logger.info(f"Generated integration tests: {output_file.relative_to(self.project_root)}")
+        return output_file
+    
+    def generate_api_tests(self, config: Dict[str, Any]) -> Optional[Path]:
+        """Generate API test suite from config.
+        
+        Args:
+            config: Tool configuration dictionary
+            
+        Returns:
+            Path to generated API test file or None if skipped
+        """
+        # Check if API test template exists
+        try:
+            template = self.jinja_env.get_template('api_test_template.py.jinja2')
+        except Exception as e:
+            logger.warning(f"API test template not found, skipping: {e}")
+            return None
+        
+        output = template.render(tool=config)
+        
+        # Write to tests/api directory
+        api_output_dir = self.project_root / "tests" / "api"
+        api_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_file = api_output_dir / f"test_{config['name']}_api.py"
+        
+        with open(output_file, 'w') as f:
+            f.write(output)
+        
+        logger.info(f"Generated API tests: {output_file.relative_to(self.project_root)}")
         return output_file
     
     def generate_init_files(self):
@@ -458,6 +491,13 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
             integration_init.parent.mkdir(parents=True, exist_ok=True)
             integration_init.write_text('"""Auto-generated integration test suites."""\n')
             logger.info(f"Created {integration_init.relative_to(self.project_root)}")
+        
+        # tests/api/__init__.py
+        api_init = self.project_root / "tests" / "api" / "__init__.py"
+        if not api_init.exists():
+            api_init.parent.mkdir(parents=True, exist_ok=True)
+            api_init.write_text('"""Auto-generated API test suites."""\n')
+            logger.info(f"Created {api_init.relative_to(self.project_root)}")
     
     def process_tool(self, yaml_file: Path, validate_only: bool = False) -> bool:
         """Process a single tool configuration.
@@ -566,22 +606,22 @@ def generate_tools_cli():
     
     factory = ToolFactory()
     
-    print(f"\nTool Factory Starting...")
-    print(f"Config directory: {factory.config_dir}")
-    print(f"Output directory: {factory.output_dir}")
+    print(f"\n🏭 Tool Factory Starting...")
+    print(f"📁 Config directory: {factory.config_dir}")
+    print(f"📁 Output directory: {factory.output_dir}")
     print()
     
     if args.tool_name:
         # Process specific tool
         yaml_file = factory.config_dir / f"{args.tool_name}.yaml"
         if not yaml_file.exists():
-            print(f"ERROR: Tool configuration not found: {yaml_file}")
+            print(f"❌ Tool configuration not found: {yaml_file}")
             sys.exit(1)
         
         success = factory.process_tool(yaml_file, args.validate_only)
         print()
         print("=" * 60)
-        print(f"{'SUCCESS' if success else 'FAILED'} {'Validated' if args.validate_only else 'Generated'}: {args.tool_name}")
+        print(f"{'✅' if success else '❌'} {'Validated' if args.validate_only else 'Generated'}: {args.tool_name}")
         print("=" * 60)
         sys.exit(0 if success else 1)
     else:
@@ -590,9 +630,9 @@ def generate_tools_cli():
         print()
         print("=" * 60)
         success_count = sum(1 for v in results.values() if v)
-        print(f"Successfully processed: {success_count}/{len(results)} tools")
+        print(f"✅ Successfully processed: {success_count}/{len(results)} tools")
         if success_count < len(results):
-            print(f"Failed: {len(results) - success_count} tools")
+            print(f"❌ Failed: {len(results) - success_count} tools")
         print("=" * 60)
         sys.exit(0 if success_count == len(results) else 1)
 
