@@ -1,0 +1,158 @@
+# Multi-Step Echo Pipeline - Composite Tool Example
+#
+# Demonstrates tool composition by chaining multiple echo_tool calls
+# This is a simplified example to demonstrate composite tool functionality
+# before Gmail/Drive tools are available on this branch.
+
+name: multi_echo_pipeline
+display_name: Multi-Step Echo Pipeline
+description: Chain multiple echo operations with state passing and conditional logic
+category: examples
+version: 1.0.0
+tags:
+  - composite
+  - example
+  - pipeline
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  timeout_seconds: 60
+  requires_casefile: false
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  session_event_type: request
+
+casefile_policies:
+  requires_casefile: false
+  enforce_access_control: false
+
+parameters:
+  - name: initial_message
+    type: string
+    description: Initial message to echo through the pipeline
+    required: true
+    min_length: 1
+    examples:
+      - 'Hello from composite tool'
+      - 'Testing multi-step pipeline'
+
+  - name: repeat_count
+    type: integer
+    description: Number of times to echo the message
+    required: false
+    default: 3
+    min_value: 1
+    max_value: 10
+
+  - name: uppercase
+    type: boolean
+    description: Whether to convert message to uppercase in final step
+    required: false
+    default: false
+
+implementation:
+  type: composite
+  composite:
+    steps:
+      # Step 1: Echo initial message
+      - tool: echo_tool
+        inputs:
+          message: '{{ state.initial_message }}'
+          metadata:
+            step: 'step_1_initial'
+            timestamp: '{{ state.started_at }}'
+        on_success:
+          map_outputs:
+            message: step1_result
+          next: echo_tool
+        on_failure:
+          action: stop
+
+      # Step 2: Echo with modification (second call)
+      - tool: echo_tool
+        inputs:
+          message: 'Step 2: {{ state.step1_result }}'
+          metadata:
+            step: 'step_2_modified'
+            repeat_count: '{{ state.repeat_count }}'
+        on_success:
+          map_outputs:
+            message: step2_result
+          next: echo_tool
+        on_failure:
+          action: retry
+          max_retries: 2
+
+      # Step 3: Final echo with uppercase option
+      - tool: echo_tool
+        inputs:
+          message: 'Final: {{ state.step2_result }}'
+          metadata:
+            step: 'step_3_final'
+            uppercase: '{{ state.uppercase }}'
+        on_success:
+          map_outputs:
+            message: final_result
+        on_failure:
+          action: continue
+
+returns:
+  type: object
+  description: Pipeline execution results
+  properties:
+    success:
+      type: boolean
+    chain_id:
+      type: string
+    steps_executed:
+      type: integer
+    final_result:
+      type: string
+    execution_history:
+      type: array
+
+audit_events:
+  success_event: multi_echo_pipeline.success
+  failure_event: multi_echo_pipeline.failure
+  emit_casefile_event: false
+
+examples:
+  - description: Simple three-step echo pipeline
+    context:
+      session:
+        user_id: user_test123
+        session_id: session_test456
+    input:
+      initial_message: 'Hello World'
+      repeat_count: 3
+      uppercase: false
+    expected_output:
+      success: true
+      steps_executed: 3
+      final_result: 'Final: Step 2: Hello World'
+
+  - description: Pipeline with uppercase transformation
+    context:
+      session:
+        user_id: user_test789
+        session_id: session_test012
+    input:
+      initial_message: 'test message'
+      repeat_count: 5
+      uppercase: true
+    expected_output:
+      success: true
+      steps_executed: 3
+      final_result: 'FINAL: STEP 2: TEST MESSAGE'
+
+documentation:
+  summary: |
+    Example composite tool demonstrating tool chaining with echo_tool.
+    Shows state passing, conditional logic, and error handling patterns.
+    
+    Once Gmail and Drive tools are merged, the same pattern applies to
+    complex workflows like gmail_to_drive_pipeline.

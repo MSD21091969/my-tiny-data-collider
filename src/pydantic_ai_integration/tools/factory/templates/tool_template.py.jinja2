@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from ...tool_decorator import register_mds_tool
 from ...dependencies import MDSContext
+{% if tool.implementation.type == 'composite' %}
+from ..chain_executor import ChainExecutor
+{% endif %}
 
 
 class {{ tool.name | capitalize | replace('_', '') }}Params(BaseModel):
@@ -104,11 +107,42 @@ async def {{ tool.name }}(
         {% endfor %}
     }
     {% endif %}
+    
+    {% elif tool.implementation.type == 'composite' %}
+    # Composite tool implementation - execute chain of tools
+    executor = ChainExecutor(ctx)
+    
+    # Prepare initial state from input parameters
+    initial_state = {
+        {% for param in tool.parameters %}
+        "{{ param.name }}": {{ param.name }},
+        {% endfor %}
+    }
+    
+    # Define chain steps
+    steps = {{ tool.implementation.composite.steps | tojson }}
+    
+    # Execute chain
+    chain_result = await executor.execute_chain(
+        steps=steps,
+        initial_state=initial_state,
+        chain_name="{{ tool.name }}"
+    )
+    
+    # Format result
+    result = {
+        "tool": "{{ tool.name }}",
+        "status": "success" if chain_result.get("success") else "failure",
+        "chain_id": chain_result.get("chain_id"),
+        "steps_executed": chain_result.get("steps_executed"),
+        "data": chain_result
+    }
+    
     {% elif tool.implementation.type == 'api_call' and tool.implementation.api_call %}
     # API call implementation
     from {{ tool.implementation.api_call.client_module }} import {{ tool.implementation.api_call.client_class }}
     {% if tool.implementation.api_call.request_type %}
-    from {{ tool.implementation.api_call.client_module }}.models import {{ tool.implementation.api_call.request_type }}
+    from {{ tool.implementation.api_call.client_module.replace('.clients', '.models') }} import {{ tool.implementation.api_call.request_type }}
     {% endif %}
     
     # Initialize client
@@ -132,6 +166,7 @@ async def {{ tool.name }}(
     
     # Convert response to dict
     result = response.model_dump() if hasattr(response, 'model_dump') else response
+    
     {% else %}
     # Placeholder for {{ tool.implementation.type }} implementation
     result = {
