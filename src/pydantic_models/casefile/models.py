@@ -12,6 +12,7 @@ from ..workspace import (
     CasefileGmailData,
     CasefileSheetsData,
 )
+from .acl_models import CasefileACL, PermissionLevel
 
 def generate_casefile_id() -> str:
     """Generate a casefile ID using the centralized ID service."""
@@ -38,6 +39,7 @@ class CasefileModel(BaseModel):
 
     id: str = Field(default_factory=generate_casefile_id, description="Unique casefile ID in format cf_yymmdd_code")
     metadata: CasefileMetadata = Field(..., description="Casefile metadata")
+    acl: Optional[CasefileACL] = Field(None, description="Access Control List for permissions")
     resources: Dict[str, List[ResourceReference]] = Field(
         default_factory=dict,
         description="Legacy resource references by type (deprecated)",

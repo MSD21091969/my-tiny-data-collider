@@ -27,6 +27,13 @@ from ..pydantic_models.casefile.crud_models import (
     UpdateCasefileResponse,
 )
 from ..pydantic_models.casefile.models import CasefileModel, CasefileMetadata
+from ..pydantic_models.casefile.acl_models import (
+    CasefileACL,
+    PermissionLevel,
+    PermissionEntry,
+    GrantPermissionRequest,
+    RevokePermissionRequest,
+)
 from ..pydantic_models.shared.base_models import RequestStatus
 from ..pydantic_models.workspace import (
     CasefileDriveData,
@@ -73,9 +80,17 @@ class CasefileService:
             created_by=user_id
         )
         
+        # Create ACL with owner
+        acl = CasefileACL(
+            owner_id=user_id,
+            permissions=[],
+            public_access=PermissionLevel.NONE
+        )
+        
         # Create casefile
         casefile = CasefileModel(
-            metadata=metadata
+            metadata=metadata,
+            acl=acl
         )
         
         # Store in repository
@@ -502,3 +517,178 @@ class CasefileService:
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
         return sheets_data.model_dump()
+    
+    # ============================================================================
+    # ACL (Access Control List) Methods
+    # ============================================================================
+    
+    async def grant_permission(
+        self,
+        casefile_id: str,
+        granting_user_id: str,
+        target_user_id: str,
+        permission: PermissionLevel,
+        expires_at: Optional[str] = None,
+        notes: Optional[str] = None
+    ) -> bool:
+        """Grant permission to a user on a casefile.
+        
+        Args:
+            casefile_id: Casefile ID
+            granting_user_id: User granting the permission (must have ADMIN or OWNER)
+            target_user_id: User receiving the permission
+            permission: Permission level to grant
+            expires_at: Optional expiration timestamp
+            notes: Optional notes about this permission
+            
+        Returns:
+            True if permission was granted
+            
+        Raises:
+            ValueError: If casefile not found or granting user lacks permission
+        """
+        casefile = await self.repository.get_casefile(casefile_id)
+        if not casefile:
+            raise ValueError(f"Casefile {casefile_id} not found")
+        
+        # Initialize ACL if not present (for legacy casefiles)
+        if not casefile.acl:
+            casefile.acl = CasefileACL(
+                owner_id=casefile.metadata.created_by,
+                permissions=[],
+                public_access=PermissionLevel.NONE
+            )
+        
+        # Check if granting user can share
+        if not casefile.acl.can_share(granting_user_id):
+            raise ValueError(f"User {granting_user_id} does not have permission to share casefile {casefile_id}")
+        
+        # Remove existing permission for this user (if any)
+        casefile.acl.permissions = [
+            p for p in casefile.acl.permissions if p.user_id != target_user_id
+        ]
+        
+        # Add new permission
+        entry = PermissionEntry(
+            user_id=target_user_id,
+            permission=permission,
+            granted_by=granting_user_id,
+            expires_at=expires_at,
+            notes=notes
+        )
+        casefile.acl.permissions.append(entry)
+        
+        # Update casefile
+        casefile.metadata.updated_at = datetime.now().isoformat()
+        await self.repository.update_casefile(casefile)
+        
+        logger.info(f"Granted {permission.value} permission on casefile {casefile_id} to user {target_user_id}")
+        return True
+    
+    async def revoke_permission(
+        self,
+        casefile_id: str,
+        revoking_user_id: str,
+        target_user_id: str
+    ) -> bool:
+        """Revoke permission from a user on a casefile.
+        
+        Args:
+            casefile_id: Casefile ID
+            revoking_user_id: User revoking the permission (must have ADMIN or OWNER)
+            target_user_id: User to revoke permission from
+            
+        Returns:
+            True if permission was revoked
+            
+        Raises:
+            ValueError: If casefile not found or revoking user lacks permission
+        """
+        casefile = await self.repository.get_casefile(casefile_id)
+        if not casefile:
+            raise ValueError(f"Casefile {casefile_id} not found")
+        
+        if not casefile.acl:
+            raise ValueError(f"Casefile {casefile_id} has no ACL")
+        
+        # Check if revoking user can share
+        if not casefile.acl.can_share(revoking_user_id):
+            raise ValueError(f"User {revoking_user_id} does not have permission to manage casefile {casefile_id}")
+        
+        # Cannot revoke owner's permissions
+        if target_user_id == casefile.acl.owner_id:
+            raise ValueError("Cannot revoke owner's permissions")
+        
+        # Remove permission
+        original_count = len(casefile.acl.permissions)
+        casefile.acl.permissions = [
+            p for p in casefile.acl.permissions if p.user_id != target_user_id
+        ]
+        
+        if len(casefile.acl.permissions) == original_count:
+            logger.warning(f"No permission found for user {target_user_id} on casefile {casefile_id}")
+            return False
+        
+        # Update casefile
+        casefile.metadata.updated_at = datetime.now().isoformat()
+        await self.repository.update_casefile(casefile)
+        
+        logger.info(f"Revoked permission on casefile {casefile_id} from user {target_user_id}")
+        return True
+    
+    async def list_permissions(self, casefile_id: str, requesting_user_id: str) -> CasefileACL:
+        """List all permissions for a casefile.
+        
+        Args:
+            casefile_id: Casefile ID
+            requesting_user_id: User requesting permissions list (must have read access)
+            
+        Returns:
+            CasefileACL object
+            
+        Raises:
+            ValueError: If casefile not found or user lacks permission
+        """
+        casefile = await self.repository.get_casefile(casefile_id)
+        if not casefile:
+            raise ValueError(f"Casefile {casefile_id} not found")
+        
+        if not casefile.acl:
+            # Initialize ACL for legacy casefiles
+            casefile.acl = CasefileACL(
+                owner_id=casefile.metadata.created_by,
+                permissions=[],
+                public_access=PermissionLevel.NONE
+            )
+        
+        # Check if requesting user can read
+        if not casefile.acl.can_read(requesting_user_id):
+            raise ValueError(f"User {requesting_user_id} does not have permission to view casefile {casefile_id}")
+        
+        return casefile.acl
+    
+    async def check_permission(
+        self,
+        casefile_id: str,
+        user_id: str,
+        required_permission: PermissionLevel
+    ) -> bool:
+        """Check if a user has specific permission on a casefile.
+        
+        Args:
+            casefile_id: Casefile ID
+            user_id: User ID to check
+            required_permission: Required permission level
+            
+        Returns:
+            True if user has required permission or higher
+        """
+        casefile = await self.repository.get_casefile(casefile_id)
+        if not casefile:
+            return False
+        
+        if not casefile.acl:
+            # Legacy casefile - only owner has access
+            return user_id == casefile.metadata.created_by
+        
+        return casefile.acl.has_permission(user_id, required_permission)
