@@ -1,11 +1,14 @@
-"""
+﻿"""
 Tools package initialization.
 
-Imports unified_example_tools to register tools in MANAGED_TOOLS.
+Imports tools to register them in MANAGED_TOOLS via @register_mds_tool decorator.
 """
 
-# Import to trigger tool registration via @register_mds_tool decorator
-from . import unified_example_tools
+# Import example tools (moved to examples subfolder)
+from .examples import unified_example_tools
+
+# Import generated tools (YAML-based tools)
+from . import generated
 
 # Re-export for convenience
-__all__ = ['unified_example_tools']
+__all__ = ['unified_example_tools', 'generated']

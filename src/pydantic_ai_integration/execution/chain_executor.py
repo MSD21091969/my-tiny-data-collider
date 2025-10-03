@@ -6,8 +6,8 @@ and state management for tool composition workflows.
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import asyncio
-from src.pydantic_ai_integration.dependencies import MDSContext
-from src.pydantic_ai_integration.tool_decorator import MANAGED_TOOLS
+from ..dependencies import MDSContext
+from ..tool_decorator import MANAGED_TOOLS
 
 
 class ChainExecutionError(Exception):

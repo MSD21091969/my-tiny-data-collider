@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 from ...tool_decorator import register_mds_tool
 from ...dependencies import MDSContext
-from ..chain_executor import ChainExecutor
+from ...execution.chain_executor import ChainExecutor
 
 
 class EchochaindemoParams(BaseModel):
