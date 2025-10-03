@@ -312,6 +312,22 @@ class CommunicationService:
                 }
             )
 
+        # SECURITY: Verify session belongs to requesting user
+        if session.user_id != request.user_id:
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return GetChatSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Access denied: Session {session_id} does not belong to user {request.user_id}",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "session_id": session_id,
+                    "operation": "get_chat_session",
+                    "security_check": "ownership_verification_failed"
+                }
+            )
+
         # Calculate message count
         message_count = len(session.messages)
         
@@ -415,6 +431,22 @@ class CommunicationService:
                     "execution_time_ms": execution_time_ms,
                     "session_id": session_id,
                     "operation": "close_chat_session"
+                }
+            )
+
+        # SECURITY: Verify session belongs to requesting user
+        if session.user_id != request.user_id:
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return CloseChatSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Access denied: Session {session_id} does not belong to user {request.user_id}",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "session_id": session_id,
+                    "operation": "close_chat_session",
+                    "security_check": "ownership_verification_failed"
                 }
             )
 

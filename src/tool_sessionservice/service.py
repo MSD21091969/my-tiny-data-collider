@@ -293,6 +293,30 @@ class ToolSessionService:
                 )
             )
         
+        # SECURITY: Verify session belongs to requesting user
+        if session.user_id != request.user_id:
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return GetSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Access denied: Session {session_id} does not belong to user {request.user_id}",
+                payload=SessionDataPayload(
+                    session_id=session_id,
+                    user_id="",
+                    casefile_id="",
+                    created_at="",
+                    updated_at="",
+                    active=False,
+                    request_count=0,
+                    event_count=0
+                ),
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "get_session",
+                    "security_check": "ownership_verification_failed"
+                }
+            )
+        
         # Count events across all requests
         event_count = 0
         for req_id in session.request_ids:
@@ -410,6 +434,26 @@ class ToolSessionService:
                     total_requests=0,
                     total_events=0
                 )
+            )
+        
+        # SECURITY: Verify session belongs to requesting user
+        if session.user_id != request.user_id:
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return CloseSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Access denied: Session {session_id} does not belong to user {request.user_id}",
+                payload=SessionClosedPayload(
+                    session_id=session_id,
+                    closed_at=datetime.now().isoformat(),
+                    total_requests=0,
+                    total_events=0
+                ),
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "close_session",
+                    "security_check": "ownership_verification_failed"
+                }
             )
         
         # Calculate statistics

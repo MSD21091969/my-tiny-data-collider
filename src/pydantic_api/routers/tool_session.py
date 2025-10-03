@@ -160,11 +160,10 @@ async def list_sessions(
     limit: int = 50,
     offset: int = 0,
     service: ToolSessionService = Depends(get_tool_session_service),
-    # current_user: Dict[str, Any] = Depends(get_current_user)  # TEMPORARILY DISABLED
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> ListSessionsResponse:
     """List tool sessions for the current user, optionally filtered by casefile."""
-    # Use mock user for now
-    user_id = "sam123"
+    user_id = current_user["user_id"]
     
     # Skip casefile access verification for now
     # if casefile_id:

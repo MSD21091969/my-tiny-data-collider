@@ -36,11 +36,10 @@ async def create_casefile(
     description: str = "",
     tags: Optional[List[str]] = None,
     service: CasefileService = Depends(get_casefile_service),
-    # user_id: str = Depends(get_current_user_id)  # TEMPORARILY DISABLED
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> CreateCasefileResponse:
     """Create a new casefile."""
-    # Use mock user for now
-    user_id = "sam123"
+    user_id = current_user["user_id"]
     
     request = CreateCasefileRequest(
         user_id=user_id,
@@ -136,11 +135,10 @@ async def list_casefiles(
     limit: int = 50,
     offset: int = 0,
     service: CasefileService = Depends(get_casefile_service),
-    # current_user: Dict[str, Any] = Depends(get_current_user)  # TEMPORARILY DISABLED
+    current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> ListCasefilesResponse:
     """List casefiles for the current user."""
-    # Use mock user for now
-    user_id = "sam123"
+    user_id = current_user["user_id"]
     
     request = ListCasefilesRequest(
         user_id=user_id,
