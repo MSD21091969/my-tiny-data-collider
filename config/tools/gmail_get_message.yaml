@@ -1,0 +1,125 @@
+name: gmail_get_message
+display_name: Gmail Get Message
+description: "Get full details of a specific Gmail message by ID"
+version: "1.0.0"
+category: google_workspace
+tags:
+  - gmail
+  - email
+  - google_workspace
+  - retrieve
+
+parameters:
+  - name: message_id
+    type: string
+    description: "Gmail message ID to retrieve"
+    required: true
+    min_length: 1
+    
+  - name: format
+    type: string
+    description: "Format of the message (full, metadata, minimal, raw)"
+    required: false
+    default: "full"
+    
+  - name: include_headers
+    type: boolean
+    description: "Include email headers in the response"
+    required: false
+    default: true
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: ["gmail.readonly"]
+  requires_casefile: false
+  timeout_seconds: 30
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: "gmail_get"
+  log_request_payload: true
+  log_full_response: false
+
+casefile_policies:
+  requires_casefile: false
+  allowed_casefile_states: ["active"]
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: false
+
+implementation:
+  type: api_call
+  api_call:
+    client_class: "GmailClient"
+    client_module: "src.pydantic_ai_integration.google_workspace.clients"
+    method_name: "get_message"
+    response_type: "GmailGetMessageResponse"
+
+returns:
+  type: object
+  description: "Full message details"
+  properties:
+    message:
+      type: object
+      description: "Complete Gmail message object"
+    id:
+      type: string
+      description: "Message ID"
+    subject:
+      type: string
+      description: "Email subject"
+    body:
+      type: string
+      description: "Email body content"
+    sender:
+      type: string
+      description: "Sender email address"
+    recipients:
+      type: array
+      description: "List of recipient email addresses"
+
+audit_events:
+  success_event: "gmail_get_success"
+  failure_event: "gmail_get_failure"
+  log_response_fields: ["id", "subject", "sender"]
+  redact_fields: ["body"]
+  emit_casefile_event: true
+
+examples:
+  - description: "Get message with full details"
+    context:
+      session:
+        user_id: "test_user"
+        session_id: "test_session"
+    input:
+      message_id: "mock-msg-123"
+      format: "full"
+      include_headers: true
+    expected_output:
+      message:
+        id: "mock-msg-123"
+        subject: "Test Subject"
+        sender: "sender@example.com"
+      id: "mock-msg-123"
+      subject: "Test Subject"
+
+error_scenarios:
+  - description: "Message not found"
+    input:
+      message_id: "nonexistent-id"
+    expected_error:
+      type: "ValueError"
+      message: "Message not found"
+
+test_scenarios:
+  - name: "get_minimal_format"
+    description: "Get message with minimal format"
+    parameters:
+      message_id: "mock-msg-456"
+      format: "minimal"
+      include_headers: false
+    expected_output:
+      id: "mock-msg-456"

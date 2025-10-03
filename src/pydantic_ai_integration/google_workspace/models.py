@@ -19,6 +19,7 @@ class GmailListMessagesRequest(BaseModel):
     max_results: int = Field(10, ge=1, le=100, description="Maximum results to return")
     query: str = Field("", max_length=2048, description="Gmail search query")
     page_token: Optional[str] = Field(None, description="Pagination token from previous call")
+    label_ids: List[str] = Field(default_factory=list, description="Filter results to specific label IDs")
 
 
 class GmailListMessagesResponse(BaseModel):
@@ -27,6 +28,56 @@ class GmailListMessagesResponse(BaseModel):
     messages: List[GmailMessage] = Field(default_factory=list, description="Gmail messages returned by the API")
     next_page_token: Optional[str] = Field(None, description="Token for fetching the next page")
     result_size_estimate: int = Field(0, ge=0, description="Google's estimated result size")
+
+
+class GmailSendMessageRequest(BaseModel):
+    """Parameters for sending a Gmail message."""
+
+    to: str = Field(..., description="Recipient email address")
+    subject: str = Field(..., description="Email subject line")
+    body: str = Field(..., description="Email body content (plain text)")
+    cc: str = Field("", description="CC recipients (comma-separated)")
+    bcc: str = Field("", description="BCC recipients (comma-separated)")
+
+
+class GmailSendMessageResponse(BaseModel):
+    """Response envelope for sending a Gmail message."""
+
+    message_id: str = Field(..., description="ID of the sent message")
+    thread_id: str = Field(..., description="Thread ID the message belongs to")
+    label_ids: List[str] = Field(default_factory=list, description="Labels applied to the sent message")
+
+
+class GmailSearchMessagesRequest(BaseModel):
+    """Parameters for searching Gmail messages."""
+
+    query: str = Field(..., description="Gmail search query string")
+    max_results: int = Field(10, ge=1, le=100, description="Maximum results to return")
+    page_token: Optional[str] = Field(None, description="Pagination token")
+    include_spam_trash: bool = Field(False, description="Include SPAM and TRASH in search results")
+
+
+class GmailSearchMessagesResponse(BaseModel):
+    """Response envelope for Gmail search."""
+
+    messages: List[GmailMessage] = Field(default_factory=list, description="Messages matching the search")
+    next_page_token: Optional[str] = Field(None, description="Token for next page")
+    result_size_estimate: int = Field(0, ge=0, description="Estimated total results")
+    query_used: Optional[str] = Field(None, description="The actual query executed in the search")
+
+
+class GmailGetMessageRequest(BaseModel):
+    """Parameters for getting a specific Gmail message."""
+
+    message_id: str = Field(..., description="Gmail message ID to retrieve")
+    format: str = Field("full", description="Message format (minimal|full|raw|metadata)")
+    include_headers: bool = Field(True, description="Include email headers in the response payload")
+
+
+class GmailGetMessageResponse(BaseModel):
+    """Response envelope for getting a single message."""
+
+    message: GmailMessage = Field(..., description="The requested Gmail message")
 
 
 class DriveListFilesRequest(BaseModel):
