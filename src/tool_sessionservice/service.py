@@ -14,7 +14,6 @@ from ..pydantic_models.tool_session import (
     ListSessionsRequest, ListSessionsResponse, SessionSummary, SessionListPayload,
     CloseSessionRequest, CloseSessionResponse, SessionClosedPayload,
 )
-from ..pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
 from ..pydantic_ai_integration.dependencies import MDSContext
 from ..pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
@@ -448,54 +447,4 @@ class ToolSessionService:
                 "user_id": session.user_id,
                 "casefile_id": session.casefile_id
             }
-        )
-        
-    async def resume_session(self, user_id: str, request: SessionResumeRequest) -> SessionResumeResponse:
-        """Resume a previous session.
-        
-        Args:
-            user_id: ID of the user resuming the session
-            request: Session resume request with session ID
-            
-        Returns:
-            Session resume response with session details
-            
-        Raises:
-            ValueError: If session not found or doesn't belong to the user
-        """
-        session_id = request.session_id
-        session = await self.repository.get_session(session_id)
-        
-        if not session:
-            raise ValueError(f"Session {session_id} not found")
-            
-        # Verify ownership
-        if session.user_id != user_id:
-            raise ValueError(f"Session {session_id} does not belong to user {user_id}")
-            
-        # Ensure session is active
-        if not session.active:
-            session.active = True
-            session.updated_at = datetime.now().isoformat()
-            await self.repository.update_session(session)
-            
-        # Get last request ID
-        last_request_id = session.request_ids[-1] if session.request_ids else None
-        
-        # Create context summary
-        context_summary = {
-            "user_id": session.user_id,
-            "casefile_id": session.casefile_id if session.casefile_id else None,
-            "active": session.active,
-            "created_at": session.created_at,
-            "updated_at": session.updated_at
-        }
-        
-        return SessionResumeResponse(
-            session_id=session_id,
-            last_request_id=last_request_id,
-            last_response_id=last_request_id,  # Same as request ID in new structure
-            updated_at=session.updated_at,
-            request_count=len(session.request_ids),
-            context_summary=context_summary
         )

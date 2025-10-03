@@ -8,7 +8,6 @@ from typing import Dict, Any, List, Optional
 from ...tool_sessionservice import ToolSessionService
 from ...pydantic_models.casefile.crud_models import GetCasefileRequest
 from ...pydantic_models.tool_session import ToolRequest, ToolResponse
-from ...pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
 from ...pydantic_models.tool_session.session_models import (
     CloseSessionRequest,
     CloseSessionResponse,
@@ -41,19 +40,16 @@ def get_casefile_service() -> CasefileService:
 @router.post("/", response_model=CreateSessionResponse)
 async def create_session(
     casefile_id: str,  # Make casefile_id required
-    session_id: Optional[str] = None,
-    title: Optional[str] = None,
     service: ToolSessionService = Depends(get_tool_session_service),
     casefile_service: CasefileService = Depends(get_casefile_service),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> CreateSessionResponse:
-    """Create or resume a tool session.
+    """Create a new tool session.
     
     Requires casefile_id - sessions must be associated with a casefile.
     
-    Two scenarios:
-    1. If session_id is provided, resume that session (requires matching user and casefile)
-    2. Create a new session for the specified casefile
+    Note: Session "resume" is implicit - simply use the existing session_id
+    in subsequent ToolRequest calls. No need to explicitly "resume" a session.
     """
     user_id = current_user["user_id"]
     
@@ -82,52 +78,7 @@ async def create_session(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error verifying casefile: {str(e)}")
     
-    # Scenario 1: Resume existing session
-    if session_id:
-        try:
-            # Verify session exists and belongs to user AND casefile
-            get_session_request = GetSessionRequest(
-                user_id=user_id,
-                operation="get_session",
-                payload={"session_id": session_id}
-            )
-            session_response = await service.get_session(get_session_request)
-            
-            if session_response.status.value == "failed":
-                raise HTTPException(status_code=404, detail=session_response.error or "Session not found")
-            
-            session_data = session_response.payload
-            if session_data.user_id != user_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You do not have access to this session"
-                )
-            if session_data.casefile_id != casefile_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Session does not belong to the specified casefile"
-                )
-            
-            resume_request = SessionResumeRequest(session_id=session_id)
-            resume_response = await service.resume_session(user_id, resume_request)
-            
-            # Convert resume response to create response format
-            return CreateSessionResponse(
-                request_id=resume_response.request_id,
-                status=resume_response.status,
-                payload={
-                    "session_id": resume_response.session_id,
-                    "casefile_id": casefile_id,
-                    "created_at": session_data.created_at
-                },
-                metadata={"resumed": True, "original_session_id": session_id}
-            )
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error resuming session: {str(e)}")
-    
-    # Scenario 2: Create new session for existing casefile
+    # Create new session for casefile
     create_request = CreateSessionRequest(
         user_id=user_id,
         operation="create_session",
@@ -268,18 +219,6 @@ async def close_session(
     )
     
     return await service.close_session(close_request)
-        
-@router.post("/resume", response_model=SessionResumeResponse)
-async def resume_session(
-    request: SessionResumeRequest,
-    service: ToolSessionService = Depends(get_tool_session_service),
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> SessionResumeResponse:
-    """Resume a previous tool session."""
-    try:
-        return await service.resume_session(current_user["user_id"], request)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
 
 
 # ============================================================================

@@ -35,8 +35,8 @@ from pydantic import BaseModel, ValidationError
 from functools import wraps
 import logging
 
-# Use absolute imports for better compatibility
-from src.pydantic_models.tool_session.tool_definition import (
+# Import from local module (tool infrastructure belongs together)
+from .tool_definition import (
     ManagedToolDefinition,
     ToolMetadata,
     ToolBusinessRules,
