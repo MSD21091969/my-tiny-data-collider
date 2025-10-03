@@ -6,7 +6,28 @@ from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime
 import logging
 
+from ..pydantic_models.casefile.crud_models import (
+    AddSessionToCasefileRequest,
+    AddSessionToCasefileResponse,
+    CasefileCreatedPayload,
+    CasefileDataPayload,
+    CasefileDeletedPayload,
+    CasefileListPayload,
+    CasefileSessionAddedPayload,
+    CasefileUpdatedPayload,
+    CreateCasefileRequest,
+    CreateCasefileResponse,
+    DeleteCasefileRequest,
+    DeleteCasefileResponse,
+    GetCasefileRequest,
+    GetCasefileResponse,
+    ListCasefilesRequest,
+    ListCasefilesResponse,
+    UpdateCasefileRequest,
+    UpdateCasefileResponse,
+)
 from ..pydantic_models.casefile.models import CasefileModel, CasefileMetadata
+from ..pydantic_models.shared.base_models import RequestStatus
 from ..pydantic_models.workspace import (
     CasefileDriveData,
     CasefileGmailData,
@@ -28,18 +49,22 @@ class CasefileService:
         """Initialize the service."""
         self.repository = CasefileRepository()
         
-    async def create_casefile(self, user_id: str, title: str, description: str = "", tags: List[str] = None) -> Dict[str, str]:
+    async def create_casefile(self, request: CreateCasefileRequest) -> CreateCasefileResponse:
         """Create a new casefile.
         
         Args:
-            user_id: ID of the user creating the casefile
-            title: Title of the casefile
-            description: Description of the casefile
-            tags: Optional tags for the casefile
+            request: Request containing user_id, title, description, and tags
             
         Returns:
-            Dictionary with the casefile ID
+            Response with the created casefile ID and metadata
         """
+        start_time = datetime.now()
+        
+        user_id = request.user_id
+        title = request.payload.title
+        description = request.payload.description
+        tags = request.payload.tags
+        
         # Create metadata
         metadata = CasefileMetadata(
             title=title,
@@ -56,56 +81,115 @@ class CasefileService:
         # Store in repository
         casefile_id = await self.repository.create_casefile(casefile)
         
-        return {"casefile_id": casefile_id}
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return CreateCasefileResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=CasefileCreatedPayload(
+                casefile_id=casefile_id,
+                title=title,
+                created_at=metadata.created_at,
+                created_by=user_id
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "user_id": user_id,
+                "operation": "create_casefile"
+            }
+        )
     
-    async def get_casefile(self, casefile_id: str) -> Dict[str, Any]:
+    async def get_casefile(self, request: GetCasefileRequest) -> GetCasefileResponse:
         """Get a casefile by ID.
         
         Args:
-            casefile_id: ID of the casefile to retrieve
+            request: Request containing casefile_id
             
         Returns:
-            The casefile data
-            
-        Raises:
-            ValueError: If casefile not found
+            Response with the casefile data
         """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return GetCasefileResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "casefile_id": casefile_id,
+                    "operation": "get_casefile"
+                }
+            )
             
-        return casefile.model_dump()
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return GetCasefileResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=CasefileDataPayload(
+                casefile=casefile
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "casefile_id": casefile_id,
+                "operation": "get_casefile"
+            }
+        )
     
-    async def update_casefile(self, casefile_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_casefile(self, request: UpdateCasefileRequest) -> UpdateCasefileResponse:
         """Update a casefile.
         
         Args:
-            casefile_id: ID of the casefile to update
-            updates: Dictionary of fields to update
+            request: Request containing casefile_id and update fields
             
         Returns:
-            The updated casefile data
-            
-        Raises:
-            ValueError: If casefile not found
+            Response with the updated casefile data
         """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        
         # Get existing casefile
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return UpdateCasefileResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "casefile_id": casefile_id,
+                    "operation": "update_casefile"
+                }
+            )
+        
+        # Track what was updated
+        updates_applied = []
         
         # Update metadata fields
         metadata = casefile.metadata
-        if "title" in updates:
-            metadata.title = updates["title"]
-        if "description" in updates:
-            metadata.description = updates["description"]
-        if "tags" in updates:
-            metadata.tags = updates["tags"]
+        if request.payload.title is not None:
+            metadata.title = request.payload.title
+            updates_applied.append("title")
+        if request.payload.description is not None:
+            metadata.description = request.payload.description
+            updates_applied.append("description")
+        if request.payload.tags is not None:
+            metadata.tags = request.payload.tags
+            updates_applied.append("tags")
             
         # Update notes
-        if "notes" in updates:
-            casefile.notes = updates["notes"]
+        if request.payload.notes is not None:
+            casefile.notes = request.payload.notes
+            updates_applied.append("notes")
             
         # Update timestamp
         metadata.updated_at = datetime.now().isoformat()
@@ -113,75 +197,181 @@ class CasefileService:
         # Store updated casefile
         await self.repository.update_casefile(casefile)
         
-        return casefile.model_dump()
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return UpdateCasefileResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=CasefileUpdatedPayload(
+                casefile_id=casefile_id,
+                updated_at=metadata.updated_at,
+                casefile=casefile
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "updates_applied": updates_applied,
+                "operation": "update_casefile"
+            }
+        )
     
-    async def list_casefiles(self, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def list_casefiles(self, request: ListCasefilesRequest) -> ListCasefilesResponse:
         """List casefiles, optionally filtered by user.
         
         Args:
-            user_id: Optional user ID to filter by
+            request: Request containing optional user_id filter and pagination
             
         Returns:
-            List of casefile summaries
+            Response with list of casefile summaries
         """
+        start_time = datetime.now()
+        
+        user_id = request.payload.user_id
+        limit = request.payload.limit
+        offset = request.payload.offset
+        
         summaries = await self.repository.list_casefiles(user_id=user_id)
-        return [summary.model_dump() for summary in summaries]
+        
+        # Apply pagination
+        total_count = len(summaries)
+        paginated_summaries = summaries[offset:offset + limit]
+        
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return ListCasefilesResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=CasefileListPayload(
+                casefiles=paginated_summaries,
+                total_count=total_count,
+                offset=offset,
+                limit=limit
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "filter_user_id": user_id,
+                "operation": "list_casefiles"
+            }
+        )
     
-    async def delete_casefile(self, casefile_id: str) -> Dict[str, Any]:
+    async def delete_casefile(self, request: DeleteCasefileRequest) -> DeleteCasefileResponse:
         """Delete a casefile.
         
         Args:
-            casefile_id: ID of the casefile to delete
+            request: Request containing casefile_id
             
         Returns:
-            Status information
-            
-        Raises:
-            ValueError: If casefile not found
+            Response with deletion status information
         """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        
         # Verify casefile exists
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return DeleteCasefileResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "casefile_id": casefile_id,
+                    "operation": "delete_casefile"
+                }
+            )
             
         # Delete casefile
         success = await self.repository.delete_casefile(casefile_id)
         
         if not success:
-            raise ValueError(f"Failed to delete casefile {casefile_id}")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return DeleteCasefileResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Failed to delete casefile {casefile_id}",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "casefile_id": casefile_id,
+                    "operation": "delete_casefile"
+                }
+            )
             
-        return {
-            "casefile_id": casefile_id,
-            "status": "deleted"
-        }
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
         
-    async def add_session_to_casefile(self, casefile_id: str, session_id: str) -> Dict[str, Any]:
+        return DeleteCasefileResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=CasefileDeletedPayload(
+                casefile_id=casefile_id,
+                deleted_at=datetime.now().isoformat()
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "delete_casefile"
+            }
+        )
+        
+    async def add_session_to_casefile(self, request: AddSessionToCasefileRequest) -> AddSessionToCasefileResponse:
         """Add a session to a casefile.
         
         Args:
-            casefile_id: ID of the casefile
-            session_id: ID of the session to add
+            request: Request containing casefile_id and session_id
             
         Returns:
-            Updated casefile data
-            
-        Raises:
-            ValueError: If casefile not found
+            Response with updated casefile data
         """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        session_id = request.payload.session_id
+        
         # Get existing casefile
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return AddSessionToCasefileResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "casefile_id": casefile_id,
+                    "session_id": session_id,
+                    "operation": "add_session_to_casefile"
+                }
+            )
             
         # Add session if not already present
+        was_added = False
         if session_id not in casefile.session_ids:
             casefile.session_ids.append(session_id)
             casefile.metadata.updated_at = datetime.now().isoformat()
             
             # Store updated casefile
             await self.repository.update_casefile(casefile)
+            was_added = True
             
-        return casefile.model_dump()
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return AddSessionToCasefileResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=CasefileSessionAddedPayload(
+                casefile_id=casefile_id,
+                session_id=session_id,
+                was_added=was_added,
+                total_sessions=len(casefile.session_ids),
+                updated_at=casefile.metadata.updated_at
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "add_session_to_casefile"
+            }
+        )
 
     async def store_gmail_messages(
         self,
