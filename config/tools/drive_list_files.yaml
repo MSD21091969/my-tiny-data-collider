@@ -1,0 +1,110 @@
+name: drive_list_files
+display_name: Drive List Files
+description: "List files in user's Google Drive with optional filtering and pagination"
+version: "1.0.0"
+category: google_workspace
+tags:
+  - drive
+  - files
+  - google_workspace
+  - storage
+
+parameters:
+  - name: page_size
+    type: integer
+    description: "Maximum number of files to return per page"
+    required: false
+    default: 25
+    min_value: 1
+    max_value: 1000
+    
+  - name: query
+    type: string
+    description: "Drive query string using Drive API query syntax (e.g. name contains 'report', mimeType = 'application/pdf')"
+    required: false
+    default: ""
+    max_length: 4096
+    
+  - name: order_by
+    type: string
+    description: "Sort order (e.g. 'modifiedTime desc', 'name', 'createdTime')"
+    required: false
+    default: ""
+    
+  - name: page_token
+    type: string
+    description: "Token for fetching the next page of results"
+    required: false
+    default: ""
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: ["drive.readonly"]
+  requires_casefile: false
+  timeout_seconds: 30
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: "drive_list"
+  log_request_payload: true
+  log_full_response: false
+
+casefile_policies:
+  requires_casefile: false
+  allowed_casefile_states: ["active"]
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: false
+
+audit_events:
+  success_event: "drive_list_success"
+  failure_event: "drive_list_failure"
+  log_response_fields: ["file_count"]
+  redact_fields: []
+  emit_casefile_event: true
+
+implementation:
+  type: api_call
+  api_call:
+    client_module: src.pydantic_ai_integration.google_workspace
+    client_class: DriveClient
+    method_name: list_files
+    request_type: DriveListFilesRequest
+
+returns:
+  type: object
+  description: "Drive files list response"
+  properties:
+    files:
+      type: array
+      description: "List of Drive file objects"
+    next_page_token:
+      type: string
+      description: "Token for next page of results"
+
+examples:
+  - description: "List recent files in Drive root"
+    context:
+      session:
+        user_id: "test_user"
+        session_id: "test_session"
+      permissions: ["drive.readonly"]
+    input:
+      page_size: 10
+      query: ""
+      order_by: "modifiedTime desc"
+    expected_output:
+      files:
+        - id: "mock-file-1"
+          name: "Important Document"
+
+error_scenarios:
+  - description: "Invalid page size"
+    input:
+      page_size: 2000
+    expected_error:
+      type: "ValidationError"
+      message: "page_size exceeds maximum"
