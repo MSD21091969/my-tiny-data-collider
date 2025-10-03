@@ -18,8 +18,24 @@ from ..pydantic_models.communication.models import (
     ChatSession,
     MessageType,
 )
+from ..pydantic_models.communication.session_models import (
+    ChatSessionClosedPayload,
+    ChatSessionCreatedPayload,
+    ChatSessionDataPayload,
+    ChatSessionListPayload,
+    ChatSessionSummary,
+    CloseChatSessionRequest,
+    CloseChatSessionResponse,
+    CreateChatSessionRequest,
+    CreateChatSessionResponse,
+    GetChatSessionRequest,
+    GetChatSessionResponse,
+    ListChatSessionsRequest,
+    ListChatSessionsResponse,
+)
 from ..pydantic_models.shared.base_models import RequestStatus
 from ..pydantic_models.tool_session.models import ToolRequest, ToolRequestPayload
+from ..pydantic_models.tool_session.session_models import CreateSessionRequest
 from ..tool_sessionservice.service import ToolSessionService
 from .repository import ChatSessionRepository
 
@@ -36,8 +52,12 @@ class CommunicationService:
         self.tool_service = ToolSessionService()
         self.id_service = get_id_service()
         
-    async def create_session(self, user_id: str, casefile_id: Optional[str] = None) -> Dict[str, str]:
+    async def create_session(self, request: CreateChatSessionRequest) -> CreateChatSessionResponse:
         """Create a new chat session and its linked tool session."""
+        start_time = datetime.now()
+        
+        user_id = request.user_id
+        casefile_id = request.payload.casefile_id
 
         session_id = self.id_service.new_chat_session_id(user_id=user_id, casefile_id=casefile_id)
 
@@ -48,16 +68,39 @@ class CommunicationService:
         )
         await self.repository.create_session(session)
 
-        tool_session = await self.tool_service.create_session(user_id, casefile_id)
+        # Create tool session using new Request/Response pattern
+        tool_request = CreateSessionRequest(
+            user_id=user_id,
+            operation="create_tool_session",
+            payload={"casefile_id": casefile_id}
+        )
+        tool_response = await self.tool_service.create_session(tool_request)
+        tool_session_id = tool_response.payload.session_id
 
         session.metadata = session.metadata or {}
-        session.metadata["tool_session_id"] = tool_session["session_id"]
+        session.metadata["tool_session_id"] = tool_session_id
         session.updated_at = datetime.now().isoformat()
         await self.repository.update_session(session)
 
-        logger.info("Created chat session %s with tool session %s", session_id, tool_session["session_id"])
+        logger.info("Created chat session %s with tool session %s", session_id, tool_session_id)
 
-        return {"session_id": session_id, "tool_session_id": tool_session["session_id"]}
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return CreateChatSessionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=ChatSessionCreatedPayload(
+                session_id=session_id,
+                tool_session_id=tool_session_id,
+                casefile_id=casefile_id,
+                created_at=session.created_at
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "user_id": user_id,
+                "operation": "create_chat_session"
+            }
+        )
     
     async def process_chat_request(self, request: ChatRequest) -> ChatResponse:
         """Process a chat request and run any associated tool calls."""
@@ -247,60 +290,183 @@ class CommunicationService:
 
         return response
     
-    async def get_session(self, session_id: str) -> Dict[str, Any]:
+    async def get_session(self, request: GetChatSessionRequest) -> GetChatSessionResponse:
         """Return a chat session by ID."""
+        start_time = datetime.now()
+        
+        session_id = request.payload.session_id
+        include_messages = request.payload.include_messages
 
         session = await self.repository.get_session(session_id)
         if not session:
-            raise ValueError(f"Session {session_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return GetChatSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Session {session_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "session_id": session_id,
+                    "operation": "get_chat_session"
+                }
+            )
 
-        return session.model_dump()
+        # Calculate message count
+        message_count = len(session.messages)
+        
+        # Get messages if requested
+        messages = session.messages if include_messages else None
 
-    async def list_sessions(
-        self,
-        user_id: Optional[str] = None,
-        casefile_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return GetChatSessionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=ChatSessionDataPayload(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                casefile_id=session.casefile_id,
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                active=session.active,
+                message_count=message_count,
+                messages=messages,
+                metadata=session.metadata
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "include_messages": include_messages,
+                "operation": "get_chat_session"
+            }
+        )
+
+    async def list_sessions(self, request: ListChatSessionsRequest) -> ListChatSessionsResponse:
         """List chat sessions, optionally filtered by user or casefile."""
+        start_time = datetime.now()
+        
+        user_id = request.payload.user_id
+        casefile_id = request.payload.casefile_id
+        active_only = request.payload.active_only
+        limit = request.payload.limit
+        offset = request.payload.offset
 
         sessions = await self.repository.list_sessions(user_id=user_id, casefile_id=casefile_id)
-        return [
-            {
-                "session_id": session.session_id,
-                "user_id": session.user_id,
-                "casefile_id": session.casefile_id,
-                "created_at": session.created_at,
-                "updated_at": session.updated_at,
-                "message_count": len(session.messages),
-                "active": session.active,
-            }
-            for session in sessions
+        
+        # Filter by active status if requested
+        if active_only:
+            sessions = [s for s in sessions if s.active]
+        
+        # Apply pagination
+        total_count = len(sessions)
+        paginated_sessions = sessions[offset:offset + limit]
+        
+        # Build summaries
+        summaries = [
+            ChatSessionSummary(
+                session_id=session.session_id,
+                user_id=session.user_id,
+                casefile_id=session.casefile_id,
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                message_count=len(session.messages),
+                active=session.active,
+            )
+            for session in paginated_sessions
         ]
 
-    async def close_session(self, session_id: str) -> Dict[str, Any]:
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return ListChatSessionsResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=ChatSessionListPayload(
+                sessions=summaries,
+                total_count=total_count,
+                offset=offset,
+                limit=limit
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "filters_applied": {
+                    "user_id": user_id,
+                    "casefile_id": casefile_id,
+                    "active_only": active_only
+                },
+                "operation": "list_chat_sessions"
+            }
+        )
+
+    async def close_session(self, request: CloseChatSessionRequest) -> CloseChatSessionResponse:
         """Close a chat session and any linked tool session."""
+        start_time = datetime.now()
+        
+        session_id = request.payload.session_id
 
         session = await self.repository.get_session(session_id)
         if not session:
-            raise ValueError(f"Session {session_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return CloseChatSessionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Session {session_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "session_id": session_id,
+                    "operation": "close_chat_session"
+                }
+            )
+
+        # Calculate statistics before closing
+        message_count = len(session.messages)
+        event_count = len(session.events)
+        created_at_dt = datetime.fromisoformat(session.created_at) if isinstance(session.created_at, str) else session.created_at
+        duration_seconds = int((datetime.now() - created_at_dt).total_seconds())
 
         session.active = False
         session.updated_at = datetime.now().isoformat()
         await self.repository.update_session(session)
 
         tool_session_id = (session.metadata or {}).get("tool_session_id")
+        tool_session_closed = False
+        tool_session_error = None
+        
         if tool_session_id:
             try:
                 logger.info("Closing tool session %s", tool_session_id)
-                await self.tool_service.close_session(tool_session_id)
+                from ..pydantic_models.tool_session.session_models import CloseSessionRequest
+                close_tool_request = CloseSessionRequest(
+                    user_id=request.user_id,
+                    operation="close_tool_session",
+                    payload={"session_id": tool_session_id}
+                )
+                await self.tool_service.close_session(close_tool_request)
+                tool_session_closed = True
             except Exception as exc:
                 logger.warning("Failed to close tool session %s: %s", tool_session_id, exc)
+                tool_session_error = str(exc)
 
-        return {
-            "session_id": session.session_id,
-            "status": "closed",
-            "updated_at": session.updated_at,
-        }
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return CloseChatSessionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=ChatSessionClosedPayload(
+                session_id=session.session_id,
+                closed_at=session.updated_at,
+                message_count=message_count,
+                event_count=event_count,
+                duration_seconds=duration_seconds,
+                tool_session_id=tool_session_id,
+                tool_session_closed=tool_session_closed
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "tool_session_error": tool_session_error,
+                "operation": "close_chat_session"
+            }
+        )
 
     async def _ensure_tool_session(self, session: ChatSession) -> str:
         """Ensure the chat session has a corresponding tool session."""
@@ -309,8 +475,13 @@ class CommunicationService:
         tool_session_id = metadata.get("tool_session_id")
 
         if not tool_session_id:
-            tool_session = await self.tool_service.create_session(session.user_id, session.casefile_id)
-            tool_session_id = tool_session["session_id"]
+            tool_request = CreateSessionRequest(
+                user_id=session.user_id,
+                operation="create_tool_session",
+                payload={"casefile_id": session.casefile_id}
+            )
+            tool_response = await self.tool_service.create_session(tool_request)
+            tool_session_id = tool_response.payload.session_id
             metadata["tool_session_id"] = tool_session_id
             session.metadata = metadata
 
