@@ -8,7 +8,6 @@ API tests validate the HTTP layer, JWT authentication, and end-to-end request/re
 import pytest
 from fastapi.testclient import TestClient
 from src.pydantic_api.app import app
-from src.authservice.token import create_token
 
 
 @pytest.fixture
@@ -17,20 +16,11 @@ def client():
     return TestClient(app)
 
 
-@pytest.fixture
-def auth_token():
-    """Generate a valid JWT token for testing."""
-    return create_token(user_id="api_test_user", username="API Test User")
-
+# Use centralized auth fixtures from tests/fixtures/auth_fixtures.py
+# Available: valid_jwt_token, valid_jwt_headers, expired_jwt_token, etc.
 
 @pytest.fixture
-def auth_headers(auth_token):
-    """Generate authorization headers with JWT token."""
-    return {"Authorization": f"Bearer {auth_token}"}
-
-
-@pytest.fixture
-async def test_session(client, auth_headers):
+async def test_session(client, valid_jwt_headers):
     """Create a test session via API."""
     # First create a casefile
     casefile_response = client.post(
@@ -39,7 +29,7 @@ async def test_session(client, auth_headers):
             "title": "API Test Casefile",
             "description": "Test casefile for API tests"
         },
-        headers=auth_headers
+        headers=valid_jwt_headers
     )
     assert casefile_response.status_code == 201
     casefile_id = casefile_response.json()["id"]
@@ -47,7 +37,7 @@ async def test_session(client, auth_headers):
     # Then create a session
     session_response = client.post(
         f"/tool-sessions/?casefile_id={casefile_id}",
-        headers=auth_headers
+        headers=valid_jwt_headers
     )
     assert session_response.status_code == 200
     return session_response.json()["session_id"]
@@ -57,7 +47,7 @@ async def test_session(client, auth_headers):
 class TestAPIEchotool:
     """API tests for echo_tool through HTTP endpoints."""
     
-    def test_tool_execution_via_api(self, client, auth_headers, test_session):
+    def test_tool_execution_via_api(self, client, valid_jwt_headers, test_session):
         """Test tool execution through POST /tool-sessions/{session_id}/execute."""
         # Construct request payload
         request_data = {
@@ -75,7 +65,7 @@ class TestAPIEchotool:
         response = client.post(
             f"/tool-sessions/{test_session}/execute",
             json=request_data,
-            headers=auth_headers
+            headers=valid_jwt_headers
         )
         
         # Assertions
@@ -132,7 +122,7 @@ class TestAPIEchotool:
         # Should reject with 401
         assert response.status_code == 401
     
-    def test_parameter_validation_via_api(self, client, auth_headers, test_session):
+    def test_parameter_validation_via_api(self, client, valid_jwt_headers, test_session):
         """Test that invalid parameters are caught at API layer."""
         request_data = {
             "user_id": "api_test_user",
@@ -149,14 +139,14 @@ class TestAPIEchotool:
         response = client.post(
             f"/tool-sessions/{test_session}/execute",
             json=request_data,
-            headers=auth_headers
+            headers=valid_jwt_headers
         )
         
         # Should return 404 or 500 with error details
         assert response.status_code in [404, 500]
         assert "detail" in response.json()
     
-    def test_missing_required_parameters_via_api(self, client, auth_headers, test_session):
+    def test_missing_required_parameters_via_api(self, client, valid_jwt_headers, test_session):
         """Test that missing required parameters are caught."""
         request_data = {
             "user_id": "api_test_user",
@@ -171,13 +161,13 @@ class TestAPIEchotool:
         response = client.post(
             f"/tool-sessions/{test_session}/execute",
             json=request_data,
-            headers=auth_headers
+            headers=valid_jwt_headers
         )
         
         # Should return error
         assert response.status_code in [404, 422, 500]
     
-    def test_invalid_session_via_api(self, client, auth_headers):
+    def test_invalid_session_via_api(self, client, valid_jwt_headers):
         """Test that invalid session ID is rejected."""
         request_data = {
             "user_id": "api_test_user",
@@ -194,13 +184,13 @@ class TestAPIEchotool:
         response = client.post(
             "/tool-sessions/nonexistent_session/execute",
             json=request_data,
-            headers=auth_headers
+            headers=valid_jwt_headers
         )
         
         # Should return 404
         assert response.status_code == 404
     
-    def test_response_structure_via_api(self, client, auth_headers, test_session):
+    def test_response_structure_via_api(self, client, valid_jwt_headers, test_session):
         """Test that API response has correct structure."""
         request_data = {
             "user_id": "api_test_user",
@@ -217,7 +207,7 @@ class TestAPIEchotool:
         response = client.post(
             f"/tool-sessions/{test_session}/execute",
             json=request_data,
-            headers=auth_headers
+            headers=valid_jwt_headers
         )
         
         # Validate response structure
@@ -230,11 +220,11 @@ class TestAPIEchotool:
         assert data["request_id"] is not None
         assert data["status"] == "completed"
     
-    def test_get_session_via_api(self, client, auth_headers, test_session):
+    def test_get_session_via_api(self, client, valid_jwt_headers, test_session):
         """Test GET /tool-sessions/{session_id} endpoint."""
         response = client.get(
             f"/tool-sessions/{test_session}",
-            headers=auth_headers
+            headers=valid_jwt_headers
         )
         
         assert response.status_code == 200
@@ -244,11 +234,11 @@ class TestAPIEchotool:
         assert data["session_id"] == test_session
         assert data["user_id"] == "api_test_user"
     
-    def test_list_sessions_via_api(self, client, auth_headers):
+    def test_list_sessions_via_api(self, client, valid_jwt_headers):
         """Test GET /tool-sessions/ endpoint."""
         response = client.get(
             "/tool-sessions/",
-            headers=auth_headers
+            headers=valid_jwt_headers
         )
         
         assert response.status_code == 200
