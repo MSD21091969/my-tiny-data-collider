@@ -6,8 +6,19 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 
 from ...tool_sessionservice import ToolSessionService
+from ...pydantic_models.casefile.crud_models import GetCasefileRequest
 from ...pydantic_models.tool_session import ToolRequest, ToolResponse
 from ...pydantic_models.tool_session.resume_models import SessionResumeRequest, SessionResumeResponse
+from ...pydantic_models.tool_session.session_models import (
+    CloseSessionRequest,
+    CloseSessionResponse,
+    CreateSessionRequest,
+    CreateSessionResponse,
+    GetSessionRequest,
+    GetSessionResponse,
+    ListSessionsRequest,
+    ListSessionsResponse,
+)
 from ...pydantic_ai_integration.tool_decorator import (
     get_registered_tools,
     get_tool_definition,
@@ -27,7 +38,7 @@ def get_casefile_service() -> CasefileService:
     """Get an instance of the CasefileService."""
     return CasefileService()
 
-@router.post("/")
+@router.post("/", response_model=CreateSessionResponse)
 async def create_session(
     casefile_id: str,  # Make casefile_id required
     session_id: Optional[str] = None,
@@ -35,7 +46,7 @@ async def create_session(
     service: ToolSessionService = Depends(get_tool_session_service),
     casefile_service: CasefileService = Depends(get_casefile_service),
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, str]:
+) -> CreateSessionResponse:
     """Create or resume a tool session.
     
     Requires casefile_id - sessions must be associated with a casefile.
@@ -48,28 +59,50 @@ async def create_session(
     
     # Verify user has access to casefile
     try:
-        casefile = await casefile_service.get_casefile(casefile_id)
+        get_casefile_request = GetCasefileRequest(
+            user_id=user_id,
+            operation="get_casefile",
+            payload={"casefile_id": casefile_id}
+        )
+        casefile_response = await casefile_service.get_casefile(get_casefile_request)
+        
+        if casefile_response.status.value == "failed":
+            raise HTTPException(status_code=404, detail=casefile_response.error or "Casefile not found")
+        
+        casefile = casefile_response.payload.casefile
         
         # Verify ownership
-        if casefile["metadata"]["created_by"] != user_id and "admin" not in current_user.get("roles", []):
+        if casefile.metadata.created_by != user_id and "admin" not in current_user.get("roles", []):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have access to this casefile"
             )
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=f"Casefile not found: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verifying casefile: {str(e)}")
     
     # Scenario 1: Resume existing session
     if session_id:
         try:
             # Verify session exists and belongs to user AND casefile
-            session_data = await service.get_session(session_id)
-            if session_data["user_id"] != user_id:
+            get_session_request = GetSessionRequest(
+                user_id=user_id,
+                operation="get_session",
+                payload={"session_id": session_id}
+            )
+            session_response = await service.get_session(get_session_request)
+            
+            if session_response.status.value == "failed":
+                raise HTTPException(status_code=404, detail=session_response.error or "Session not found")
+            
+            session_data = session_response.payload
+            if session_data.user_id != user_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You do not have access to this session"
                 )
-            if session_data["casefile_id"] != casefile_id:
+            if session_data.casefile_id != casefile_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Session does not belong to the specified casefile"
@@ -77,12 +110,30 @@ async def create_session(
             
             resume_request = SessionResumeRequest(session_id=session_id)
             resume_response = await service.resume_session(user_id, resume_request)
-            return {"session_id": resume_response.session_id}
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e))
+            
+            # Convert resume response to create response format
+            return CreateSessionResponse(
+                request_id=resume_response.request_id,
+                status=resume_response.status,
+                payload={
+                    "session_id": resume_response.session_id,
+                    "casefile_id": casefile_id,
+                    "created_at": session_data.created_at
+                },
+                metadata={"resumed": True, "original_session_id": session_id}
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error resuming session: {str(e)}")
     
     # Scenario 2: Create new session for existing casefile
-    return await service.create_session(user_id=user_id, casefile_id=casefile_id)
+    create_request = CreateSessionRequest(
+        user_id=user_id,
+        operation="create_session",
+        payload={"casefile_id": casefile_id}
+    )
+    return await service.create_session(create_request)
 
 @router.post("/execute")
 async def execute_tool(
@@ -92,9 +143,21 @@ async def execute_tool(
 ) -> ToolResponse:
     """Execute a tool in a session."""
     try:
+        user_id = current_user["user_id"]
+        
         # Verify session belongs to this user
-        session = await service.get_session(str(request.session_id))
-        if session["user_id"] != current_user["user_id"]:
+        get_request = GetSessionRequest(
+            user_id=user_id,
+            operation="get_session",
+            payload={"session_id": str(request.session_id)}
+        )
+        
+        get_response = await service.get_session(get_request)
+        
+        if get_response.status.value == "failed":
+            raise HTTPException(status_code=404, detail=get_response.error or "Session not found")
+        
+        if get_response.payload.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have access to this session"
@@ -105,38 +168,49 @@ async def execute_tool(
             verify_casefile_access(request.payload.casefile_id, current_user)
             
         return await service.process_tool_request(request)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tool execution failed: {str(e)}")
 
-@router.get("/{session_id}")
+@router.get("/{session_id}", response_model=GetSessionResponse)
 async def get_session(
     session_id: str,
     service: ToolSessionService = Depends(get_tool_session_service),
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
+) -> GetSessionResponse:
     """Get details of a tool session."""
-    try:
-        session = await service.get_session(session_id)
+    user_id = current_user["user_id"]
+    
+    request = GetSessionRequest(
+        user_id=user_id,
+        operation="get_session",
+        payload={"session_id": session_id}
+    )
+    
+    response = await service.get_session(request)
+    
+    if response.status.value == "failed":
+        raise HTTPException(status_code=404, detail=response.error or "Session not found")
+    
+    # Verify session belongs to this user
+    if response.payload.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this session"
+        )
         
-        # Verify session belongs to this user
-        if session["user_id"] != current_user["user_id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have access to this session"
-            )
-            
-        return session
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    return response
 
-@router.get("/")
+@router.get("/", response_model=ListSessionsResponse)
 async def list_sessions(
     casefile_id: Optional[str] = None,
+    active_only: bool = True,
+    limit: int = 50,
+    offset: int = 0,
     service: ToolSessionService = Depends(get_tool_session_service),
     # current_user: Dict[str, Any] = Depends(get_current_user)  # TEMPORARILY DISABLED
-) -> List[Dict[str, Any]]:
+) -> ListSessionsResponse:
     """List tool sessions for the current user, optionally filtered by casefile."""
     # Use mock user for now
     user_id = "sam123"
@@ -144,28 +218,56 @@ async def list_sessions(
     # Skip casefile access verification for now
     # if casefile_id:
     #     verify_casefile_access(casefile_id, current_user)
+    
+    request = ListSessionsRequest(
+        user_id=user_id,
+        operation="list_sessions",
+        payload={
+            "user_id": user_id,
+            "casefile_id": casefile_id,
+            "active_only": active_only,
+            "limit": limit,
+            "offset": offset
+        }
+    )
         
-    return await service.list_sessions(user_id=user_id, casefile_id=casefile_id)
+    return await service.list_sessions(request)
 
-@router.post("/{session_id}/close")
+@router.post("/{session_id}/close", response_model=CloseSessionResponse)
 async def close_session(
     session_id: str,
     service: ToolSessionService = Depends(get_tool_session_service),
     current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
+) -> CloseSessionResponse:
     """Close a tool session."""
-    try:
-        # Verify session belongs to this user
-        session = await service.get_session(session_id)
-        if session["user_id"] != current_user["user_id"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have access to this session"
-            )
-            
-        return await service.close_session(session_id)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    user_id = current_user["user_id"]
+    
+    # First verify session belongs to this user
+    get_request = GetSessionRequest(
+        user_id=user_id,
+        operation="get_session",
+        payload={"session_id": session_id}
+    )
+    
+    get_response = await service.get_session(get_request)
+    
+    if get_response.status.value == "failed":
+        raise HTTPException(status_code=404, detail=get_response.error or "Session not found")
+    
+    if get_response.payload.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this session"
+        )
+    
+    # Now close the session
+    close_request = CloseSessionRequest(
+        user_id=user_id,
+        operation="close_session",
+        payload={"session_id": session_id}
+    )
+    
+    return await service.close_session(close_request)
         
 @router.post("/resume", response_model=SessionResumeResponse)
 async def resume_session(
