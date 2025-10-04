@@ -101,6 +101,9 @@ class ToolFactory:
         with open(yaml_file, "r") as f:
             config = yaml.safe_load(f)
 
+        # Store YAML path for folder structure generation
+        config['_yaml_path'] = yaml_file
+
         # Validate required fields at a high level
         required_fields = ["name", "description", "category", "parameters"]
         for field in required_fields:
@@ -361,9 +364,24 @@ class ToolFactory:
         template = self.jinja_env.get_template('tool_template.py.jinja2')
         output = template.render(tool=config)
         
-        # Write to file
-        output_file = self.output_dir / f"{config['name']}.py"
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+        # Use YAML path structure (domain/subdomain) from config
+        yaml_path = config.get('_yaml_path', Path('general'))
+        relative_path = yaml_path.relative_to(self.config_dir).parent
+        
+        # Create output directory matching YAML structure
+        output_subdir = self.output_dir / relative_path
+        output_subdir.mkdir(parents=True, exist_ok=True)
+        
+        # Ensure each level has __init__.py
+        current = self.output_dir
+        for part in relative_path.parts:
+            current = current / part
+            init_file = current / "__init__.py"
+            if not init_file.exists():
+                init_file.write_text(f'"""Generated tools in {part}."""\n')
+        
+        # Write tool file
+        output_file = output_subdir / f"{config['name']}.py"
         
         with open(output_file, 'w') as f:
             f.write(output)
@@ -380,13 +398,25 @@ class ToolFactory:
         Returns:
             Path to generated unit test file
         """
-        # Generate unit tests
+        # Generate unit tests - organize by YAML path structure
         template = self.jinja_env.get_template('test_template.py.jinja2')
         output = template.render(tool=config)
         
-        # Write to tests directory (at project root level)
-        test_output_dir = self.project_root / "tests" / "generated"
+        # Use YAML path structure (domain/subdomain)
+        yaml_path = config.get('_yaml_path', Path('general'))
+        relative_path = yaml_path.relative_to(self.config_dir).parent
+        
+        # Write to tests/unit/domain/subdomain directory
+        test_output_dir = self.project_root / "tests" / "unit" / relative_path
         test_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Ensure each level has __init__.py
+        current = self.project_root / "tests" / "unit"
+        for part in relative_path.parts:
+            current = current / part
+            init_file = current / "__init__.py"
+            if not init_file.exists():
+                init_file.write_text(f'"""Unit tests for {part} tools."""\n')
         
         output_file = test_output_dir / f"test_{config['name']}.py"
         
@@ -421,9 +451,21 @@ class ToolFactory:
         
         output = template.render(tool=config)
         
-        # Write to tests/integration directory
-        integration_output_dir = self.project_root / "tests" / "integration"
+        # Use YAML path structure (domain/subdomain)
+        yaml_path = config.get('_yaml_path', Path('general'))
+        relative_path = yaml_path.relative_to(self.config_dir).parent
+        
+        # Write to tests/integration/domain/subdomain directory
+        integration_output_dir = self.project_root / "tests" / "integration" / relative_path
         integration_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Ensure each level has __init__.py
+        current = self.project_root / "tests" / "integration"
+        for part in relative_path.parts:
+            current = current / part
+            init_file = current / "__init__.py"
+            if not init_file.exists():
+                init_file.write_text(f'"""Integration tests for {part} tools."""\n')
         
         output_file = integration_output_dir / f"test_{config['name']}_integration.py"
         
@@ -451,9 +493,21 @@ class ToolFactory:
         
         output = template.render(tool=config)
         
-        # Write to tests/api directory
-        api_output_dir = self.project_root / "tests" / "api"
+        # Use YAML path structure (domain/subdomain)
+        yaml_path = config.get('_yaml_path', Path('general'))
+        relative_path = yaml_path.relative_to(self.config_dir).parent
+        
+        # Write to tests/api/domain/subdomain directory
+        api_output_dir = self.project_root / "tests" / "api" / relative_path
         api_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Ensure each level has __init__.py
+        current = self.project_root / "tests" / "api"
+        for part in relative_path.parts:
+            current = current / part
+            init_file = current / "__init__.py"
+            if not init_file.exists():
+                init_file.write_text(f'"""API tests for {part} tools."""\n')
         
         output_file = api_output_dir / f"test_{config['name']}_api.py"
         
@@ -539,7 +593,7 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
             return False
     
     def generate_all_tools(self, validate_only: bool = False) -> Dict[str, bool]:
-        """Process all YAML files in config/tools/.
+        """Process all YAML files in config/tools/ (recursive).
         
         Args:
             validate_only: If True, only validate without generating code
@@ -551,7 +605,8 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
             logger.error(f"Config directory not found: {self.config_dir}")
             return {}
         
-        yaml_files = list(self.config_dir.glob("*.yaml")) + list(self.config_dir.glob("*.yml"))
+        # Recursive glob to find YAMLs in subdirectories
+        yaml_files = list(self.config_dir.glob("**/*.yaml")) + list(self.config_dir.glob("**/*.yml"))
         
         if not yaml_files:
             logger.warning(f"No YAML files found in {self.config_dir}")

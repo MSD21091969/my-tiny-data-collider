@@ -17,20 +17,21 @@ import pytest
 from datetime import datetime
 from uuid import uuid4
 
-from src.pydantic_models.casefile.models import (
+from src.pydantic_models.canonical.casefile import (
     CasefileModel,
     CasefileMetadata,
-    CasefileSummary,
     ResourceReference
 )
-from src.pydantic_models.tool_session.models import (
+from src.pydantic_models.views.casefile_views import CasefileSummary
+from src.pydantic_models.canonical.tool_session import (
     ToolSession,
     ToolEvent,
+)
+from src.pydantic_models.operations.tool_execution_ops import (
     ToolRequestPayload,
     ToolResponsePayload,
-    ToolDefinition,
-    ToolParameter
 )
+# Note: ToolDefinition and ToolParameter are DEPRECATED - removed
 from src.pydantic_ai_integration.dependencies import MDSContext
 
 
@@ -156,30 +157,20 @@ def sample_tool_event() -> ToolEvent:
     )
 
 
-@pytest.fixture
-def sample_tool_parameter() -> ToolParameter:
-    """Provides a sample tool parameter definition."""
-    return ToolParameter(
-        name="input_text",
-        type="string",
-        description="Text input for the tool",
-        required=True,
-        default=None,
-        enum_values=None
-    )
+# ============================================================================
+# DEPRECATED FIXTURES (ToolParameter, ToolDefinition removed in migration)
+# These have been replaced by ManagedToolDefinition in pydantic_ai_integration
+# ============================================================================
 
+# @pytest.fixture
+# def sample_tool_parameter():
+#     """DEPRECATED: ToolParameter model has been removed."""
+#     raise NotImplementedError("ToolParameter is deprecated. Use ManagedToolDefinition instead.")
 
-@pytest.fixture
-def sample_tool_definition(sample_tool_parameter) -> ToolDefinition:
-    """Provides a complete tool definition."""
-    return ToolDefinition(
-        name="example_tool",
-        description="An example tool for testing purposes",
-        parameters=[sample_tool_parameter],
-        returns="Processed text result",
-        example='{"input_text": "hello world"}',
-        category="text_processing"
-    )
+# @pytest.fixture
+# def sample_tool_definition():
+#     """DEPRECATED: ToolDefinition model has been removed."""
+#     raise NotImplementedError("ToolDefinition is deprecated. Use ManagedToolDefinition instead.")
 
 
 @pytest.fixture

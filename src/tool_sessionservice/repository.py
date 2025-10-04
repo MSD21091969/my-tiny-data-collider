@@ -14,7 +14,8 @@ except ImportError as exc:  # pragma: no cover
         "firebase_admin is required for ToolSessionRepository after mock removal."
     ) from exc
 
-from ..pydantic_models.tool_session import ToolSession, ToolRequest, ToolResponse, ToolEvent
+from ..pydantic_models.canonical.tool_session import ToolSession, ToolEvent
+from ..pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
 
 logger = logging.getLogger(__name__)
 

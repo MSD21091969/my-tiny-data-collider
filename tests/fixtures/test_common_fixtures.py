@@ -218,8 +218,8 @@ def test_fixture_types(
     sample_mds_context
 ):
     """Verify fixtures return correct types."""
-    from src.pydantic_models.casefile.models import CasefileModel
-    from src.pydantic_models.tool_session.models import ToolSession
+    from src.pydantic_models.canonical.casefile import CasefileModel
+    from src.pydantic_models.canonical.tool_session import ToolSession
     from src.pydantic_ai_integration.dependencies import MDSContext
     
     assert isinstance(sample_casefile, CasefileModel)

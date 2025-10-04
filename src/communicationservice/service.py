@@ -10,20 +10,20 @@ from uuid import uuid4
 from ..coreservice.id_service import get_id_service
 from ..pydantic_ai_integration.agents.base import import_tools
 from ..pydantic_ai_integration.dependencies import MDSContext
-from ..pydantic_models.communication.models import (
+from ..pydantic_models.operations.tool_execution_ops import (
     ChatMessagePayload,
     ChatRequest,
     ChatResponse,
     ChatResponsePayload,
-    ChatSession,
-    MessageType,
+    ToolRequest,
+    ToolRequestPayload,
 )
-from ..pydantic_models.communication.session_models import (
+from ..pydantic_models.canonical.chat_session import ChatSession, MessageType
+from ..pydantic_models.operations.chat_session_ops import (
     ChatSessionClosedPayload,
     ChatSessionCreatedPayload,
     ChatSessionDataPayload,
     ChatSessionListPayload,
-    ChatSessionSummary,
     CloseChatSessionRequest,
     CloseChatSessionResponse,
     CreateChatSessionRequest,
@@ -33,9 +33,9 @@ from ..pydantic_models.communication.session_models import (
     ListChatSessionsRequest,
     ListChatSessionsResponse,
 )
-from ..pydantic_models.shared.base_models import RequestStatus
-from ..pydantic_models.tool_session.models import ToolRequest, ToolRequestPayload
-from ..pydantic_models.tool_session.session_models import CreateSessionRequest
+from ..pydantic_models.views.session_views import ChatSessionSummary
+from ..pydantic_models.base.types import RequestStatus
+from ..pydantic_models.operations.tool_session_ops import CreateSessionRequest
 from ..tool_sessionservice.service import ToolSessionService
 from .repository import ChatSessionRepository
 
@@ -467,10 +467,10 @@ class CommunicationService:
         if tool_session_id:
             try:
                 logger.info("Closing tool session %s", tool_session_id)
-                from ..pydantic_models.tool_session.session_models import CloseSessionRequest
+                from ..pydantic_models.operations.tool_session_ops import CloseSessionRequest
                 close_tool_request = CloseSessionRequest(
                     user_id=request.user_id,
-                    operation="close_tool_session",
+                    operation="close_session",
                     payload={"session_id": tool_session_id}
                 )
                 await self.tool_service.close_session(close_tool_request)

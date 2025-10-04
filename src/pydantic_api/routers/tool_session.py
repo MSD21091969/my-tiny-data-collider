@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 
 from ...tool_sessionservice import ToolSessionService
-from ...pydantic_models.casefile.crud_models import GetCasefileRequest
-from ...pydantic_models.tool_session import ToolRequest, ToolResponse
-from ...pydantic_models.tool_session.session_models import (
+from ...pydantic_models.operations.casefile_ops import GetCasefileRequest
+from ...pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
+from ...pydantic_models.operations.tool_session_ops import (
     CloseSessionRequest,
     CloseSessionResponse,
     CreateSessionRequest,

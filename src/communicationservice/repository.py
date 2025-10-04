@@ -5,7 +5,7 @@ Repository for chat sessions (Firestore only).
 from typing import List, Optional
 import logging
 
-from ..pydantic_models.communication.models import ChatSession
+from ..pydantic_models.canonical.chat_session import ChatSession
 
 logger = logging.getLogger(__name__)
 

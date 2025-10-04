@@ -6,14 +6,14 @@ from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime
 import logging
 
-from ..pydantic_models.casefile.crud_models import (
+from ..pydantic_models.operations.casefile_ops import (
     AddSessionToCasefileRequest,
     AddSessionToCasefileResponse,
     CasefileCreatedPayload,
     CasefileDataPayload,
     CasefileDeletedPayload,
     CasefileListPayload,
-    CasefileSessionAddedPayload,
+    SessionAddedPayload,
     CasefileUpdatedPayload,
     CreateCasefileRequest,
     CreateCasefileResponse,
@@ -25,16 +25,13 @@ from ..pydantic_models.casefile.crud_models import (
     ListCasefilesResponse,
     UpdateCasefileRequest,
     UpdateCasefileResponse,
-)
-from ..pydantic_models.casefile.models import CasefileModel, CasefileMetadata
-from ..pydantic_models.casefile.acl_models import (
-    CasefileACL,
     PermissionLevel,
-    PermissionEntry,
     GrantPermissionRequest,
     RevokePermissionRequest,
 )
-from ..pydantic_models.shared.base_models import RequestStatus
+from ..pydantic_models.canonical.casefile import CasefileModel, CasefileMetadata
+from ..pydantic_models.canonical.acl import CasefileACL, PermissionEntry
+from ..pydantic_models.base.types import RequestStatus
 from ..pydantic_models.workspace import (
     CasefileDriveData,
     CasefileGmailData,
@@ -375,12 +372,11 @@ class CasefileService:
         return AddSessionToCasefileResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
-            payload=CasefileSessionAddedPayload(
+            payload=SessionAddedPayload(
                 casefile_id=casefile_id,
                 session_id=session_id,
-                was_added=was_added,
-                total_sessions=len(casefile.session_ids),
-                updated_at=casefile.metadata.updated_at
+                session_type="tool" if session_id.startswith("ts_") else "chat",
+                total_sessions=len(casefile.session_ids)
             ),
             metadata={
                 "execution_time_ms": execution_time_ms,

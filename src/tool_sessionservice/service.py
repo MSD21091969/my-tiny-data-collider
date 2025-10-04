@@ -7,20 +7,24 @@ from datetime import datetime
 import logging
 from pydantic import ValidationError
 
-from ..pydantic_models.tool_session import (
-    ToolRequest, ToolResponse, ToolSession, ToolResponsePayload, ToolEvent,
+from ..pydantic_models.operations.tool_execution_ops import (
+    ToolRequest, ToolResponse, ToolResponsePayload
+)
+from ..pydantic_models.canonical.tool_session import ToolSession, ToolEvent
+from ..pydantic_models.operations.tool_session_ops import (
     CreateSessionRequest, CreateSessionResponse, SessionCreatedPayload,
     GetSessionRequest, GetSessionResponse, SessionDataPayload,
-    ListSessionsRequest, ListSessionsResponse, SessionSummary, SessionListPayload,
+    ListSessionsRequest, ListSessionsResponse, SessionListPayload,
     CloseSessionRequest, CloseSessionResponse, SessionClosedPayload,
 )
+from ..pydantic_models.views.session_views import SessionSummary
 from ..pydantic_ai_integration.dependencies import MDSContext
 from ..pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
     validate_tool_exists,
     get_tool_names
 )
-from ..pydantic_models.shared.base_models import RequestStatus
+from ..pydantic_models.base.types import RequestStatus
 from .repository import ToolSessionRepository
 from ..coreservice.id_service import get_id_service
 

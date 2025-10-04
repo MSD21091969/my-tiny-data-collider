@@ -6,7 +6,8 @@ from typing import List, Optional
 import os
 import logging
 
-from ..pydantic_models.casefile.models import CasefileModel, CasefileSummary
+from ..pydantic_models.canonical.casefile import CasefileModel
+from ..pydantic_models.views.casefile_views import CasefileSummary
 
 logger = logging.getLogger(__name__)
 

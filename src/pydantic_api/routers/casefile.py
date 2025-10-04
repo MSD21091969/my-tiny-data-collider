@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 
 from ...casefileservice import CasefileService
-from ...pydantic_models.casefile.crud_models import (
+from ...pydantic_models.operations.casefile_ops import (
     CreateCasefileRequest,
     CreateCasefileResponse,
     DeleteCasefileRequest,
@@ -17,10 +17,12 @@ from ...pydantic_models.casefile.crud_models import (
     ListCasefilesResponse,
     UpdateCasefileRequest,
     UpdateCasefileResponse,
-)
-from ...pydantic_models.casefile.acl_models import (
     PermissionLevel,
-    PermissionListResponse,
+    ListPermissionsResponse,
+    PermissionListResponse,  # Legacy direct response format
+    GrantPermissionRequest,
+    RevokePermissionRequest,
+    CheckPermissionRequest,
 )
 from ...authservice import get_current_user
 

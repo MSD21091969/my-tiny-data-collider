@@ -216,8 +216,8 @@ def register_mds_tool(
             """
             from datetime import datetime
             from uuid import uuid4
-            from src.pydantic_models.tool_session.models import ToolResponse, ToolResponsePayload
-            from src.pydantic_models.shared.base_models import RequestStatus
+            from src.pydantic_models.operations.tool_execution_ops import ToolResponse, ToolResponsePayload
+            from src.pydantic_models.base.types import RequestStatus
             
             # Track execution time
             start_time = datetime.now()

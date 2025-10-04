@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, Optional
 
 from ...communicationservice.service import CommunicationService
-from ...pydantic_models.communication.session_models import (
+from ...pydantic_models.operations.chat_session_ops import (
     CloseChatSessionRequest,
     CloseChatSessionResponse,
     CreateChatSessionRequest,
@@ -16,7 +16,7 @@ from ...pydantic_models.communication.session_models import (
     ListChatSessionsRequest,
     ListChatSessionsResponse,
 )
-from ...pydantic_models.shared.base_models import RequestEnvelope
+from ...pydantic_models.base.envelopes import RequestEnvelope
 from ...authservice import get_current_user
 
 router = APIRouter(
@@ -96,7 +96,8 @@ async def send_message(
     
     try:
         # Construct the chat request
-        from ...pydantic_models.communication.models import ChatRequest, ChatMessagePayload, MessageType
+        from ...pydantic_models.operations.tool_execution_ops import ChatRequest, ChatMessagePayload
+        from ...pydantic_models.canonical.chat_session import MessageType
         
         # The user message comes in the request payload
         content = message_data.get("content", "")

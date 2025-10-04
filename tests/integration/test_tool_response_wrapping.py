@@ -11,7 +11,7 @@ from uuid import UUID
 
 from src.pydantic_ai_integration.dependencies import MDSContext
 from src.pydantic_ai_integration.tools.unified_example_tools import example_tool
-from src.pydantic_models.shared.base_models import RequestStatus
+from src.pydantic_models.base.types import RequestStatus
 
 
 @pytest.mark.asyncio

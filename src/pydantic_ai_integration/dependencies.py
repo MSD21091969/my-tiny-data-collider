@@ -13,7 +13,7 @@ from functools import wraps
 logger = logging.getLogger(__name__)
 
 from ..coreservice.id_service import get_id_service
-from ..pydantic_models.tool_session.models import ToolEvent
+from ..pydantic_models.canonical.tool_session import ToolEvent
 
 def with_persistence(method):
     """Decorator to automatically persist context after method execution."""
