@@ -10,6 +10,10 @@ from uuid import uuid4
 from src.tool_sessionservice.service import ToolSessionService
 from src.pydantic_models.tool_session import ToolRequest, ToolRequestPayload, ToolResponse
 from src.pydantic_models.shared.base_models import RequestStatus
+from src.pydantic_models.operations.tool_session_ops import (
+    CreateSessionRequest,
+    CreateSessionPayload,
+)
 
 
 @pytest.fixture
@@ -21,8 +25,14 @@ async def service():
 @pytest.fixture
 async def test_session(service):
     """Create a test session for integration tests."""
-    result = await service.create_session(user_id="integration_test_user")
-    return result["session_id"]
+    create_request = CreateSessionRequest(
+        user_id="integration_test_user",
+        payload=CreateSessionPayload(
+            casefile_id="integration_test_casefile",
+        ),
+    )
+    response = await service.create_session(create_request)
+    return response.payload.session_id
 
 
 @pytest.mark.asyncio
@@ -40,7 +50,7 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
                 parameters={
                     {% for param in tool.parameters %}
                     {% if param.required %}
-                    "{{ param.name }}": {{ param.example_value }},
+                    "{{ param.name }}": {{ param.example_value | tojson }},
                     {% endif %}
                     {% endfor %}
                 }
@@ -66,12 +76,16 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
             payload=ToolRequestPayload(
                 tool_name="{{ tool.name }}",
                 parameters={
+                    {% set ns = namespace(has_invalid=False) %}
                     {% for param in tool.parameters %}
-                    {% if param.required %}
+                    {% if param.required or not ns.has_invalid %}
+                    {% set ns.has_invalid = True %}
                     {% if param.type == "string" %}
                     "{{ param.name }}": 12345,  # Wrong type - should be string
                     {% elif param.type == "integer" %}
                     "{{ param.name }}": "not_a_number",  # Wrong type - should be integer
+                    {% elif param.type == "boolean" %}
+                    "{{ param.name }}": "not_a_boolean",  # Wrong type - should be boolean
                     {% else %}
                     "{{ param.name }}": None,  # Invalid value
                     {% endif %}
@@ -85,6 +99,8 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
         with pytest.raises(ValueError, match="Invalid parameters"):
             await service.process_tool_request(request)
     
+    {% set required_params = tool.parameters | selectattr('required') | list %}
+    {% if required_params %}
     async def test_missing_required_parameters(self, service, test_session):
         """Test that missing required parameters are detected."""
         # Construct request missing required parameters
@@ -100,6 +116,7 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
         # Execute
         with pytest.raises(ValueError, match="Invalid parameters"):
             await service.process_tool_request(request)
+    {% endif %}
     
     async def test_session_validation(self, service):
         """Test that invalid session ID is rejected."""
@@ -112,7 +129,7 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
                 parameters={
                     {% for param in tool.parameters %}
                     {% if param.required %}
-                    "{{ param.name }}": {{ param.example_value }},
+                    "{{ param.name }}": {{ param.example_value | tojson }},
                     {% endif %}
                     {% endfor %}
                 }
@@ -133,7 +150,7 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
                 parameters={
                     {% for param in tool.parameters %}
                     {% if param.required %}
-                    "{{ param.name }}": {{ param.example_value }},
+                    "{{ param.name }}": {{ param.example_value | tojson }},
                     {% endif %}
                     {% endfor %}
                 }
@@ -162,7 +179,7 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
                 tool_name="{{ tool.name }}",
                 parameters={
                     {% for param_name, param_value in scenario.parameters.items() %}
-                    "{{ param_name }}": {{ param_value }},
+                    "{{ param_name }}": {{ param_value | tojson }},
                     {% endfor %}
                 }
             )
@@ -173,10 +190,10 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}:
         # Check expected results
         assert response.status == RequestStatus.COMPLETED
         {% if scenario.expected_output %}
-        {% for key, value in scenario.expected_output.items() %}
-        assert "{{ key }}" in response.payload.result
-        assert response.payload.result["{{ key }}"] == {{ value }}
-        {% endfor %}
+    {% for key, value in scenario.expected_output.items() %}
+    assert "{{ key }}" in response.payload.result
+    assert response.payload.result["{{ key }}"] == {{ value | tojson }}
+    {% endfor %}
         {% endif %}
     {% endfor %}
     {% endif %}
@@ -196,7 +213,7 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}Policies:
                 parameters={
                     {% for param in tool.parameters %}
                     {% if param.required %}
-                    "{{ param.name }}": {{ param.example_value }},
+                    "{{ param.name }}": {{ param.example_value | tojson }},
                     {% endif %}
                     {% endfor %}
                 }
@@ -225,7 +242,7 @@ class TestIntegration{{ tool.name | capitalize | replace('_', '') }}Policies:
                 parameters={
                     {% for param in tool.parameters %}
                     {% if param.required %}
-                    "{{ param.name }}": {{ param.example_value }},
+                    "{{ param.name }}": {{ param.example_value | tojson }},
                     {% endif %}
                     {% endfor %}
                 }

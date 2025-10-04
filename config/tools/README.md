@@ -1,60 +1,80 @@
-# Tool Organization Structure
+# Tool Definition Catalogue
 
-This directory contains all tool definitions organized by domain and capability.
+All tools are defined as YAML files in this directory. The YAML is the **single source of truth** for generation, execution policies, and documentation (see the project-wide guidance in `INSTALL.md`, `README.md`, and `CONTRIBUTING.md`). Generated Python and test files can be safely regenerated at any time with `generate-tools`.
 
-## Directory Structure
+## Directory Layout (domain/subdomain)
 
 ```
 tools/
-├── communication/              # Communication and messaging tools
-│   └── email/                  # Email-related tools
+├── automation/
+│   └── pipelines/
+│       ├── gmail_to_drive_pipeline.yaml
+│       └── multi_echo_pipeline.yaml
+├── communication/
+│   └── email/
 │       ├── gmail_get_message.yaml
 │       ├── gmail_list_messages.yaml
 │       ├── gmail_search_messages.yaml
 │       └── gmail_send_message.yaml
-│
-├── workspace/                  # Workspace and productivity tools
-│   └── google/                 # Google Workspace tools
-│       ├── drive_list_files.yaml
-│       └── sheets_batch_get.yaml
-│
-├── automation/                 # Automation and orchestration tools
-│   └── pipelines/              # Multi-step workflows
-│       ├── gmail_to_drive_pipeline.yaml
-│       └── multi_echo_pipeline.yaml
-│
-└── utilities/                  # Development and debugging tools
-    └── debugging/              # Debug and testing tools
-        ├── echo_tool.yaml
-        └── echo_chain_demo.yaml
+├── utilities/
+│   └── debugging/
+│       ├── echo_chain_demo.yaml
+│       └── echo_tool.yaml
+└── workspace/
+        └── google/
+                ├── drive_list_files.yaml
+                └── sheets_batch_get.yaml
 ```
 
-## Classification System
+- **Domain** controls the first folder level (communication, workspace, automation, utilities).
+- **Subdomain** controls the second folder level (email, google, pipelines, debugging).
+- File names use `{integration}_{action}_{subject}.yaml` so the generated code/tests follow the same hierarchy.
 
-### Primary Domains
-- **communication/**: Tools for messaging, notifications, and communication
-- **workspace/**: Productivity tools for documents, spreadsheets, and collaboration
-- **automation/**: Orchestration, pipelines, and complex workflows
-- **utilities/**: Development, debugging, and system tools
+## YAML Contract
 
-### Capabilities
-- **create**: Tools that create new resources
-- **read**: Tools that fetch or query data
-- **update**: Tools that modify existing resources
-- **delete**: Tools that remove resources
-- **process**: Tools that transform or manipulate data
+Each tool definition shares the same high-level shape:
 
-### Maturity Levels
-- **experimental**: Alpha stage, may change significantly
-- **beta**: Feature-complete, undergoing testing
-- **stable**: Production-ready, fully tested
-- **deprecated**: Being phased out
+```yaml
+name: gmail_send_message
+classification:
+    domain: communication
+    subdomain: email
+    capability: create        # CRUD/verb
+    complexity: atomic        # atomic | composite | pipeline
+    maturity: stable          # experimental | beta | stable | deprecated
+    integration_tier: external
+parameters:                 # Strongly typed parameters → Pydantic model
+business_rules:             # Enabled/auth/permission/timeouts
+session_policies:           # Session lifecycle controls
+casefile_policies:          # Casefile enforcement/audit
+implementation:             # Simple/api_call/data_transform/composite
+returns:                    # Response schema for documentation
+audit_events:               # Success/failure + redaction policy
+examples: []                # Happy-path test vectors
+error_scenarios: []         # Validation + failure tests
+test_scenarios: []          # Structured integration scenarios
+metadata: {}                # Optional annotations surfaced in discovery APIs
+documentation: {}           # Optional summary + changelog entries
+```
 
-## Tool Naming Convention
+Key sections map directly to runtime behaviour:
 
-Tools follow the pattern: `{service}_{action}_{resource}.yaml`
+| Section | Purpose |
+| --- | --- |
+| `classification` | Drives folder naming, discovery filters, and tool registry metadata. |
+| `parameters` | Generates the Pydantic params model and request validation. |
+| `business_rules` | Enables/disables the tool, enforces auth and permission requirements, and sets execution timeouts. |
+| `session_policies` & `casefile_policies` | Control when sessions/casefiles are required and how audit data is emitted. |
+| `implementation` | Chooses the generator template (`api_call`, `data_transform`, `composite`, `simple`) and wires clients like `GmailClient`. |
+| `returns` | Describes the response payload that populates the generated `ToolResponse`. |
+| `audit_events`, `examples`, `error_scenarios`, `test_scenarios` | Feed generated unit/integration/API tests and audit configuration. |
+| `metadata`, `documentation` | Surface human-friendly annotations in discovery responses and generated docs. |
 
-Examples:
-- `gmail_send_message.yaml` - Gmail service, send action, message resource
-- `drive_list_files.yaml` - Drive service, list action, files resource
-- `sheets_batch_get.yaml` - Sheets service, batch get action
+## Workflow Recap
+
+1. **Define or edit YAML** under the correct domain/subdomain.
+2. **Regenerate** artefacts (`generate-tools`) — see `INSTALL.md` for command options and environment setup.
+3. **Run tests** (`pytest` suites outlined in `INSTALL.md`) to validate the generated unit/integration/API scaffolding.
+4. **Commit the YAML** plus any generated files that changed (per `CONTRIBUTING.md`).
+
+Remember: YAML drives everything — never hand-edit `src/pydantic_ai_integration/tools/generated/**` or the generated tests; regenerate instead. The generator also refreshes compatibility shims and package `__init__` exports so manual edits can be dropped safely.

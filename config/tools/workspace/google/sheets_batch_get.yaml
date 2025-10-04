@@ -53,7 +53,7 @@ audit_events:
 implementation:
   type: api_call
   api_call:
-    client_module: src.pydantic_ai_integration.google_workspace
+    client_module: "src.pydantic_ai_integration.integrations.google_workspace.clients"
     client_class: SheetsClient
     method_name: batch_get
     request_type: SheetsBatchGetRequest

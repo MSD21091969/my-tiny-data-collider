@@ -19,6 +19,8 @@ Complete guide for new users to install, configure, and start developing with My
 
 ## Installation
 
+> **Post-cleanup note (Oct 2025):** The repository no longer includes generated tool/test artefacts by default. After installing dependencies, run `python scripts/generate_tools.py` to repopulate `src/pydantic_ai_integration/tools/generated` and the corresponding `tests/**` trees before executing broader suites.
+
 ### 1. Clone Repository
 
 ```powershell
@@ -55,6 +57,7 @@ pip install -e ".[dev]"
 ```powershell
 generate-tools --help
 python -c "from src.pydantic_models.base import BaseRequest; print('✓ Package installed')"
+pytest tests/integration/test_tool_response_wrapping.py -q
 ```
 
 ---
@@ -164,6 +167,8 @@ tests/api/communication/email/test_gmail_send_api.py
 ```powershell
 pytest tests/unit/ -v
 ```
+
+> Async suites rely on `pytest-asyncio`, which is installed with the dev extras. If pytest reports unknown `asyncio_*` settings, reinstall the dev dependencies to restore the plugin.
 
 **Integration tests** (service layer):
 ```powershell

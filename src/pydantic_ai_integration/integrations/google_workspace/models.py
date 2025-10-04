@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from ...pydantic_models.workspace import (
+from src.pydantic_models.workspace import (
     DriveFile,
     GmailMessage,
     SheetData,

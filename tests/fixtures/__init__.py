@@ -14,8 +14,6 @@ from .common import (
     
     # Tool session fixtures
     sample_tool_event,
-    sample_tool_parameter,
-    sample_tool_definition,
     sample_tool_session,
     sample_tool_request,
     sample_tool_response,
@@ -49,8 +47,6 @@ __all__ = [
     
     # Tool Session
     "sample_tool_event",
-    "sample_tool_parameter",
-    "sample_tool_definition",
     "sample_tool_session",
     "sample_tool_request",
     "sample_tool_response",

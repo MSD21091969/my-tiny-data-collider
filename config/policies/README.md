@@ -57,9 +57,9 @@ Defines logging, event tracking, and compliance requirements.
 
 **Key Fields:**
 - `success_event` / `failure_event` - Event names for monitoring
-- `log_response_fields` - Which response fields to log
-- `redact_fields` - Sensitive fields to mask
-- `emit_casefile_event` - Whether to record in casefile audit trail
+- `log_response_fields` - Which portions of the response envelope to capture
+- `redact_fields` - Sensitive fields to mask before persistence
+- `emit_casefile_event` - Whether to record in the casefile audit trail
 
 ### 3. Session Policies (`session_policies.yaml`)
 
@@ -125,7 +125,7 @@ casefile_policies:
   audit_casefile_changes: true
 
 # Copy audit policy
-audit_config:
+audit_events:
   success_event: "external_api_success"
   failure_event: "external_api_failure"
   log_response_fields: ["status", "message", "timestamp", "api_endpoint"]
@@ -158,7 +158,7 @@ session_policies:
   log_full_response: true
 
 # Copy minimal audit
-audit_config:
+audit_events:
   success_event: "debug_tool_success"
   failure_event: "debug_tool_failure"
   log_response_fields: []
@@ -198,10 +198,15 @@ casefile_policies:
   audit_casefile_changes: true
 
 # Copy pipeline audit
-audit_config:
+audit_events:
   success_event: "pipeline_success"
   failure_event: "pipeline_failure"
-  log_response_fields: ["status", "message", "timestamp", "steps_completed", "total_steps"]
+  log_response_fields:
+    - "status"
+    - "message"
+    - "timestamp"
+    - "steps_completed"
+    - "total_steps"
   redact_fields: ["password", "token", "secret", "api_key"]
   emit_casefile_event: true
 ```
@@ -229,9 +234,9 @@ audit_config:
    - Update tool documentation with security implications
 
 5. **Regular Review**
-   - Audit policy usage across tools
-   - Update templates as requirements evolve
-   - Ensure compliance standards are met
+  - Audit policy usage across tools
+  - Update templates as requirements evolve
+  - Ensure compliance standards are met and reflected in `audit_events`
 
 ## Policy Selection Guide
 
@@ -252,7 +257,7 @@ When using the tool factory to generate code from YAML:
 1. Factory reads policy sections from tool YAML
 2. Generates Python code with policy enforcement
 3. Applies validation based on business_rules
-4. Emits audit events per audit_config
+4. Emits audit events per `audit_events`
 5. Manages session lifecycle per session_policies
 
 Policy templates ensure generated code follows consistent patterns.

@@ -228,19 +228,43 @@ class ChainExecutor:
             raise ValueError("Step must have 'tool' field")
         
         # Get tool function from registry
-        tool_info = MANAGED_TOOLS.get(tool_name)
-        if not tool_info:
+        tool_def = MANAGED_TOOLS.get(tool_name)
+        if not tool_def:
             raise ValueError(f"Tool not found in registry: {tool_name}")
         
-        tool_func = tool_info["func"]
-        
-        # Resolve inputs from state
+        implementation = getattr(tool_def, "implementation", None)
+        if implementation is None:
+            raise ValueError(f"Tool '{tool_name}' does not have an implementation registered")
+
+        # Resolve and validate inputs
         inputs = self._resolve_inputs(step.get("inputs", {}), state)
-        
-        # Execute tool
-        result = await tool_func(self.ctx, **inputs)
-        
-        return result
+        if getattr(tool_def, "params_model", None) is not None:
+            validated = tool_def.validate_params(inputs)
+            call_kwargs = validated.model_dump()
+        else:
+            call_kwargs = inputs
+
+        # Execute tool implementation
+        result = await implementation(self.ctx, **call_kwargs)
+
+        # Normalize result payload for downstream chain handling
+        if isinstance(result, dict):
+            if "payload" in result and isinstance(result.get("payload"), dict):
+                payload = result["payload"].get("result", result["payload"])
+            else:
+                payload = result
+        else:
+            payload = {"value": result}
+
+        status = "success"
+        if isinstance(result, dict):
+            status = result.get("status", status)
+
+        return {
+            "tool": tool_name,
+            "status": status,
+            "data": payload,
+        }
     
     def _resolve_inputs(self, inputs: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
         """Resolve input parameters using template substitution from state.

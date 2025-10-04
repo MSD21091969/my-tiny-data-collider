@@ -55,8 +55,8 @@ casefile_policies:
 implementation:
   type: api_call
   api_call:
+    client_module: "src.pydantic_ai_integration.integrations.google_workspace.clients"
     client_class: "GmailClient"
-    client_module: "src.pydantic_ai_integration.google_workspace.clients"
     method_name: "list_messages"
     response_type: "GmailListMessagesResponse"
 

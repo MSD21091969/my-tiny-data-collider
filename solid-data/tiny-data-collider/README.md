@@ -34,12 +34,21 @@
 
 ## 🔗 Integration with Python Collider
 
-Your Python collider (at `c:\Users\HP\Documents\VScode\`) will:
+The FastAPI surface in `src/pydantic_api` and the `ToolSessionService` pipeline now treat this pod as the canonical backing store. During a request:
 
-1. **Write** casefiles to `/tiny-data-collider/casefiles/`
-2. **Store** session metadata in `/tiny-data-collider/sessions/`
-3. **Curate** knowledge corpuses in `/tiny-data-collider/corpuses/`
-4. **Generate** insights and write to `/tiny-data-collider/insights/`
+1. `ToolSessionService.create_session` provisions `/sessions/<session>.ttl`.
+2. Tool executions persist casefile mutations under `/casefiles/` via `CasefileService`.
+3. Generated corpuses (e.g., Gmail caches) sync into `/corpuses/` or `/metadata/`.
+4. Downstream analytics from composite tools land in `/insights/`.
+
+Local development defaults to this repository path (`c:\Users\HP\my-tiny-data-collider\solid-data\tiny-data-collider`). Update the Solid pod URL or credentials in `solid-config/config.json` if you relocate the pod.
+
+## 🔁 Tool Session Sync Cycle
+
+- **Create** a session with `CreateSessionRequest` (see `tests/integration/**/` for examples). The response includes the pod-relative session identifier.
+- **Execute** tools via `ToolRequest`; success payloads drive corpus writes (e.g., Gmail messages → `/corpuses/email/`).
+- **Persist** audit events automatically—the Firestore stub mirrors pod state so replaying sessions restores casefiles.
+- **Inspect** resulting TTL files to debug YAML contract changes or audit trails.
 
 ---
 
@@ -57,9 +66,10 @@ Each folder should have its own `.acl` file:
 
 1. ✅ Created `/tiny-data-collider/` folder
 2. ✅ Created README (this file)
-3. ⏳ Create subfolders (casefiles, sessions, corpuses)
-4. ⏳ Generate access token for Python collider
-5. ⏳ Test write operation from Python
+3. ✅ Map directory into `solid-config/config.json`
+4. ⏳ Create subfolders (casefiles, sessions, corpuses)
+5. ⏳ Generate Solid access token for the collider runtime
+6. ⏳ Issue a `CreateSessionRequest` via the API and confirm `/sessions/` updates
 
 ---
 
@@ -76,5 +86,5 @@ This pod is YOUR data:
 
 ---
 
-Last updated: October 1, 2025
+Last updated: October 4, 2025
 Pod: http://localhost:3000/maassenhochrath@gmail.com/tiny-data-collider/

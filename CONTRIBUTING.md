@@ -85,7 +85,10 @@ async def send_message(ctx: MDSContext, to: str, subject: str) -> dict:
 # ✓ CORRECT
 from src.pydantic_models.base import BaseRequest, BaseResponse
 from src.pydantic_models.canonical import ToolSession, CasefileModel
-from src.pydantic_models.operations import ToolRequest, ToolResponse
+from src.pydantic_models.operations.tool_execution_ops import (
+    ToolRequest,
+    ToolResponse,
+)
 
 # ✗ WRONG
 from src.pydantic_models.tool_session import ToolSession  # Old structure
@@ -109,6 +112,7 @@ src/pydantic_ai_integration/integrations/
     └── models.py   # API-specific models
 
 # Layer 3: Generated tools (YAML-driven)
+# (Directories created on demand via `python scripts/generate_tools.py`)
 src/pydantic_ai_integration/tools/generated/
 ├── automation/pipelines/
 ├── communication/email/
@@ -127,7 +131,10 @@ src/pydantic_ai_integration/tools/generated/
 ```python
 # tool_sessionservice/service.py
 from src.pydantic_models.canonical import ToolSession
-from src.pydantic_models.operations import ToolRequest, ToolResponse
+from src.pydantic_models.operations.tool_execution_ops import (
+    ToolRequest,
+    ToolResponse,
+)
 from src.pydantic_models.base import BaseResponse, RequestStatus
 
 class ToolSessionService:
@@ -177,23 +184,33 @@ class ToolSessionService:
 ```python
 # pydantic_api/routers/tool_session.py
 from fastapi import APIRouter, Depends
-from src.pydantic_models.operations import (
-    SessionCreateRequest,
-    ToolRequest,
-    ToolResponse
-)
 from src.pydantic_models.base import BaseResponse
+from src.pydantic_models.operations.tool_session_ops import CreateSessionRequest
+from src.pydantic_models.operations.tool_execution_ops import (
+    ToolRequest,
+    ToolResponse,
+)
 
 router = APIRouter(prefix="/tool_sessions")
+
+
+@router.post("/sessions")
+async def create_session(
+    request: CreateSessionRequest,
+    service: ToolSessionService = Depends(get_service),
+) -> BaseResponse:
+    """Create a new tool session and return its identifier."""
+    return await service.create_session(request)
+
 
 @router.post("/sessions/{session_id}/execute")
 async def execute_tool(
     session_id: str,
     request: ToolRequest,  # FastAPI validates from JSON
-    service: ToolSessionService = Depends(get_service)
+    service: ToolSessionService = Depends(get_service),
 ) -> BaseResponse[ToolResponse]:
     """Execute tool in session context.
-    
+
     Request body validated by Pydantic.
     Response serialized by Pydantic.
     """

@@ -6,8 +6,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from ...coreservice.config import get_config
-from ...pydantic_models.workspace import (
+from src.coreservice.config import get_config
+from src.pydantic_models.workspace import (
     CasefileDriveData,
     CasefileGmailData,
     CasefileSheetsData,

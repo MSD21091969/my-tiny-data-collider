@@ -8,8 +8,10 @@ Usage:
 import sys
 from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent
+# Add project root to sys.path so src/ imports resolve when invoked from anywhere
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent
+# Ensure project root is first so local src/ takes precedence over any installed package
 sys.path.insert(0, str(project_root))
 
 from src.pydantic_ai_integration.tools.factory import ToolFactory, generate_tools_cli

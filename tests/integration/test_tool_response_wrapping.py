@@ -6,13 +6,51 @@ in the standard ToolResponse envelope.
 """
 
 import pytest
-from datetime import datetime
-from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 from src.pydantic_ai_integration.dependencies import MDSContext
-from src.pydantic_ai_integration.tools.unified_example_tools import example_tool
+from src.pydantic_ai_integration.tool_decorator import register_mds_tool
 from src.pydantic_models.base.types import RequestStatus
 
+
+class _TestEchoParams(BaseModel):
+    """Parameters for the local test tool."""
+
+    message: str = Field(..., min_length=1, description="Message to echo")
+    repeat_count: int = Field(1, ge=1, le=5, description="Times to repeat message")
+
+
+@register_mds_tool(
+    name="test_echo_tool",
+    display_name="Test Echo Tool",
+    description="Local test tool for validating response wrapping",
+    category="tests",
+    params_model=_TestEchoParams,
+    requires_auth=False,
+    required_permissions=[],
+    requires_casefile=False,
+    timeout_seconds=5,
+)
+async def _decorated_echo_tool(ctx: MDSContext, message: str, repeat_count: int = 1) -> dict:
+    """Simple echo implementation used to validate wrapper behavior."""
+
+    ctx.register_event(
+        tool_name="test_echo_tool",
+        parameters={"message": message, "repeat_count": repeat_count},
+        result_summary={},
+        duration_ms=0,
+    )
+
+    echoed_messages = [message for _ in range(repeat_count)]
+    total_length = sum(len(part) for part in echoed_messages)
+
+    return {
+        "original_message": message,
+        "repeat_count": repeat_count,
+        "echoed_messages": echoed_messages,
+        "total_length": total_length,
+    }
 
 @pytest.mark.asyncio
 async def test_tool_returns_wrapped_response():
@@ -26,7 +64,7 @@ async def test_tool_returns_wrapped_response():
     )
     
     # Call tool
-    response = await example_tool(ctx, value=42)
+    response = await _decorated_echo_tool(ctx, message="hello world", repeat_count=2)
     
     # Verify response is a dict (model_dump() was called)
     assert isinstance(response, dict), "Response should be serialized dict"
@@ -49,15 +87,13 @@ async def test_tool_returns_wrapped_response():
     
     # Verify the actual tool result is in payload.result
     result = payload["result"]
-    assert "original_value" in result or "value" in result, "Result should contain original value"
-    
-    # Get the value field (different tools use different names)
-    original_value = result.get("original_value") or result.get("value")
-    assert original_value == 42, "Original value should be preserved"
+    assert result["original_message"] == "hello world"
+    assert result["repeat_count"] == 2
+    assert result["echoed_messages"] == ["hello world", "hello world"]
     
     # Verify metadata contains execution info
     metadata = response["metadata"]
-    assert metadata["tool_name"] == "example_tool", "Metadata should have tool_name"
+    assert metadata["tool_name"] == "test_echo_tool", "Metadata should have tool_name"
     assert "execution_time_ms" in metadata, "Metadata should have execution_time_ms"
     assert metadata["execution_time_ms"] >= 0, "Execution time should be non-negative"
     assert metadata["user_id"] == "test_user", "Metadata should have user_id"
@@ -77,8 +113,8 @@ async def test_tool_validation_error_wrapped():
         casefile_id=None
     )
     
-    # Call tool with invalid parameter (negative value, violates ge=0)
-    response = await example_tool(ctx, value=-10)
+    # Call tool with invalid parameter (empty message, violates min_length=1)
+    response = await _decorated_echo_tool(ctx, message="")
     
     # Verify response structure
     assert isinstance(response, dict), "Response should be dict"
@@ -91,7 +127,7 @@ async def test_tool_validation_error_wrapped():
     # Verify metadata has validation_errors
     metadata = response["metadata"]
     assert "validation_errors" in metadata, "Metadata should contain validation_errors"
-    assert metadata["tool_name"] == "example_tool", "Tool name should be in metadata"
+    assert metadata["tool_name"] == "test_echo_tool", "Tool name should be in metadata"
     
     # Verify payload is still structured (empty result)
     payload = response["payload"]
@@ -121,19 +157,15 @@ async def test_response_preserves_tool_result_structure():
     )
     
     # Call tool
-    response = await example_tool(ctx, value=5)
+    response = await _decorated_echo_tool(ctx, message="sample", repeat_count=3)
     
     # Extract the actual tool result
     result = response["payload"]["result"]
     
-    # Verify the tool's actual return value is preserved
-    # Note: Different tools return different field names
-    assert "original_value" in result or "value" in result, "Original value should be in result"
-    
-    # Verify the calculations are correct (example_tool specific)
-    if "original_value" in result:
-        assert result["original_value"] == 5
-        assert "squared" in result or "cubed" in result, "Computed values should be in result"
+    assert result["original_message"] == "sample"
+    assert result["repeat_count"] == 3
+    assert result["echoed_messages"] == ["sample", "sample", "sample"]
+    assert result["total_length"] == len("sample") * 3
 
 
 def test_request_id_format():

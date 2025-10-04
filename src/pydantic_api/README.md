@@ -1,52 +1,83 @@
 # Pydantic API
 
-FastAPI application with routers for casefiles, tool sessions, and chat sessions.
+FastAPI surface for the YAML-driven tool framework. Routes are thin wrappers over the service layer and operate on the Pydantic envelopes described in the project `README.md` and `INSTALL.md`.
 
-## Structure
+## Layout
 
 ```
-pydantic_api/
-├── app.py           # FastAPI application setup
-├── dependencies.py  # Shared dependencies (auth, service injection)
-└── routers/         # API route handlers
-    ├── casefile.py       # Casefile CRUD + ACL endpoints
-    ├── tool_session.py   # Tool session lifecycle + execution
-    └── chat.py           # Chat session lifecycle + messaging
+
+├── app.py             # FastAPI factory, CORS, health endpoint
+├── dependencies.py    # Service singletons + auth helpers
+└── routers/
+    ├── casefile.py        # Casefile CRUD + ACL management
+    ├── tool_session.py    # Tool sessions, execution, discovery
+    └── chat.py            # Chat sessions + messaging (optional import)
 ```
 
-## Router Responsibilities
+- `app.py` builds the application, wires CORS, mounts routers, and exposes `/health`.
+- `dependencies.py` caches service instances (`ToolSessionService`) and exposes helpers (`get_current_user_id`, `verify_casefile_access`).
+- Routers coordinate request validation and security checks before delegating to the service layer.
 
-**casefile.py**
-- CRUD: create, get, update, delete, list casefiles
-- ACL: grant/revoke permissions, list permissions, check access
-- Session linking: add tool/chat sessions to casefiles
+## Router Highlights
 
-**tool_session.py**
-- Lifecycle: create, get, list, close tool sessions
-- Execution: execute tools within sessions
-- Discovery: list available tools by category
+### `tool_session.py`
+- Creates sessions tied to a casefile; enforces ownership via `CasefileService`.
+- Executes tools by validating the session, pulling the definition from `MANAGED_TOOLS`, and passing `ToolRequest` to `ToolSessionService`.
+- Provides discovery endpoints:
+  - `GET /tool-sessions/tools` → filtered list of registered tools.
+  - `GET /tool-sessions/tools/{name}` → metadata/business rules.
+  - `GET /tool-sessions/tools/{name}/schema` → OpenAPI schema for parameters.
+- Accepts `CreateSessionRequest` envelopes from `src.pydantic_models.operations.tool_session_ops` when establishing new sessions.
 
-**chat.py**
-- Lifecycle: create, get, list, close chat sessions
-- Messaging: send chat messages, get message history
+### `casefile.py`
+- Implements CRUD operations using `CreateCasefileRequest`, `UpdateCasefileRequest`, etc.
+- Wraps ACL actions (grant, revoke, list, check self) with permission checks exposed by `CasefileACL`.
+- Supports session linkage so tool/chat sessions can be associated with a casefile.
 
-## Request/Response Pattern
+### `chat.py`
+- Handles chat session lifecycle and messaging via `CommunicationService`.
+- Accepts `RequestEnvelope` payloads so callers can attach auth metadata, while the router overwrites `user_id` with the JWT subject.
+- Optional: only mounted if the chat service is available/importable.
 
-All endpoints use operation models from `pydantic_models.operations.*`:
+## Request / Response Pattern
+
+Routers accept/return the models in `src/pydantic_models/operations/**`. Even when query parameters are used for convenience (e.g. `create_casefile` query args), the router wraps/unwraps into the appropriate envelope before calling the service.
 
 ```python
-from pydantic_models.operations.casefile_ops import (
-    CreateCasefileRequest,
-    CreateCasefileResponse,
-)
+from src.pydantic_models.operations.tool_execution_ops import ToolRequest
+from src.pydantic_api.dependencies import get_tool_session_service
 
-@router.post("/", response_model=CreateCasefileResponse)
-async def create_casefile(request: CreateCasefileRequest):
-    return await service.create_casefile(request)
+@router.post("/tool-sessions/execute")
+async def execute_tool(request: ToolRequest, service = Depends(get_tool_session_service)):
+    return await service.process_tool_request(request)
 ```
 
-## Dependencies
+## Session Lifecycle Example
 
-- `get_current_user()` - JWT authentication
-- `get_*_service()` - Service layer injection
-- `verify_casefile_access()` - ACL enforcement
+```python
+from fastapi import Depends
+from src.pydantic_api.dependencies import get_tool_session_service
+from src.pydantic_models.operations.tool_session_ops import CreateSessionRequest
+
+
+@router.post("/tool-sessions")
+async def create_session(
+    request: CreateSessionRequest,
+    service = Depends(get_tool_session_service),
+):
+    """Provision a session bound to a casefile/user."""
+    return await service.create_session(request)
+```
+
+Responses are always `BaseResponse[PayloadT]` objects returned by the service layer, matching the contract described in `INSTALL.md`.
+
+## Dependencies & Auth
+
+- Authentication uses `authservice.get_current_user`, which injects the JWT subject into each handler.
+- `verify_casefile_access` currently returns `True` in development; production deployments should extend it to call `CasefileService.check_permission`.
+- Services are lightweight wrappers around Firestore repositories (`tool_sessionservice`, `casefileservice`, `communicationservice`). Each router is responsible for verifying the requesting user matches the session/casefile owner before delegating.
+
+For end-to-end usage, follow the workflows in `INSTALL.md`:
+1. Install dependencies and generate tools (`pip install -e ".[dev]"`, `generate-tools`).
+2. Start the API via `uvicorn src.pydantic_api.app:app --reload`.
+3. Exercise endpoints using the generated docs at `/docs` or the pytest suites under `tests/api/`.

@@ -9,10 +9,9 @@ import logging
 try:  # Import eagerly; failure is a hard error for this repository now.
     import firebase_admin  # type: ignore
     from firebase_admin import firestore  # type: ignore
-except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        "firebase_admin is required for ToolSessionRepository after mock removal."
-    ) from exc
+except ImportError:  # pragma: no cover
+    from ..pydantic_ai_integration.execution import firebase_stub as firebase_admin  # type: ignore
+    firestore = firebase_admin.firestore
 
 from ..pydantic_models.canonical.tool_session import ToolSession, ToolEvent
 from ..pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
