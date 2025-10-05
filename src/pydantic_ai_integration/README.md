@@ -2,6 +2,8 @@
 
 Home to the tool runtime, registry, and code generation pipeline. This layer stitches together the YAML definitions in `config/tools/**`, the canonical models in `src/pydantic_models`, and the service layer described in the root `README.md`.
 
+> **Bootstrapping reminder:** Run the clean-slate workflow (clone → create venv → `pip install -e ".[dev]"` → `python scripts/generate_tools.py` → `python scripts/import_generated_tools.py`) before poking around here so the generated packages exist locally.
+
 ## Directory Overview
 
 ```

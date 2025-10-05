@@ -2,6 +2,8 @@
 
 Purpose-based organisation for every data shape used across the application stack. The layout mirrors the high-level architecture described in the root `README.md` and the contribution guidelines in `CONTRIBUTING.md`.
 
+> Starting from scratch? Run the clean-slate bootstrap flow first (clone → create venv → `pip install -e ".[dev]"` → `python scripts/generate_tools.py` → `python scripts/import_generated_tools.py`) so the generated tooling that relies on these models is available.
+
 ## Directory Layout
 
 ```

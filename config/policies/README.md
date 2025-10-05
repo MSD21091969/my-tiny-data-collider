@@ -2,6 +2,8 @@
 
 This directory contains reusable policy configurations for tool definitions. These templates ensure consistent security, audit, and session management across all tools.
 
+> **Quick reminder:** If you're bootstrapping the project, follow the clean-slate workflow documented in the root `README.md`/`INSTALL.md` (clone → `pip install -e ".[dev]"` → `python scripts/generate_tools.py` → `python scripts/import_generated_tools.py`) before consuming or editing these templates.
+
 ## Overview
 
 Policy templates are YAML files containing pre-configured policy sections that can be copied into tool definitions. They promote:

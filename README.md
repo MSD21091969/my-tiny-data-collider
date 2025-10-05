@@ -1,59 +1,53 @@
 # My Tiny Data Collider
 
-Declarative tool engineering stack that transforms YAML specs into Pydantic-validated tools, FastAPI routes, and supporting tests.
+Declarative tool platform that turns YAML specifications into Pydantic-validated async tools, FastAPI routes, and aligned test suites.
 
 ---
 
-## Snapshot — 5 Oct 2025
+## System Overview
 
-- **YAML is authoritative.** All generated modules/tests were purged during cleanup and should be rebuilt from the YAML definitions when needed.
-- **Runtime infrastructure lives on.** Decorator, registry, generator templates, Firestore stub, and service layers remain under `src/`.
-- **Agents still receive context.** `src/persistence/firestore/context_persistence.py` continues to hydrate `MDSContext` for tool execution.
-- **Async pytest support restored.** `pytest-asyncio` is installed, so async tests execute instead of being skipped.
-
----
-
-## Regenerate on demand
-
-1. Edit YAML in `config/tools/**`.
-2. Generate artefacts:
-	```powershell
-	python scripts/generate_tools.py
-	```
-	- Tools land in `src/pydantic_ai_integration/tools/generated/...`.
-	- Tests appear in `tests/unit|integration|api/...`.
-3. Run suites:
-	```powershell
-	pytest tests/unit -q
-	pytest tests/integration -q
-	pytest tests/api -q
-	```
-4. Commit both YAML and regenerated outputs.
-
-Until step 2 runs, the generated directories will be empty by design.
+- **Source of truth:** YAML definitions in `config/tools/{domain}/{subdomain}/`.
+- **Generation target:** Python implementations under `src/pydantic_ai_integration/tools/generated/` plus mirrored unit, integration, and API tests.
+- **Runtime core:** `src/pydantic_ai_integration/tool_decorator.py`, `tool_sessionservice/service.py`, and `src/persistence/firestore/context_persistence.py`.
 
 ---
 
-## Key components
+## Daily Workflow
 
-| Location | Purpose |
-| --- | --- |
-| `config/tools/**` | Declarative tool definitions (single source of truth) |
-| `src/pydantic_ai_integration/tool_decorator.py` | `@register_mds_tool`, MANAGED_TOOLS registry |
-| `src/pydantic_ai_integration/tools/factory/` | ToolFactory and Jinja templates |
-| `src/pydantic_ai_integration/execution/firebase_stub.py` | Local Firestore shim used by generated tools |
-| `src/tool_sessionservice/service.py` | Service orchestrating tool execution and audit trail |
-| `src/persistence/firestore/context_persistence.py` | Persists session context used to build `MDSContext` |
-| `tests/integration/test_tool_response_wrapping.py` | Hand-authored regression that guards the ToolResponse envelope |
-
----
-
-## Developer quick start
+1. Update or add a YAML tool spec.
+2. Regenerate artefacts.
+3. Import generated modules to populate the registry.
+4. Execute focused tests.
 
 ```powershell
-pip install -e ".[dev]"
 python scripts/generate_tools.py
+python scripts/import_generated_tools.py
+python scripts/show_tools.py
 pytest tests/integration/test_tool_response_wrapping.py -q
 ```
 
-See [`INSTALL.md`](INSTALL.md) for complete setup instructions and [`HANDOVER.md`](HANDOVER.md) for the latest project summary.
+---
+
+## Key Paths
+
+| Path | Notes |
+| --- | --- |
+| `config/tools/**` | Tool metadata, classification, business rules. |
+| `src/pydantic_ai_integration/tools/factory/` | Jinja templates + generator utilities. |
+| `src/tool_sessionservice/` | Enforcement and execution orchestration. |
+| `tests/**` | Generated parity tests; keep them in sync with YAML. |
+
+---
+
+## Testing Matrix
+
+- `tests/unit/` — Validation and parameter models.
+- `tests/integration/` — Service-layer execution with async context.
+- `tests/api/` — FastAPI contract coverage.
+- Manual regression guard: `tests/integration/test_tool_response_wrapping.py`.
+
+---
+
+## Reference
+
+- [`HANDOVER.md`](HANDOVER.md) — Current architecture, governance, and process checklist.

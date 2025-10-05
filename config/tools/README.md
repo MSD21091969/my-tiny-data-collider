@@ -2,6 +2,8 @@
 
 All tools are defined as YAML files in this directory. The YAML is the **single source of truth** for generation, execution policies, and documentation (see the project-wide guidance in `INSTALL.md`, `README.md`, and `CONTRIBUTING.md`). Generated Python and test files can be safely regenerated at any time with `generate-tools`.
 
+> **New to the repo?** Run through the clean-slate workflow in the root `README.md`/`INSTALL.md` first (clone → `pip install -e ".[dev]"` → `python scripts/generate_tools.py` → `python scripts/import_generated_tools.py`) so the generated packages exist before you edit YAML.
+
 ## Directory Layout (domain/subdomain)
 
 ```
