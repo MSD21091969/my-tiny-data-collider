@@ -1,6 +1,6 @@
 # Tool Definition Catalogue
 
-All tools are defined as YAML files in this directory. The YAML is the **single source of truth** for generation, execution policies, and documentation (see the project-wide guidance in `INSTALL.md`, `README.md`, and `CONTRIBUTING.md`). Generated Python and test files can be safely regenerated at any time with `generate-tools`.
+All tools are defined as YAML files in this directory. The YAML is the **single source of truth** for generation, execution policies, and documentation (see the project-wide guidance in `INSTALL.md`, `README.md`, and `DEVELOPER_GUIDE.md`). Generated Python and test files can be safely regenerated at any time with `generate-tools`.
 
 > **New to the repo?** Run through the clean-slate workflow in the root `README.md`/`INSTALL.md` first (clone → `pip install -e ".[dev]"` → `python scripts/generate_tools.py` → `python scripts/import_generated_tools.py`) so the generated packages exist before you edit YAML.
 
@@ -77,6 +77,6 @@ Key sections map directly to runtime behaviour:
 1. **Define or edit YAML** under the correct domain/subdomain.
 2. **Regenerate** artefacts (`generate-tools`) — see `INSTALL.md` for command options and environment setup.
 3. **Run tests** (`pytest` suites outlined in `INSTALL.md`) to validate the generated unit/integration/API scaffolding.
-4. **Commit the YAML** plus any generated files that changed (per `CONTRIBUTING.md`).
+4. **Commit the YAML** plus any generated files that changed (per `DEVELOPER_GUIDE.md`).
 
 Remember: YAML drives everything — never hand-edit `src/pydantic_ai_integration/tools/generated/**` or the generated tests; regenerate instead. The generator also refreshes compatibility shims and package `__init__` exports so manual edits can be dropped safely.

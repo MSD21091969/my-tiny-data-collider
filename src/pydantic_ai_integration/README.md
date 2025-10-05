@@ -90,7 +90,7 @@ Prototype support for YAML-defined composite tools. It walks a list of steps, re
 3. Import the generated module (tests do this automatically), which registers the tool via `register_mds_tool`.
 4. Execute the tool through the API (`POST /tool-sessions/execute`) or directly with `ToolSessionService.process_tool_request`. The service builds an `MDSContext`, validates parameters with `ManagedToolDefinition`, and captures audit events.
 
-Refer back to `INSTALL.md` for environment setup, and `CONTRIBUTING.md` for coding standards and commit workflow. The YAML stays the single source of truth; generated artifacts are disposable and should never be edited by hand.
+Refer back to `INSTALL.md` for environment setup, and `DEVELOPER_GUIDE.md` for coding standards and commit workflow. The YAML stays the single source of truth; generated artifacts are disposable and should never be edited by hand.
 ## MDSContext Quick Reference
 
 - `register_event(name, parameters, result_summary=None, duration_ms=None)`: append audit-friendly breadcrumbs for each tool invocation.

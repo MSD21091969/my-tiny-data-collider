@@ -115,10 +115,34 @@ Record test output (at least the integration regression) in PR descriptions or r
 
 | Area | Primary File(s) | Notes |
 | --- | --- | --- |
-| Workflow docs | `README.md`, `INSTALL.md`, `WORKFLOW_GUIDE.md` | Stay synchronized; update together. |
+| Workflow docs | `README.md`, `INSTALL.md`, `DEVELOPER_GUIDE.md` | Stay synchronized; update together. |
 | Tool source of truth | `config/tools/**.yaml` | Version bump and classification tracked here. |
 | Tool generation | `scripts/generate_tools.py`, `src/pydantic_ai_integration/tools/factory/**` | Keep templates pinned; document changes. |
 | Registry helpers | `scripts/import_generated_tools.py`, `scripts/show_tools.py` | Lightweight diagnostics; extend as workflow evolves. |
 | Testing harness | `pytest.ini`, `tests/**` | Generated tests depend on YAML `examples`/`test_scenarios`. |
 
 This handover should equip maintainers to reproduce the system from scratch, keep YAML governance tight, and sustain confidence via consistent testing.
+
+---
+
+## Session Notes — 5 Oct 2025 (Develop branch)
+
+### What changed this session
+- Consolidated contributor guidance into `DEVELOPER_GUIDE.md`, replacing the retired `CONTRIBUTING.md` and `.github/copilot-instructions.md`.
+- Restructured the developer guide with quick-start and deep-dive sections plus CI/infra notes so new and returning engineers land on the same workflow.
+
+### Recommended focus for next session
+1. **Run the full generation/testing workflow against current YAML**
+   - `python scripts/generate_tools.py`
+   - `python scripts/import_generated_tools.py`
+   - `python scripts/show_tools.py`
+   - Targeted pytest suites (`tests/integration/test_tool_response_wrapping.py`, `tests/unit`, `tests/api`)
+   - Capture outputs to validate no drift since the last regeneration.
+2. **Develop a step-by-step design walkthrough** that maps one tool’s YAML parameters through to the generated models, validation fields, and runtime variables (MANAGED_TOOLS entry, Pydantic params model, registry metadata). Use the output to document how data shapes evolve across layers for future contributors.
+3. **Follow the layered walkthrough when drafting the first YAML set**
+   - Contracts live in `src/pydantic_models/**` (requests, responses, casefile caches).
+   - Integration clients sit in `src/pydantic_ai_integration/integrations/google_workspace/clients.py` and should return those contracts.
+   - Persistence logic in `src/casefileservice/service.py` stores the same models and must stay in sync with client outputs.
+   - Generated tool modules land under `src/pydantic_ai_integration/tools/generated/**` and call the clients/services directly.
+   - `ManagedToolDefinition` wiring is handled via `src/pydantic_ai_integration/tool_definition.py` and registration through `src/pydantic_ai_integration/tool_decorator.py`.
+   - Iterate in this order: author YAML (config/tools/**), run the generator, import modules, exercise clients/services, then update YAML based on findings.

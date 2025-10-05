@@ -50,4 +50,5 @@ pytest tests/integration/test_tool_response_wrapping.py -q
 
 ## Reference
 
+- [`DEVELOPER_GUIDE.md`](DEVELOPER_GUIDE.md) — End-to-end workflow, coding standards, testing matrix, and assistant expectations.
 - [`HANDOVER.md`](HANDOVER.md) — Current architecture, governance, and process checklist.

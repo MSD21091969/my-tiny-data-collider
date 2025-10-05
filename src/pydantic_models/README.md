@@ -1,6 +1,6 @@
 # Pydantic Models
 
-Purpose-based organisation for every data shape used across the application stack. The layout mirrors the high-level architecture described in the root `README.md` and the contribution guidelines in `CONTRIBUTING.md`.
+Purpose-based organisation for every data shape used across the application stack. The layout mirrors the high-level architecture described in the root `README.md` and the contribution guidelines in `DEVELOPER_GUIDE.md`.
 
 > Starting from scratch? Run the clean-slate bootstrap flow first (clone → create venv → `pip install -e ".[dev]"` → `python scripts/generate_tools.py` → `python scripts/import_generated_tools.py`) so the generated tooling that relies on these models is available.
 
@@ -70,7 +70,7 @@ response: BaseResponse = await tool_session_service.process_tool_request(request
 
 1. **Decide the purpose**: canonical entity, DTO, view, or workspace cache. Keep business logic inside canonical models; keep DTOs minimal.
 2. **Follow the envelope pattern**: new operations should extend `BaseRequest` / `BaseResponse` so routers and services stay uniform.
-3. **Update documentation/tests**: describe new models in the relevant README and add fixtures/tests under `tests/` as outlined in `CONTRIBUTING.md`.
+3. **Update documentation/tests**: describe new models in the relevant README and add fixtures/tests under `tests/` as outlined in `DEVELOPER_GUIDE.md`.
 
 By keeping the purpose-driven layout, services (`casefileservice`, `tool_sessionservice`, `communicationservice`) and the FastAPI routers can reference shared, validated contracts without circular imports or duplicated schemas.
 
