@@ -1,0 +1,290 @@
+# Version 3: Complex - All optional fields, rich metadata, test scenarios
+# Tests: Complete schema coverage, all optional fields, documentation
+
+name: casefile_create_v3_complex
+display_name: Create Casefile (Complex)
+description: "Complex casefile creation with all optional fields and rich metadata"
+version: "1.0.0"
+category: workspace
+
+# Full classification
+classification:
+  domain: workspace
+  subdomain: casefile
+  capability: create
+  complexity: atomic
+  maturity: stable
+  integration_tier: internal
+
+# Comprehensive tags
+tags:
+  - casefile
+  - workspace
+  - create
+  - test-complex
+  - authenticated
+  - audited
+
+# Metadata for documentation
+metadata:
+  author: "Tool Engineering Team"
+  last_updated: "2024-10-06"
+  doc_version: "1.0.0"
+
+# Complex parameters with all constraints
+parameters:
+  - name: title
+    type: string
+    description: "Casefile title - must be unique and descriptive"
+    required: true
+    min_length: 1
+    max_length: 200
+    pattern: "^[a-zA-Z0-9\\s\\-_]+$"
+    
+  - name: description
+    type: string
+    description: "Detailed description of casefile purpose and scope"
+    required: false
+    default: ""
+    max_length: 2000
+    
+  - name: tags
+    type: array
+    description: "Categorization tags for search and filtering"
+    required: false
+    default: []
+    items:
+      type: string
+      
+  - name: priority
+    type: string
+    description: "Casefile priority level"
+    required: false
+    default: "medium"
+    enum_values: ["low", "medium", "high", "urgent"]
+    
+  - name: status
+    type: string
+    description: "Initial casefile status"
+    required: false
+    default: "active"
+    enum_values: ["active", "archived", "pending"]
+
+# Enhanced business rules
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: ["casefile.create", "workspace.write"]
+  timeout_seconds: 45
+
+# Detailed session policies
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: "request"
+  log_request_payload: true
+  log_full_response: true
+
+# Comprehensive casefile policies
+casefile_policies:
+  requires_casefile: false
+  allowed_casefile_states: ["active"]
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: true
+
+# Implementation with full specification
+implementation:
+  type: api_call
+  api_call:
+    client_module: "src.casefileservice.service"
+    client_class: "CasefileService"
+    method_name: "create_casefile"
+    request_type: "CreateCasefileRequest"
+    response_type: "CreateCasefileResponse"
+
+# Comprehensive audit configuration
+audit_events:
+  success_event: "casefile_create_success"
+  failure_event: "casefile_create_failure"
+  log_response_fields: 
+    - "casefile_id"
+    - "title"
+    - "description"
+    - "tags"
+    - "priority"
+    - "status"
+    - "created_at"
+    - "created_by"
+  redact_fields: []
+  emit_casefile_event: true
+
+# Detailed return schema with all fields
+returns:
+  type: object
+  description: "Complete created casefile details"
+  properties:
+    casefile_id:
+      type: string
+      description: "Unique casefile identifier"
+    title:
+      type: string
+      description: "Casefile title"
+    description:
+      type: string
+      description: "Casefile description"
+    tags:
+      type: array
+      description: "Categorization tags"
+    priority:
+      type: string
+      description: "Priority level"
+    status:
+      type: string
+      description: "Current status"
+    created_at:
+      type: string
+      description: "ISO 8601 timestamp"
+    created_by:
+      type: string
+      description: "User ID of creator"
+    updated_at:
+      type: string
+      description: "ISO 8601 timestamp"
+    updated_by:
+      type: string
+      description: "User ID of last updater"
+
+# Multiple usage examples
+examples:
+  - description: "Create a minimal casefile"
+    context:
+      session:
+        user_id: "user_123"
+        session_id: "ts_20241006_abc"
+    input:
+      title: "Minimal Casefile"
+    expected_output:
+      casefile_id: "cf_20241006_001"
+      title: "Minimal Casefile"
+      priority: "medium"
+      status: "active"
+      
+  - description: "Create a fully specified casefile"
+    context:
+      session:
+        user_id: "user_456"
+        session_id: "ts_20241006_def"
+    input:
+      title: "Q4 Research Project"
+      description: "Comprehensive data analysis for Q4 2024"
+      tags: ["research", "q4", "2024", "analysis"]
+      priority: "high"
+      status: "active"
+    expected_output:
+      casefile_id: "cf_20241006_002"
+      title: "Q4 Research Project"
+      priority: "high"
+      status: "active"
+      
+  - description: "Create with special characters in title"
+    context:
+      session:
+        user_id: "user_789"
+        session_id: "ts_20241006_ghi"
+    input:
+      title: "Project-Alpha_2024"
+      tags: ["test", "validation"]
+    expected_output:
+      casefile_id: "cf_20241006_003"
+      title: "Project-Alpha_2024"
+
+# Comprehensive error scenarios
+error_scenarios:
+  - description: "Missing required title"
+    input:
+      description: "Description without title"
+    expected_error:
+      type: "ValidationError"
+      message: "Field required"
+      field: "title"
+      
+  - description: "Title too short"
+    input:
+      title: ""
+    expected_error:
+      type: "ValidationError"
+      message: "String should have at least 1 character"
+      
+  - description: "Title too long"
+    input:
+      title: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    expected_error:
+      type: "ValidationError"
+      message: "String should have at most 200 characters"
+      
+  - description: "Invalid priority value"
+    input:
+      title: "Test Casefile"
+      priority: "critical"
+    expected_error:
+      type: "ValidationError"
+      message: "Input should be 'low', 'medium', 'high' or 'urgent'"
+      
+  - description: "Invalid status value"
+    input:
+      title: "Test Casefile"
+      status: "deleted"
+    expected_error:
+      type: "ValidationError"
+      message: "Input should be 'active', 'archived' or 'pending'"
+
+# Test scenarios for validation
+test_scenarios:
+  - name: "create_with_minimal_fields"
+    description: "Test with only required fields"
+    parameters:
+      title: "Minimal Test"
+    expected_output:
+      casefile_id: "cf_*"
+      title: "Minimal Test"
+      priority: "medium"
+      status: "active"
+      
+  - name: "create_with_all_fields"
+    description: "Test with all optional fields"
+    parameters:
+      title: "Complete Test"
+      description: "Full test case"
+      tags: ["test", "complete"]
+      priority: "high"
+      status: "active"
+    expected_output:
+      casefile_id: "cf_*"
+      title: "Complete Test"
+      priority: "high"
+      status: "active"
+      
+  - name: "create_with_edge_case_title"
+    description: "Test title at max length"
+    parameters:
+      title: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    expected_output:
+      casefile_id: "cf_*"
+
+# Documentation metadata
+documentation:
+  summary: "Creates a new casefile with comprehensive validation and metadata"
+  changelog:
+    - version: "1.0.0"
+      date: "2024-10-06"
+      notes: "Initial complex version with all optional fields and test scenarios"
+  notes: |
+    This version demonstrates full schema coverage including:
+    - All optional parameters (priority, status)
+    - Pattern validation for title
+    - Enum validation for priority and status
+    - Multiple examples and error scenarios
+    - Comprehensive test scenarios
+    - Rich documentation metadata

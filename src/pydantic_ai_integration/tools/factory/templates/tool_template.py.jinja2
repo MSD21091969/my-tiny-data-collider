@@ -53,7 +53,9 @@ class {{ tool.name | capitalize | replace('_', '') }}Params(BaseModel):
     enabled={{ tool.business_rules.enabled | capitalize }},
     requires_auth={{ tool.business_rules.requires_auth | capitalize }},
     required_permissions={{ tool.business_rules.required_permissions }},
-    requires_casefile={{ tool.business_rules.requires_casefile | capitalize }},
+    {% if tool.casefile_policies and tool.casefile_policies.requires_casefile is defined %}
+    requires_casefile={{ tool.casefile_policies.requires_casefile | capitalize }},
+    {% endif %}
     timeout_seconds={{ tool.business_rules.timeout_seconds }},
     params_model={{ tool.name | capitalize | replace('_', '') }}Params,
     {% if tool.session_policies %}
@@ -145,27 +147,32 @@ async def {{ tool.name }}(
     from {{ tool.implementation.api_call.client_module.replace('.clients', '.models') }} import {{ tool.implementation.api_call.request_type }}
     {% endif %}
     
-    # Initialize client
-    client = {{ tool.implementation.api_call.client_class }}(user_id=ctx.user_id)
+    # Initialize service/client (no parameters - services use dependency injection)
+    service = {{ tool.implementation.api_call.client_class }}()
     
-    # Build request
+    # Build request with BaseRequest envelope fields
     {% if tool.implementation.api_call.request_type %}
     request = {{ tool.implementation.api_call.request_type }}(
-        {% for param in tool.parameters %}
-        {{ param.name }}={{ param.name }}{% if not loop.last %},{% endif %}
-        {% endfor %}
+        user_id=ctx.user_id,
+        session_id=ctx.session_id,
+        context=ctx.model_dump(),
+        payload={
+            {% for param in tool.parameters %}
+            "{{ param.name }}": {{ param.name }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        }
     )
-    response = await client.{{ tool.implementation.api_call.method_name }}(request=request)
+    response = await service.{{ tool.implementation.api_call.method_name }}(request=request)
     {% else %}
-    response = await client.{{ tool.implementation.api_call.method_name }}(
+    response = await service.{{ tool.implementation.api_call.method_name }}(
         {% for param in tool.parameters %}
         {{ param.name }}={{ param.name }}{% if not loop.last %},{% endif %}
         {% endfor %}
     )
     {% endif %}
     
-    # Convert response to dict
-    result = response.model_dump() if hasattr(response, 'model_dump') else response
+    # Extract payload from BaseResponse envelope
+    result = response.payload.model_dump() if hasattr(response.payload, 'model_dump') else response.payload
     
     {% else %}
     # Placeholder for {{ tool.implementation.type }} implementation

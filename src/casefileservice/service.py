@@ -27,7 +27,11 @@ from ..pydantic_models.operations.casefile_ops import (
     UpdateCasefileResponse,
     PermissionLevel,
     GrantPermissionRequest,
+    GrantPermissionResponse,
+    PermissionGrantedPayload,
     RevokePermissionRequest,
+    RevokePermissionResponse,
+    PermissionRevokedPayload,
 )
 from ..pydantic_models.canonical.casefile import CasefileModel, CasefileMetadata
 from ..pydantic_models.canonical.acl import CasefileACL, PermissionEntry
@@ -518,34 +522,37 @@ class CasefileService:
     # ACL (Access Control List) Methods
     # ============================================================================
     
-    async def grant_permission(
-        self,
-        casefile_id: str,
-        granting_user_id: str,
-        target_user_id: str,
-        permission: PermissionLevel,
-        expires_at: Optional[str] = None,
-        notes: Optional[str] = None
-    ) -> bool:
+    async def grant_permission(self, request: GrantPermissionRequest) -> GrantPermissionResponse:
         """Grant permission to a user on a casefile.
         
         Args:
-            casefile_id: Casefile ID
-            granting_user_id: User granting the permission (must have ADMIN or OWNER)
-            target_user_id: User receiving the permission
-            permission: Permission level to grant
-            expires_at: Optional expiration timestamp
-            notes: Optional notes about this permission
+            request: Request containing casefile_id, target_user_id, permission, etc.
             
         Returns:
-            True if permission was granted
-            
-        Raises:
-            ValueError: If casefile not found or granting user lacks permission
+            Response with permission grant details
         """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        granting_user_id = request.user_id
+        target_user_id = request.payload.target_user_id
+        permission = request.payload.permission
+        expires_at = request.payload.expires_at
+        notes = request.payload.notes
+        
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return GrantPermissionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "grant_permission"
+                }
+            )
         
         # Initialize ACL if not present (for legacy casefiles)
         if not casefile.acl:
@@ -557,7 +564,17 @@ class CasefileService:
         
         # Check if granting user can share
         if not casefile.acl.can_share(granting_user_id):
-            raise ValueError(f"User {granting_user_id} does not have permission to share casefile {casefile_id}")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return GrantPermissionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"User {granting_user_id} does not have permission to share casefile {casefile_id}",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "grant_permission"
+                }
+            )
         
         # Remove existing permission for this user (if any)
         casefile.acl.permissions = [
@@ -578,42 +595,94 @@ class CasefileService:
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
         
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
         logger.info(f"Granted {permission.value} permission on casefile {casefile_id} to user {target_user_id}")
-        return True
+        
+        return GrantPermissionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=PermissionGrantedPayload(
+                casefile_id=casefile_id,
+                target_user_id=target_user_id,
+                permission=permission,
+                granted_by=granting_user_id,
+                granted_at=datetime.now().isoformat()
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "grant_permission"
+            }
+        )
     
-    async def revoke_permission(
-        self,
-        casefile_id: str,
-        revoking_user_id: str,
-        target_user_id: str
-    ) -> bool:
+    async def revoke_permission(self, request: RevokePermissionRequest) -> RevokePermissionResponse:
         """Revoke permission from a user on a casefile.
         
         Args:
-            casefile_id: Casefile ID
-            revoking_user_id: User revoking the permission (must have ADMIN or OWNER)
-            target_user_id: User to revoke permission from
+            request: Request containing casefile_id and target_user_id
             
         Returns:
-            True if permission was revoked
-            
-        Raises:
-            ValueError: If casefile not found or revoking user lacks permission
+            Response with revocation details
         """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        revoking_user_id = request.user_id
+        target_user_id = request.payload.target_user_id
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return RevokePermissionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "revoke_permission"
+                }
+            )
         
         if not casefile.acl:
-            raise ValueError(f"Casefile {casefile_id} has no ACL")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return RevokePermissionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} has no ACL",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "revoke_permission"
+                }
+            )
         
         # Check if revoking user can share
         if not casefile.acl.can_share(revoking_user_id):
-            raise ValueError(f"User {revoking_user_id} does not have permission to manage casefile {casefile_id}")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return RevokePermissionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"User {revoking_user_id} does not have permission to manage casefile {casefile_id}",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "revoke_permission"
+                }
+            )
         
         # Cannot revoke owner's permissions
         if target_user_id == casefile.acl.owner_id:
-            raise ValueError("Cannot revoke owner's permissions")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return RevokePermissionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error="Cannot revoke owner's permissions",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "revoke_permission"
+                }
+            )
         
         # Remove permission
         original_count = len(casefile.acl.permissions)
@@ -622,15 +691,41 @@ class CasefileService:
         ]
         
         if len(casefile.acl.permissions) == original_count:
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
             logger.warning(f"No permission found for user {target_user_id} on casefile {casefile_id}")
-            return False
+            return RevokePermissionResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"No permission found for user {target_user_id}",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "revoke_permission"
+                }
+            )
         
         # Update casefile
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
         
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
         logger.info(f"Revoked permission on casefile {casefile_id} from user {target_user_id}")
-        return True
+        
+        return RevokePermissionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=PermissionRevokedPayload(
+                casefile_id=casefile_id,
+                target_user_id=target_user_id,
+                revoked_by=revoking_user_id,
+                revoked_at=datetime.now().isoformat()
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "revoke_permission"
+            }
+        )
     
     async def list_permissions(self, casefile_id: str, requesting_user_id: str) -> CasefileACL:
         """List all permissions for a casefile.

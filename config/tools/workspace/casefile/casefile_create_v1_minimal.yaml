@@ -1,0 +1,81 @@
+# Version 1: Minimal - Bare bones implementation
+# Tests: Basic template generation, minimal fields
+
+name: casefile_create_v1_minimal
+display_name: Create Casefile (Minimal)
+description: "Minimal casefile creation - tests basic template generation"
+version: "1.0.0"
+category: workspace
+
+tags:
+  - casefile
+  - workspace
+  - create
+  - test-minimal
+
+# Minimal parameters
+parameters:
+  - name: title
+    type: string
+    description: "Casefile title"
+    required: true
+    min_length: 1
+    max_length: 200
+
+# Minimal business rules
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: ["casefile.create"]
+  timeout_seconds: 30
+
+# Minimal session policies
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: "request"
+  log_request_payload: true
+  log_full_response: true
+
+# No casefile required for creation
+casefile_policies:
+  requires_casefile: false
+  enforce_access_control: true
+  audit_casefile_changes: true
+
+# Minimal implementation - points to foundation
+implementation:
+  type: api_call
+  api_call:
+    client_module: "src.casefileservice.service"
+    client_class: "CasefileService"
+    method_name: "create_casefile"
+    request_type: "CreateCasefileRequest"
+    response_type: "CreateCasefileResponse"
+
+# Minimal audit
+audit_events:
+  success_event: "casefile_create_success"
+  failure_event: "casefile_create_failure"
+  log_response_fields: ["casefile_id"]
+  redact_fields: []
+  emit_casefile_event: true
+
+# Expected output structure
+returns:
+  type: object
+  description: "Created casefile details"
+  properties:
+    casefile_id:
+      type: string
+      description: "Created casefile ID"
+    title:
+      type: string
+      description: "Casefile title"
+    created_at:
+      type: string
+      description: "Creation timestamp"
+    created_by:
+      type: string
+      description: "User who created the casefile"

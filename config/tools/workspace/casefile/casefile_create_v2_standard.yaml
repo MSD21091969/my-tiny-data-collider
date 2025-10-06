@@ -1,0 +1,137 @@
+# Version 2: Standard - Complete fields with optional parameters
+# Tests: All common fields, optional params, validation constraints
+
+name: casefile_create_v2_standard
+display_name: Create Casefile (Standard)
+description: "Standard casefile creation with optional fields and validation"
+version: "1.0.0"
+category: workspace
+
+# Enhanced classification
+classification:
+  domain: workspace
+  subdomain: casefile
+  capability: create
+  complexity: atomic
+  maturity: stable
+  integration_tier: internal
+
+tags:
+  - casefile
+  - workspace
+  - create
+  - test-standard
+
+# Standard parameters with optional fields
+parameters:
+  - name: title
+    type: string
+    description: "Casefile title"
+    required: true
+    min_length: 1
+    max_length: 200
+    
+  - name: description
+    type: string
+    description: "Casefile description"
+    required: false
+    default: ""
+    max_length: 2000
+    
+  - name: tags
+    type: array
+    description: "Tags for categorization"
+    required: false
+    default: []
+    items:
+      type: string
+
+# Standard business rules
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: ["casefile.create"]
+  timeout_seconds: 30
+
+# Standard session policies
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: "request"
+  log_request_payload: true
+  log_full_response: true
+
+# Standard casefile policies
+casefile_policies:
+  requires_casefile: false
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: true
+
+# Standard implementation
+implementation:
+  type: api_call
+  api_call:
+    client_module: "src.casefileservice.service"
+    client_class: "CasefileService"
+    method_name: "create_casefile"
+    request_type: "CreateCasefileRequest"
+    response_type: "CreateCasefileResponse"
+
+# Standard audit with more fields
+audit_events:
+  success_event: "casefile_create_success"
+  failure_event: "casefile_create_failure"
+  log_response_fields: ["casefile_id", "title", "created_at"]
+  redact_fields: []
+  emit_casefile_event: true
+
+# Detailed return schema
+returns:
+  type: object
+  description: "Created casefile details"
+  properties:
+    casefile_id:
+      type: string
+      description: "Created casefile ID"
+    title:
+      type: string
+      description: "Casefile title"
+    description:
+      type: string
+      description: "Casefile description"
+    tags:
+      type: array
+      description: "Casefile tags"
+    created_at:
+      type: string
+      description: "Creation timestamp"
+    created_by:
+      type: string
+      description: "User who created the casefile"
+
+# Example usage
+examples:
+  - description: "Create a basic casefile"
+    context:
+      session:
+        user_id: "user_123"
+        session_id: "ts_20241006_abc"
+    input:
+      title: "Research Project Alpha"
+      description: "Data collection for Q4 research"
+      tags: ["research", "q4", "alpha"]
+    expected_output:
+      casefile_id: "cf_20241006_001"
+      title: "Research Project Alpha"
+      created_by: "user_123"
+
+# Error scenarios
+error_scenarios:
+  - description: "Missing required title"
+    input:
+      description: "Description without title"
+    expected_error:
+      type: "ValidationError"
+      message: "Field required"

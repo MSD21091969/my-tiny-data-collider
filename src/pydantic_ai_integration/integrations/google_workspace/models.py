@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -11,6 +11,24 @@ from src.pydantic_models.workspace import (
     GmailMessage,
     SheetData,
 )
+
+
+# ============================================================================
+# ERROR MODELS
+# ============================================================================
+
+class GoogleWorkspaceError(BaseModel):
+    """Standardized error response for Google Workspace API failures."""
+    
+    error_code: str = Field(..., description="Error code (API_ERROR, AUTH_ERROR, RATE_LIMIT, etc.)")
+    error_message: str = Field(..., description="Human-readable error message")
+    api_error_details: Optional[dict] = Field(None, description="Raw Google API error details")
+    retry_after_seconds: Optional[int] = Field(None, description="Retry delay for rate limits")
+
+
+# ============================================================================
+# GMAIL MODELS
+# ============================================================================
 
 
 class GmailListMessagesRequest(BaseModel):
@@ -28,6 +46,7 @@ class GmailListMessagesResponse(BaseModel):
     messages: List[GmailMessage] = Field(default_factory=list, description="Gmail messages returned by the API")
     next_page_token: Optional[str] = Field(None, description="Token for fetching the next page")
     result_size_estimate: int = Field(0, ge=0, description="Google's estimated result size")
+    error: Optional[GoogleWorkspaceError] = Field(None, description="Error details if request failed")
 
 
 class GmailSendMessageRequest(BaseModel):
@@ -46,6 +65,7 @@ class GmailSendMessageResponse(BaseModel):
     message_id: str = Field(..., description="ID of the sent message")
     thread_id: str = Field(..., description="Thread ID the message belongs to")
     label_ids: List[str] = Field(default_factory=list, description="Labels applied to the sent message")
+    error: Optional[GoogleWorkspaceError] = Field(None, description="Error details if request failed")
 
 
 class GmailSearchMessagesRequest(BaseModel):
@@ -64,6 +84,7 @@ class GmailSearchMessagesResponse(BaseModel):
     next_page_token: Optional[str] = Field(None, description="Token for next page")
     result_size_estimate: int = Field(0, ge=0, description="Estimated total results")
     query_used: Optional[str] = Field(None, description="The actual query executed in the search")
+    error: Optional[GoogleWorkspaceError] = Field(None, description="Error details if request failed")
 
 
 class GmailGetMessageRequest(BaseModel):
@@ -78,6 +99,7 @@ class GmailGetMessageResponse(BaseModel):
     """Response envelope for getting a single message."""
 
     message: GmailMessage = Field(..., description="The requested Gmail message")
+    error: Optional[GoogleWorkspaceError] = Field(None, description="Error details if request failed")
 
 
 class DriveListFilesRequest(BaseModel):
@@ -94,6 +116,7 @@ class DriveListFilesResponse(BaseModel):
 
     files: List[DriveFile] = Field(default_factory=list, description="Drive files returned by the API")
     next_page_token: Optional[str] = Field(None, description="Pagination token for next call")
+    error: Optional[GoogleWorkspaceError] = Field(None, description="Error details if request failed")
 
 
 class SheetsBatchGetRequest(BaseModel):
@@ -107,3 +130,4 @@ class SheetsBatchGetResponse(BaseModel):
     """Response payload for Sheets batch get."""
 
     spreadsheet: SheetData = Field(..., description="Spreadsheet data that mirrors selected ranges")
+    error: Optional[GoogleWorkspaceError] = Field(None, description="Error details if request failed")
