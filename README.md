@@ -521,14 +521,26 @@ This project includes experimental integration with **Solid Pods** (Social Linke
 
 ## 📚 Documentation
 
+### Core Documentation
 - **[README (this file)](README.md)**: Project overview, quick start, testing philosophy
 - **[Quick Reference](QUICK_REFERENCE.md)**: Daily commands and common patterns
-- **[Policy & User ID Flow](docs/POLICY_AND_USER_ID_FLOW.md)**: How policies and user_id propagate through layers
-- **[Layered Architecture Flow](docs/LAYERED_ARCHITECTURE_FLOW.md)**: N-tier architecture and request/response patterns
-- **[YAML-Driven Models](docs/YAML_DRIVEN_MODELS.md)**: How payload models are generated from YAML
-- **[Tool Engineering Foundation](docs/TOOLENGINEERING_FOUNDATION.md)**: Core concepts and design principles (archived)
-- **[Security Validation Improvements](docs/SECURITY_VALIDATION_IMPROVEMENTS.md)**: Security enhancements and validation patterns
 - **[Changelog](CHANGELOG.md)**: Version history and changes
+
+### Architecture & Design
+- **[Layered Architecture Flow](docs/LAYERED_ARCHITECTURE_FLOW.md)**: N-tier architecture and request/response patterns
+- **[Policy & User ID Flow](docs/POLICY_AND_USER_ID_FLOW.md)**: How policies and user_id propagate through layers
+- **[Tool Composition](docs/TOOL_COMPOSITION.md)**: Advanced tool chaining and composition patterns
+- **[YAML-Driven Models](docs/YAML_DRIVEN_MODELS.md)**: How payload models are generated from YAML
+
+### Improvement & Enhancement
+- **[Tool Engineering Improvements](docs/TOOL_ENGINEERING_IMPROVEMENTS.md)**: 🆕 Comprehensive analysis and recommendations for enhancing the framework
+- **[Improvement Summary](docs/IMPROVEMENT_SUMMARY.md)**: 🆕 Quick reference for priority improvements
+- **[Security Validation Improvements](docs/SECURITY_VALIDATION_IMPROVEMENTS.md)**: Security enhancements and validation patterns
+
+### Tool-Specific Guides
+- **[Gmail Tools](docs/GMAIL_TOOLS.md)**: Gmail integration tools
+- **[Drive Tools](docs/DRIVE_TOOLS.md)**: Google Drive integration tools
+- **[Sheets Tools](docs/SHEETS_TOOLS.md)**: Google Sheets integration tools
 
 ---
 
