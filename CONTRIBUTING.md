@@ -1,5 +1,30 @@
 # Developer Guidelines - my-tiny-data-collider
 
+## Setup
+
+```powershell
+# Clone
+git clone https://github.com/MSD21091969/my-tiny-data-collider.git
+cd my-tiny-data-collider
+
+# Create venv
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Environment variables
+cp .env.example .env
+# Edit .env with your values
+
+# Run tests
+pytest
+
+# Run server (if applicable)
+python -m uvicorn src.main:app --reload
+```
+
 ## Code Style
 
 ### Documents
