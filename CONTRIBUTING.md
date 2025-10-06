@@ -1,235 +1,231 @@
-# Developer Guidelines - my-tiny-data-collider
+# Contributing to my-tiny-data-collider
 
 ## Setup
 
 ```powershell
-# Clone
 git clone https://github.com/MSD21091969/my-tiny-data-collider.git
 cd my-tiny-data-collider
-
-# Create venv
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Environment variables
-cp .env.example .env
-# Edit .env with your values
-
-# Run tests
-pytest
-
-# Run server (if applicable)
-python -m uvicorn src.main:app --reload
+cp .env.example .env  # Edit with your values
+pytest  # Verify setup
 ```
 
-## Code Style
+## Code Standards
 
-### Documents
-- Facts only, no emojis, no verbose prose
-- Code examples over explanations
-- Direct, technical language
+**Documentation**: Facts only, code examples over prose, no emojis, DRY principle
 
-### Python
-- Type hints required
-- Pydantic models for all data structures
+**Python**:
+- Type hints required (`async def method(req: Request) -> Response`)
+- Pydantic models for all data (inherit BaseRequest/BaseResponse)
 - Async/await for service methods
-- Follow existing patterns
+- Follow existing patterns in `/src/{service}/`
 
-## Service Method Pattern
+## Patterns
 
+### Service Method
 ```python
 async def method_name(self, request: Request) -> Response:
     start_time = datetime.now()
-    
-    # Extract
-    user_id = request.user_id
-    data = request.payload
-    
-    # Validate
-    if not valid:
-        return error_response()
-    
-    # Execute
-    result = await self.repository.method(data)
-    
-    # Return
-    execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+    # Extract → Validate → Execute → Return with execution_time_ms
+    result = await self.repository.method(request.payload)
     return Response(
         request_id=request.request_id,
         status=RequestStatus.COMPLETED,
         payload=result,
-        metadata={'execution_time_ms': execution_time_ms}
+        metadata={'execution_time_ms': int((datetime.now() - start_time).total_seconds() * 1000)}
     )
 ```
 
-## Model Pattern
-
+### Pydantic Model
 ```python
-class Model(BaseModel):
-    field: str = Field(..., description="Description")
-    
-    @computed_field
-    @property
-    def derived(self) -> int:
-        return len(self.field)
-    
-    def business_logic(self) -> None:
-        # Implementation
-        pass
+class OperationPayload(BaseModel):
+    field: str = Field(..., description="What it does")
+    optional: Optional[int] = Field(None, ge=0)
+
+class OperationRequest(BaseRequest[OperationPayload]):
+    operation: Literal["operation_name"] = "operation_name"
+
+class OperationResultPayload(BaseModel):
+    result: str
+
+class OperationResponse(BaseResponse[OperationResultPayload]):
+    pass
 ```
 
-## Tool Pattern
-
+### Tool YAML
 ```yaml
-# config/tools/domain/subdomain/tool_name.yaml
+# config/tools/{domain}/{subdomain}/{tool_name}.yaml
 name: tool_name
-description: "What it does"
+description: "Action description"
 category: "domain"
 
 classification:
-  domain: workspace
-  subdomain: casefile
-  capability: create
-  complexity: atomic
-  maturity: stable
-  integration_tier: internal
+  domain: workspace                # [workspace, communication, automation, utilities]
+  subdomain: casefile              # Specific area
+  capability: create               # [create, read, update, delete, process, search]
+  complexity: atomic               # [atomic, composite, pipeline]
+  maturity: stable                 # [experimental, beta, stable, deprecated]
+  integration_tier: internal       # [internal, external, hybrid]
 
 parameters:
   - name: param
     type: string
     required: true
+    description: "Param purpose"
 
 implementation:
-  type: api_call
+  type: api_call                   # [api_call, simple, data_transform, composite]
   api_call:
-    client_class: "Service"
-    method_name: "method"
+    client_module: "src.service.service"
+    client_class: "ServiceClass"
+    method_name: "method_name"
+
+examples:
+  - description: "Usage example"
+    parameters: {param: "value"}
+    expected_outcome: {status: "success"}
 ```
 
-## Commit Messages
+**See**: `docs/yaml_classification_schema.md` for full field reference
+
+## Commits
 
 ```
 type(scope): Short description
 
-- Bullet point details
-- No paragraphs
+- Bullet points
 - Facts only
 ```
 
-Types: feat, fix, refactor, test, docs, chore
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
-## File Organization
+## Architecture
 
+### Registries
+**MANAGED_TOOLS** (`tool_decorator.py`): Global registry of all tools with metadata, classification, validation  
+**MANAGED_METHODS** (Phase 7): Parallel registry for service methods
+
+**Discovery API** (11 methods):
+```python
+get_registered_tools() -> Dict[str, ManagedToolDefinition]
+get_tools_by_domain(domain) -> List[ManagedToolDefinition]
+get_tools_by_capability(capability) -> List[ManagedToolDefinition]
+get_hierarchical_tool_path(name) -> str  # "workspace.casefile.create"
+get_classification_summary() -> Dict  # Stats
+# + 6 more (complexity, maturity, tier, subdomain, exists, definition)
+```
+
+### Data Flow
+```
+YAML → ToolFactory.load_tool_config() → validate → Jinja2 → generated tool
+     → @register_mds_tool → MANAGED_TOOLS → ToolSessionService.process_tool_request
+```
+
+### Classification System
+**6 fields** (domain, subdomain, capability, complexity, maturity, integration_tier)  
+**See**: `docs/yaml_classification_schema.md`
+
+### File Structure
 ```
 src/
 ├── pydantic_models/
-│   ├── base/          # BaseRequest, BaseResponse, RequestStatus
-│   ├── canonical/     # CasefileModel, ToolSession, UserModel
-│   ├── operations/    # Request/Response pairs for services
-│   ├── views/         # Summary models for API responses
-│   └── workspace/     # Gmail, Drive, Sheets data types
-├── casefileservice/
-│   ├── service.py     # Business logic
-│   └── repository.py  # Firestore persistence
-├── tool_sessionservice/
-├── communicationservice/
-├── coreservice/
+│   ├── base/           # BaseRequest[T], BaseResponse[T], RequestStatus
+│   ├── canonical/      # CasefileModel, ToolSession, UserModel
+│   ├── operations/     # Request/Response pairs (casefile_ops, tool_session_ops, etc.)
+│   └── workspace/      # Gmail, Drive, Sheets types
+├── casefileservice/    # 13 methods (CRUD, ACL, workspace sync)
+├── tool_sessionservice/    # 5 methods (session lifecycle, tool execution)
+├── communicationservice/   # 6 methods (chat sessions, processing)
 └── pydantic_ai_integration/
-    ├── tool_decorator.py      # @register_mds_tool
-    ├── tool_definition.py     # ManagedToolDefinition
-    └── tools/factory/         # YAML → Python generator
+    ├── tool_decorator.py       # @register_mds_tool, MANAGED_TOOLS
+    └── tools/factory/          # YAML → Python generator
 
 config/
-├── tool_schema_v2.yaml        # Schema definition
-└── tools/                     # Tool YAML definitions
+├── tool_schema_v2.yaml         # Classification schema
+└── tools/{domain}/{subdomain}/ # Tool YAMLs
 
-scripts/
-└── phase2_*.py               # Implementation references
-
-tests/
-├── unit/
-└── integration/
+docs/
+├── methods_inventory_v1.0.0.md           # 30 methods catalog
+├── request_response_model_mapping.md     # Pydantic models (83% coverage)
+├── yaml_classification_schema.md         # 6-field taxonomy
+└── tool_engineering_foundation.md        # Registry + ToolFactory reference
 ```
 
-## Current Status
+## Current System
 
-**Service Methods:**
-- CasefileService: 11 methods
-- ToolSessionService: 5 methods
-- Phase 2 adds: +23 methods (in scripts/, not integrated)
+**Methods**: 30 across 6 services
+- CasefileService: 13 (CRUD:5, ACL:4, workspace sync:3, session:1)
+- ToolSessionService: 5 (lifecycle:4, execution:1)
+- CommunicationService: 6 (lifecycle:4, processing:2)
+- GmailClient: 4, DriveClient: 1, SheetsClient: 1
 
-**Models:**
-- CasefileModel, ToolSession, ToolEvent: implemented
-- UserModel: in phase2_03 (not integrated)
+**Models**: 100 Pydantic models (25 req/resp pairs, 83% coverage)
+- Missing: 5 pairs (list_permissions, check_permission, store_gmail_messages, store_drive_files, store_sheet_data)
 
-**Tools:**
+**Tools**: YAML-based generation system ready
 - 3 example YAMLs in config/tools/
-- Tool factory ready
-- No production tools yet
+- ToolFactory operational
+- @register_mds_tool decorator + MANAGED_TOOLS registry
 
-## Phase 2 Integration TODO
+**See**: `docs/methods_inventory_v1.0.0.md` for full catalog
 
-See HANDOVER.md for integration steps.
+## Workflow
 
-1. Fix EmailStr in scripts/phase2_03_user_model.py
-2. Enhance CasefileModel from phase2_01
-3. Enhance ToolSession from phase2_02
-4. Add UserModel from phase2_03
-5. Add service methods from phase2_04, phase2_05, phase2_06
-6. Add tests from phase2_07
-
-## Testing
-
+**Testing**:
 ```bash
-# All tests
-pytest
-
-# Specific
-pytest tests/unit/
-pytest tests/integration/
-pytest -v -k test_name
-
-# Coverage
-pytest --cov=src
+pytest                          # All tests
+pytest tests/unit/              # Unit only
+pytest -v -k test_create        # Pattern match
+pytest --cov=src                # Coverage
 ```
 
-## Tool Generation
-
+**Tool Generation**:
 ```bash
-# Generate from YAML
-python scripts/generate_tools.py tool_name
-
-# Show registered tools
-python scripts/show_tools.py
+python scripts/generate_tools.py                    # All YAMLs
+python scripts/generate_tools.py tool_name          # Specific tool
+python scripts/generate_tools.py --validate-only    # Check YAMLs
+python scripts/show_tools.py                        # List registered
 ```
 
-## Key Principles
-
-1. One pattern for service methods (see above)
-2. All data in Pydantic models
-3. All operations return RequestStatus
-4. All operations track execution_time_ms
-5. All tools registered via @register_mds_tool
-6. All tools defined in YAML first
-7. Audit trail: User → Session → Request → Event → Casefile
-8. Firestore for all persistence
-
-## Debugging
-
+**Discovery**:
 ```python
-import logging
-logger = logging.getLogger(__name__)
-logger.info(f"Message: {var}")
-logger.error(f"Error: {e}", exc_info=True)
+from src.pydantic_ai_integration.tool_decorator import get_tools_by_domain
+tools = get_tools_by_domain("workspace")  # Query registry
 ```
 
-## Questions
+## Principles
 
-Check these first:
-1. TOOL_ENGINEERING_ANALYSIS.md - Architecture overview
-2. HANDOVER.md - Phase 2 integration guide
-3. config/tool_schema_v2.yaml - Tool YAML schema
-4. Existing code in src/ - Follow patterns
+1. **Service methods**: BaseRequest[T] → BaseResponse[T] pattern with execution_time_ms
+2. **Tools**: YAML-first, @register_mds_tool decorator, MANAGED_TOOLS registry
+3. **Classification**: 6 fields (domain/subdomain/capability/complexity/maturity/tier)
+4. **Models**: All data in Pydantic, Field() with descriptions
+5. **Status tracking**: RequestStatus enum (PENDING, IN_PROGRESS, COMPLETED, FAILED)
+6. **Audit trail**: User → Session → Request → Event → Casefile
+7. **Persistence**: Firestore for all data
+8. **Type safety**: Type hints required everywhere
+
+## Method Registry (Phases 7-13)
+
+**Future work**: MANAGED_METHODS parallel to MANAGED_TOOLS
+- Phase 7: Registry structure (MethodDefinition class)
+- Phase 8: Generate 5 missing Pydantic models
+- Phase 9: YAML artifact (methods_inventory_v1.yaml)
+- Phase 10: @register_service_method decorator
+- Phase 11: ToolFactory integration (validate api_call.method_name)
+- Phase 12-13: Documentation + versioning
+
+## References
+
+**Docs**:
+- `docs/methods_inventory_v1.0.0.md` - 30 methods catalog with signatures
+- `docs/request_response_model_mapping.md` - Pydantic model coverage
+- `docs/yaml_classification_schema.md` - 6-field taxonomy reference
+- `docs/tool_engineering_foundation.md` - Registry + ToolFactory
+
+**Code**:
+- `src/pydantic_ai_integration/tool_decorator.py` - MANAGED_TOOLS registry
+- `src/pydantic_ai_integration/tools/factory/` - YAML generator
+- `config/tool_schema_v2.yaml` - Classification schema
+- `src/pydantic_models/operations/` - Request/Response models
