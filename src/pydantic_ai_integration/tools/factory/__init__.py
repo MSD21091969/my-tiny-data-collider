@@ -156,6 +156,25 @@ class ToolFactory:
             implementation.setdefault("simple", {})
         elif impl_type == "api_call":
             implementation.setdefault("api_call", {})
+            # Validate method_name exists in MANAGED_METHODS registry
+            api_call = implementation["api_call"]
+            method_name = api_call.get("method_name")
+            if method_name:
+                from ...method_registry import validate_method_exists, get_method_definition
+                if validate_method_exists(method_name):
+                    # Enrich with method metadata
+                    method_def = get_method_definition(method_name)
+                    api_call["_method_metadata"] = {
+                        "service_name": method_def.metadata.service_name,
+                        "module_path": method_def.metadata.module_path,
+                        "request_model": method_def.models.request_model_name,
+                        "response_model": method_def.models.response_model_name,
+                        "required_permissions": method_def.business_rules.required_permissions,
+                        "requires_casefile": method_def.business_rules.requires_casefile,
+                    }
+                    logger.info(f"  ✓ Method '{method_name}' found in MANAGED_METHODS registry")
+                else:
+                    logger.warning(f"  ⚠ Method '{method_name}' not found in MANAGED_METHODS registry (will validate at generation)")
         elif impl_type == "data_transform":
             implementation.setdefault("data_transform", {})
         elif impl_type == "composite":
@@ -361,6 +380,19 @@ class ToolFactory:
                 if 'min_length' in param and 'max_length' in param:
                     if param['min_length'] > param['max_length']:
                         issues.append(f"Parameter {param['name']}: min_length > max_length")
+        
+        # Validate api_call implementation references valid method
+        implementation = config.get('implementation', {})
+        if implementation.get('type') == 'api_call':
+            api_call = implementation.get('api_call', {})
+            method_name = api_call.get('method_name')
+            if method_name:
+                from ...method_registry import validate_method_exists
+                if not validate_method_exists(method_name):
+                    issues.append(
+                        f"api_call.method_name '{method_name}' not found in MANAGED_METHODS registry. "
+                        f"Ensure method is registered with @register_service_method decorator."
+                    )
         
         return issues
     

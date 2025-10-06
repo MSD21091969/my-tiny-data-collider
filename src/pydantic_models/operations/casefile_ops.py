@@ -308,3 +308,99 @@ class PermissionCheckPayload(BaseModel):
 class CheckPermissionResponse(BaseResponse[PermissionCheckPayload]):
     """Response for permission check."""
     pass
+
+
+# ============================================================================
+# STORE GMAIL MESSAGES (workspace sync)
+# ============================================================================
+
+class StoreGmailMessagesPayload(BaseModel):
+    """Payload for storing Gmail messages in casefile."""
+    casefile_id: str = Field(..., description="Casefile ID")
+    messages: List[dict] = Field(..., description="Gmail messages (GmailMessage dicts)")
+    sync_token: Optional[str] = Field(None, description="Incremental sync token from Gmail API")
+    overwrite: bool = Field(False, description="Replace existing cache instead of merging")
+    threads: Optional[List[dict]] = Field(None, description="Gmail thread metadata")
+    labels: Optional[List[dict]] = Field(None, description="Gmail label metadata")
+
+
+class StoreGmailMessagesRequest(BaseRequest[StoreGmailMessagesPayload]):
+    """Request to store Gmail messages in casefile."""
+    operation: Literal["store_gmail_messages"] = "store_gmail_messages"
+
+
+class GmailStorageResultPayload(BaseModel):
+    """Response payload for Gmail message storage."""
+    casefile_id: str = Field(..., description="Casefile ID")
+    messages_stored: int = Field(..., description="Number of messages stored")
+    threads_stored: int = Field(0, description="Number of threads stored")
+    labels_stored: int = Field(0, description="Number of labels stored")
+    sync_status: str = Field(..., description="Sync status: completed, partial, failed")
+    sync_token: Optional[str] = Field(None, description="New sync token")
+    synced_at: str = Field(..., description="Sync timestamp")
+
+
+class StoreGmailMessagesResponse(BaseResponse[GmailStorageResultPayload]):
+    """Response for Gmail message storage."""
+    pass
+
+
+# ============================================================================
+# STORE DRIVE FILES (workspace sync)
+# ============================================================================
+
+class StoreDriveFilesPayload(BaseModel):
+    """Payload for storing Google Drive files in casefile."""
+    casefile_id: str = Field(..., description="Casefile ID")
+    files: List[dict] = Field(..., description="Drive files (DriveFile dicts)")
+    sync_token: Optional[str] = Field(None, description="Incremental sync token from Drive API")
+    overwrite: bool = Field(False, description="Replace existing cache instead of merging")
+
+
+class StoreDriveFilesRequest(BaseRequest[StoreDriveFilesPayload]):
+    """Request to store Drive files in casefile."""
+    operation: Literal["store_drive_files"] = "store_drive_files"
+
+
+class DriveStorageResultPayload(BaseModel):
+    """Response payload for Drive file storage."""
+    casefile_id: str = Field(..., description="Casefile ID")
+    files_stored: int = Field(..., description="Number of files stored")
+    sync_status: str = Field(..., description="Sync status: completed, partial, failed")
+    sync_token: Optional[str] = Field(None, description="New sync token")
+    synced_at: str = Field(..., description="Sync timestamp")
+
+
+class StoreDriveFilesResponse(BaseResponse[DriveStorageResultPayload]):
+    """Response for Drive file storage."""
+    pass
+
+
+# ============================================================================
+# STORE SHEET DATA (workspace sync)
+# ============================================================================
+
+class StoreSheetDataPayload(BaseModel):
+    """Payload for storing Google Sheets data in casefile."""
+    casefile_id: str = Field(..., description="Casefile ID")
+    sheet_payloads: List[dict] = Field(..., description="Sheet data (SheetData dicts)")
+    sync_token: Optional[str] = Field(None, description="Incremental sync token from Sheets API")
+
+
+class StoreSheetDataRequest(BaseRequest[StoreSheetDataPayload]):
+    """Request to store Sheets data in casefile."""
+    operation: Literal["store_sheet_data"] = "store_sheet_data"
+
+
+class SheetStorageResultPayload(BaseModel):
+    """Response payload for Sheets data storage."""
+    casefile_id: str = Field(..., description="Casefile ID")
+    sheets_stored: int = Field(..., description="Number of sheets stored")
+    sync_status: str = Field(..., description="Sync status: completed, partial, failed")
+    sync_token: Optional[str] = Field(None, description="New sync token")
+    synced_at: str = Field(..., description="Sync timestamp")
+
+
+class StoreSheetDataResponse(BaseResponse[SheetStorageResultPayload]):
+    """Response for Sheets data storage."""
+    pass

@@ -32,6 +32,15 @@ from ..pydantic_models.operations.casefile_ops import (
     RevokePermissionRequest,
     RevokePermissionResponse,
     PermissionRevokedPayload,
+    StoreGmailMessagesRequest,
+    StoreGmailMessagesResponse,
+    GmailStorageResultPayload,
+    StoreDriveFilesRequest,
+    StoreDriveFilesResponse,
+    DriveStorageResultPayload,
+    StoreSheetDataRequest,
+    StoreSheetDataResponse,
+    SheetStorageResultPayload,
 )
 from ..pydantic_models.canonical.casefile import CasefileModel, CasefileMetadata
 from ..pydantic_models.canonical.acl import CasefileACL, PermissionEntry
@@ -390,31 +399,38 @@ class CasefileService:
 
     async def store_gmail_messages(
         self,
-        casefile_id: str,
-        messages: Iterable[Dict[str, Any] | GmailMessage],
-        *,
-        sync_token: Optional[str] = None,
-        overwrite: bool = False,
-        threads: Optional[Iterable[Dict[str, Any]]] = None,
-        labels: Optional[Iterable[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+        request: StoreGmailMessagesRequest
+    ) -> StoreGmailMessagesResponse:
         """Merge Gmail messages into the casefile's typed cache.
 
         Args:
-            casefile_id: Casefile identifier
-            messages: Iterable of Gmail message dicts or models
-            sync_token: Optional incremental sync token returned by Gmail API
-            overwrite: Replace existing cache instead of merging
-            threads: Optional iterable of thread metadata records
-            labels: Optional iterable of label metadata records
+            request: Request containing casefile_id and messages
 
         Returns:
-            Serialized Gmail cache payload
+            Response with storage result
         """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        messages = request.payload.messages
+        sync_token = request.payload.sync_token
+        overwrite = request.payload.overwrite
+        threads = request.payload.threads
+        labels = request.payload.labels
 
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return StoreGmailMessagesResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "store_gmail_messages"
+                }
+            )
 
         gmail_data = casefile.gmail_data or CasefileGmailData()
 
@@ -428,19 +444,23 @@ class CasefileService:
         else:
             gmail_data.upsert_messages(parsed_messages)
 
+        threads_stored = 0
         if threads:
             parsed_threads = [
                 thread if isinstance(thread, GmailThread) else GmailThread.model_validate(thread)
                 for thread in threads
             ]
             gmail_data.upsert_threads(parsed_threads)
+            threads_stored = len(parsed_threads)
 
+        labels_stored = 0
         if labels:
             parsed_labels = [
                 label if isinstance(label, GmailLabel) else GmailLabel.model_validate(label)
                 for label in labels
             ]
             gmail_data.upsert_labels(parsed_labels)
+            labels_stored = len(parsed_labels)
 
         gmail_data.synced_at = datetime.now().isoformat()
         gmail_data.sync_status = "completed"
@@ -451,21 +471,59 @@ class CasefileService:
         casefile.gmail_data = gmail_data
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
-        return gmail_data.model_dump()
+        
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return StoreGmailMessagesResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=GmailStorageResultPayload(
+                casefile_id=casefile_id,
+                messages_stored=len(parsed_messages),
+                threads_stored=threads_stored,
+                labels_stored=labels_stored,
+                sync_status=gmail_data.sync_status,
+                sync_token=gmail_data.last_sync_token,
+                synced_at=gmail_data.synced_at
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "store_gmail_messages"
+            }
+        )
 
     async def store_drive_files(
         self,
-        casefile_id: str,
-        files: Iterable[Dict[str, Any] | DriveFile],
-        *,
-        sync_token: Optional[str] = None,
-        overwrite: bool = False,
-    ) -> Dict[str, Any]:
-        """Merge Google Drive files into the casefile."""
+        request: StoreDriveFilesRequest
+    ) -> StoreDriveFilesResponse:
+        """Merge Google Drive files into the casefile.
+
+        Args:
+            request: Request containing casefile_id and files
+
+        Returns:
+            Response with storage result
+        """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        files = request.payload.files
+        sync_token = request.payload.sync_token
+        overwrite = request.payload.overwrite
 
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return StoreDriveFilesResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "store_drive_files"
+                }
+            )
 
         drive_data = casefile.drive_data or CasefileDriveData()
         parsed_files = [
@@ -487,27 +545,91 @@ class CasefileService:
         casefile.drive_data = drive_data
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
-        return drive_data.model_dump()
+        
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return StoreDriveFilesResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=DriveStorageResultPayload(
+                casefile_id=casefile_id,
+                files_stored=len(parsed_files),
+                sync_status=drive_data.sync_status,
+                sync_token=drive_data.last_sync_token,
+                synced_at=drive_data.synced_at
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "store_drive_files"
+            }
+        )
 
     async def store_sheet_data(
         self,
-        casefile_id: str,
-        sheet_payloads: Iterable[Dict[str, Any] | SheetData],
-        *,
-        sync_token: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """Upsert Google Sheets payloads for the casefile."""
+        request: StoreSheetDataRequest
+    ) -> StoreSheetDataResponse:
+        """Upsert Google Sheets payloads for the casefile.
+
+        Args:
+            request: Request containing casefile_id and sheet_payloads
+
+        Returns:
+            Response with storage result
+        """
+        start_time = datetime.now()
+        
+        casefile_id = request.payload.casefile_id
+        sheet_payloads = request.payload.sheet_payloads
+        sync_token = request.payload.sync_token
 
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            raise ValueError(f"Casefile {casefile_id} not found")
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            return StoreSheetDataResponse(
+                request_id=request.request_id,
+                status=RequestStatus.FAILED,
+                error=f"Casefile {casefile_id} not found",
+                payload=None,
+                metadata={
+                    "execution_time_ms": execution_time_ms,
+                    "operation": "store_sheet_data"
+                }
+            )
 
         sheets_data = casefile.sheets_data or CasefileSheetsData()
+        sheets_count = 0
         for sheet_payload in sheet_payloads:
             sheet = sheet_payload if isinstance(sheet_payload, SheetData) else SheetData.model_validate(sheet_payload)
             sheets_data.upsert_sheet(sheet)
+            sheets_count += 1
 
         sheets_data.synced_at = datetime.now().isoformat()
+        sheets_data.sync_status = "completed"
+        sheets_data.error_message = None
+        if sync_token:
+            sheets_data.last_sync_token = sync_token
+
+        casefile.sheets_data = sheets_data
+        casefile.metadata.updated_at = datetime.now().isoformat()
+        await self.repository.update_casefile(casefile)
+        
+        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        
+        return StoreSheetDataResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=SheetStorageResultPayload(
+                casefile_id=casefile_id,
+                sheets_stored=sheets_count,
+                sync_status=sheets_data.sync_status,
+                sync_token=sheets_data.last_sync_token,
+                synced_at=sheets_data.synced_at
+            ),
+            metadata={
+                "execution_time_ms": execution_time_ms,
+                "operation": "store_sheet_data"
+            }
+        )
         sheets_data.sync_status = "completed"
         sheets_data.error_message = None
         if sync_token:
