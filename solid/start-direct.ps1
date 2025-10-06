@@ -12,10 +12,10 @@ if (Test-Path $dockerExe) {
     & $dockerExe stop tiny-collider-solid 2>$null
     & $dockerExe rm tiny-collider-solid 2>$null
     
-    # Create solid-data directory if doesn't exist
-    if (-not (Test-Path ".\solid-data")) {
-        New-Item -ItemType Directory -Path ".\solid-data" | Out-Null
-        Write-Host "Created ./solid-data directory" -ForegroundColor Green
+    # Create data directory if doesn't exist
+    if (-not (Test-Path ".\data")) {
+        New-Item -ItemType Directory -Path ".\data" | Out-Null
+        Write-Host "Created ./data directory" -ForegroundColor Green
     }
     
     # Run container
@@ -23,8 +23,8 @@ if (Test-Path $dockerExe) {
     & $dockerExe run -d `
         --name tiny-collider-solid `
         -p 3000:3000 `
-        -v "${PWD}\solid-data:/data" `
-        -v "${PWD}\solid-config:/config" `
+        -v "${PWD}\data:/data" `
+        -v "${PWD}:/config" `
         -e CSS_CONFIG=/config/config.json `
         -e CSS_BASE_URL=http://localhost:3000/ `
         -e CSS_PORT=3000 `

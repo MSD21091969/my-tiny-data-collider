@@ -5,8 +5,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./solid-data:/data
-      - ./solid-config:/config
+      - ./data:/data
+      - .:/config
     environment:
       - CSS_CONFIG=/config/config.json
       - CSS_BASE_URL=http://localhost:3000/

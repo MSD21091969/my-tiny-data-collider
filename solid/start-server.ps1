@@ -4,7 +4,7 @@
 # 1. Open Docker Desktop
 # 2. Go to "Containers" 
 # 3. Click "+" (Create Container)
-# 4. Select "docker-compose.solid.yml" from this folder
+# 4. Select "docker-compose.yml" from this folder
 # 5. Click "Start"
 #
 # OR use this script if docker is in PATH:
@@ -28,7 +28,7 @@ foreach ($path in $dockerPaths) {
 }
 
 if ($dockerExe) {
-    & $dockerExe compose -f docker-compose.solid.yml up -d
+    & $dockerExe compose -f docker-compose.yml up -d
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`n✅ Solid server started successfully!" -ForegroundColor Green
@@ -43,8 +43,8 @@ if ($dockerExe) {
     Write-Host "`nManual steps:" -ForegroundColor Cyan
     Write-Host "1. Open Docker Desktop"
     Write-Host "2. Navigate to this folder: $PWD"
-    Write-Host "3. Right-click docker-compose.solid.yml"
+    Write-Host "3. Right-click docker-compose.yml"
     Write-Host "4. Select 'Compose Up'"
     Write-Host "`nOr add Docker to PATH and run:"
-    Write-Host "   docker compose -f docker-compose.solid.yml up -d"
+    Write-Host "   docker compose -f docker-compose.yml up -d"
 }
