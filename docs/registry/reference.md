@@ -59,13 +59,13 @@ classification:
 ## Method Statistics
 
 ```
-Total Methods:    30
-├─ Domain:        workspace(15) | communication(11) | automation(4)
-├─ Capability:    read(11) | update(9) | create(5) | search(4) | process(3) | delete(2)
-├─ Complexity:    atomic(24) | composite(5) | pipeline(2)
-├─ Integration:   internal(18) | external(6) | hybrid(6)
-├─ Maturity:      stable(23) | beta(7)
-└─ Model Coverage: 83% (25/30)
+Total Methods:    26
+├─ Domain:        workspace(15) | communication(10) | automation(1)
+├─ Capability:    read(10) | update(8) | create(5) | search(2) | delete(2) | process(1)
+├─ Complexity:    atomic(24) | composite(2)
+├─ Integration:   internal(14) | external(6) | hybrid(6)
+├─ Maturity:      stable(23) | beta(3)
+└─ Model Coverage: 100% (26/26) ✓
 ```
 
 ### Service Breakdown
@@ -83,21 +83,20 @@ Total Methods:    30
 
 ## Model Coverage
 
-**83% coverage** (25/30 methods). All models inherit from `BaseRequest[T]` / `BaseResponse[T]`.
+**100% coverage** (26/26 methods) ✓ All models inherit from `BaseRequest[T]` / `BaseResponse[T]`.
 
 ### Coverage by File
 
-| File | Methods | Coverage | Missing |
-|------|---------|----------|---------|
-| casefile_ops.py | 13 | 8/13 (62%) | list_permissions, check_permission, store_gmail_messages, store_drive_files, store_sheet_data |
+| File | Methods | Coverage | Notes |
+|------|---------|----------|-------|
+| casefile_ops.py | 13 | 13/13 (100%) | All CRUD, ACL, and workspace sync DTOs present |
 | tool_session_ops.py | 5 | 5/5 (100%) | - |
 | chat_session_ops.py | 4 | 4/4 (100%) | - |
 | gmail_ops.py | 4 | 4/4 (100%) | - |
 | drive_ops.py | 1 | 1/1 (100%) | - |
 | sheets_ops.py | 1 | 1/1 (100%) | - |
-| tool_execution_ops.py | 1 | 1/1 (100%) | - |
 
-### Missing Models (5)
+**Verified**: 2025-10-06 - All 26 methods have complete Request/Response DTO pairs.
 
 **CasefileService ACL (2)**:
 - `list_permissions` - Get all permissions for casefile
