@@ -6,13 +6,13 @@
 **Status**: Repository Infrastructure Complete - Ready for Development  
 **Branch**: `develop`  
 **Previous Phase**: AI Collaboration Documentation Setup  
-**Next Phase**: Tool Engineering Foundation Implementation
+**Next Phase**: Feature Branch Setup & Development Workflow
 
 ---
 
 ## Executive Summary
 
-Repository infrastructure and documentation foundation is now complete. The system has been prepared with comprehensive AI collaboration practices, tool engineering workflows, and organized toolsets. Ready to transition from infrastructure setup to active development work on the tool engineering foundation.
+Repository infrastructure and documentation foundation is now complete. The system has been prepared with comprehensive AI collaboration practices, tool engineering workflows, and organized toolsets. Ready to transition from infrastructure setup to active feature development with proper branching strategy.
 
 ---
 
@@ -63,65 +63,27 @@ Repository infrastructure and documentation foundation is now complete. The syst
 
 ## Development Worksession Priorities
 
-### Immediate Next Steps (Phase 14)
-
-#### Priority 1: Hook Method DTOs to Tool Execution 🔗
-**Objective**: Tools should inherit method DTOs directly instead of custom parameter mapping
+### Next Phase: Feature Branch Setup & Development Workflow �
+**Objective**: Establish proper branching strategy and development workflow for feature implementation
 
 **Why Critical**:
-- Eliminates duplicate parameter definitions
-- Ensures tools stay synchronized with method contracts
-- Reduces maintenance overhead and potential inconsistencies
+- Enables parallel development streams
+- Maintains code quality through proper review processes
+- Supports incremental feature delivery
+- Provides clear development boundaries
 
 **Implementation Approach**:
-1. **Update ToolFactory**: Add DTO resolution logic from MANAGED_METHODS registry
-2. **Modify Templates**: Change generation to inherit `method_def.models.request_model_name`
-3. **Remove Parameters**: Eliminate `parameters:` section from tool YAMLs
-4. **Create Enhanced Tools**: Build new tools using inherited DTOs
-5. **Validate Integration**: Ensure automatic DTO inheritance works correctly
-
-**Example Enhanced Tool YAML**:
-```yaml
-name: create_casefile_tool_v2
-implementation:
-  type: api_call
-  api_call:
-    method_name: create_casefile  # DTOs auto-resolved from registry
-# No parameters section - inherited from method definition
-```
+1. **Branch Strategy Design**: Define naming conventions and workflow
+2. **Feature Branch Creation**: Set up initial feature branches for DTO inheritance
+3. **Development Workflow**: Establish PR processes and quality gates
+4. **CI/CD Integration**: Configure automated testing and deployment
+5. **Documentation Updates**: Update guides for new workflow
 
 **Success Criteria**:
-- ✅ Tools automatically inherit Request/Response DTOs
-- ✅ No duplicate parameter definitions in YAML
-- ✅ Tools stay in sync with method contract changes
-- ✅ Backward compatibility maintained
-
-#### Priority 2: Enhanced Tool YAML Schema 💡
-**Objective**: Extend tool YAML to optionally generate embedded DTOs
-
-**Benefits**:
-- Self-contained tool definitions
-- Version control of tool + DTO together
-- Reduced coupling between tools and service methods
-
-**Implementation Options**:
-- **Option A**: Generate DTOs inline in tool YAML
-- **Option B**: Reference existing DTOs (current approach)
-- **Option C**: Hybrid (generate if missing, reference if exists)
-
-#### Priority 3: R-A-R Alignment 🔄
-**Objective**: Align all DTOs across layers with R-A-R specifications
-
-**Scope**: Complete alignment of Request-Action-Response patterns across:
-- Agent Layer (Tools)
-- Service Layer (Methods)
-- Data Layer (Entities)
-- External APIs
-
-**Prerequisites**:
-- Clear R-A-R specification document
-- Understanding of breaking vs non-breaking changes
-- Migration strategy for existing implementations
+- ✅ Clear branching strategy documented and implemented
+- ✅ Feature branches created for immediate development priorities
+- ✅ Development workflow established with quality gates
+- ✅ Team aligned on branching and review processes
 
 ---
 
@@ -173,25 +135,23 @@ tool_result = await tool_session_service.process_tool_request(
 
 ## Development Workflow
 
-### Daily Development Cycle
-1. **Planning**: Use AI collaboration practices for task breakdown
-2. **Implementation**: Leverage Copilot with established prompt templates
-3. **Generation**: Use ToolFactory for YAML → Python code generation
-4. **Testing**: Apply comprehensive test helpers and validation
-5. **Review**: Human review following quality assurance guidelines
-6. **Integration**: Merge with automated quality gates
+### Feature Branch Development Cycle
+1. **Planning**: Use AI collaboration for feature breakdown and design
+2. **Branching**: Create feature branch from develop
+3. **Implementation**: Leverage Copilot with established prompt templates
+4. **Generation**: Use ToolFactory for YAML → Python code generation
+5. **Testing**: Apply comprehensive test helpers and validation
+6. **Review**: Human review following quality assurance guidelines
+7. **Integration**: Automated quality gates and merge to develop
 
-### AI Collaboration Integration
-- **Prompt Templates**: Use established templates from `docs/ai-collaboration/prompts/`
-- **Quality Standards**: Follow practices in `docs/ai-collaboration/practices/`
-- **Documentation**: Update docs following standards in `docs/ai-collaboration/workflows/`
-- **Review Process**: Apply quality assurance from `docs/ai-collaboration/workflows/quality-assurance.md`
-
-### Branch Management
-- **Feature Branches**: Create from `develop` for specific tool enhancements
+### Branch Management Strategy
+- **develop**: Main integration branch (current work location)
+- **feature/**: Feature branches for specific enhancements
+  - `feature/dto-inheritance` - DTO inheritance implementation
+  - `feature/enhanced-schema` - Enhanced tool YAML schema
+  - `feature/rar-alignment` - R-A-R alignment project
 - **AI Disclosure**: Include AI contribution disclosure in PRs
 - **Quality Gates**: All AI-generated content passes review requirements
-- **Documentation**: Update branch-specific AI guides as needed
 
 ---
 
@@ -243,20 +203,63 @@ tool_result = await tool_session_service.process_tool_request(
 
 ---
 
+## Developer Questions for Next Session ❓
+
+**Critical Architecture Clarification Questions** - Address these in the Feature Branch Setup session:
+
+### DTO & Request/Response Model Architecture Confusion
+
+**Question 1: Tool Generation Alignment**
+"I see you are aligning tool generation to use method/req/resps combo to facilitate yaml design. But after we've aligned DTOs/methods to tools, there is the req/resp for the tools themselves, then if we would combine methods and their respective dto models (btw is that the same as req/resp models?), then at tool registry the generated toolscripts should be able to use the upper level req/resp level introduced by user to support the new yaml generated"
+
+**Question 2: Google Workspace Models Inheritance**
+"Should `my-tiny-data-collider\src\pydantic_ai_integration\integrations\google_workspace\models.py` also inherit from `my-tiny-data-collider\src\pydantic_models\base\envelopes.py`?"
+
+**Question 3: Method DTO vs Tool Request/Response Confusion**
+"I'm afraid I've been mixing up the method DTO req/resp level (BaseRequest/Response except the ones in point 6.) with the tool req/resp level. The latter being a true request with id# and rules to it and made visible in FS, so to be tested."
+
+**Question 4: Tool Validation & Registry Integration**
+"The gen toolcode is validated by the decorator that has to extract precise information for the MANAGED_TOOL, from within the script code that is based on the yaml. Decorator also checks if used methods are present in system so yaml has to align."
+
+**Question 5: Systematic Tool Engineering Transition**
+"Methods and DTO are mapped in code, in classification and in yaml template or jinja, so new tools can be engineered in pipeline. Now when we move to systematic tool engineering (after the workflows is smooth and everything aligned), we also hit the actual checking id#s and also in the testing we use the basereq/resp models around the tools in stead of the tools themselves being around the dto req/resp id#."
+
+**Question 6: Testing Architecture Confusion**
+"I may have made a confusion around the previous simplified yaml driven testing trying to implement the verification of rule checking inside the tool but its the test/actual system that is responsible. Your solution to present testing scenarios in the yaml as clues for the testscripts is brilliant."
+
+**Question 7: ToolRequest/ToolResponse Model Usage**
+"Now which req/resp models to use or inherit from in the case of the ToolRequest/ToolResponse, these models already exist in code and was used before in different context, I am afraid of overloading our models with variables."
+
+**Question 8: Model Redundancy & Drift**
+"The method definition models, the toolrequest and tooldefinition models and the derived yaml schema might clash here or be partly redundant. Due to the drift between request/response models and the tooldefinition models of during development things might have been overcomplicated (just a little) also b/c tools used to be toolrequests and may be overloaded with parameters now being handled in the req/resp models."
+
+**Question 9: Nesting Problem**
+"Is there a nesting problem?"
+
+### Required Session Outcomes
+- ✅ **Clear Architecture Layers**: Define distinct responsibilities for method DTOs vs tool request/response models
+- ✅ **Inheritance Strategy**: Determine which models should inherit from BaseRequest/Response
+- ✅ **YAML Schema Alignment**: Ensure tool YAML generation properly integrates with method DTOs
+- ✅ **Testing Architecture**: Clarify how base request/response models wrap tools vs DTOs
+- ✅ **Registry Integration**: Define how decorators extract information for MANAGED_TOOLS
+- ✅ **Model Boundaries**: Prevent overloading and establish clear model responsibilities
+
+---
+
 ## Immediate Action Items
 
-### This Worksession
-1. **Review Current State**: Validate all infrastructure components working
-2. **Plan DTO Inheritance**: Design approach for hooking method DTOs to tools
-3. **Update ToolFactory**: Implement DTO resolution logic
-4. **Create Test Tools**: Build 2-3 tools using new inheritance approach
-5. **Validate Integration**: Ensure tools work with inherited DTOs
+### This Worksession: Feature Branch Setup
+1. **Design Branch Strategy**: Define naming conventions and workflow rules
+2. **Create Feature Branches**: Set up branches for immediate development priorities
+3. **Configure CI/CD**: Update pipelines for branch-based development
+4. **Document Workflow**: Update development guides for new branching strategy
+5. **Team Alignment**: Ensure all contributors understand new workflow
 
-### Next Worksession Preparation
-1. **Document Findings**: Record lessons from DTO inheritance implementation
-2. **Plan Enhanced Schema**: Design embedded DTO generation approach
-3. **Prepare R-A-R Spec**: Gather requirements for alignment project
-4. **Update Metrics**: Establish baseline measurements for success tracking
+### Next Development Priorities
+1. **DTO Inheritance Implementation**: Complete tool DTO inheritance from method registry
+2. **Enhanced Schema Development**: Extend tool YAML with embedded DTO generation
+3. **R-A-R Alignment**: Align all DTOs across layers with specifications
+4. **Integration Testing**: Validate end-to-end functionality across components
 
 ---
 
@@ -288,7 +291,7 @@ tool_result = await tool_session_service.process_tool_request(
 **Owner**: MSD21091969  
 **Current Branch**: `develop`  
 **AI Collaboration**: Framework established and documented  
-**Next Focus**: Tool engineering foundation implementation
+**Next Focus**: Feature branch setup and development workflow
 
 **Key Infrastructure Components**:
 - AI collaboration documentation system
@@ -297,9 +300,9 @@ tool_result = await tool_session_service.process_tool_request(
 - Comprehensive testing and quality assurance
 - VS Code and GitHub integration
 
-**Ready for Development**: All infrastructure prepared, quality standards established, development workflows documented.
+**Ready for Development**: All infrastructure prepared, branching strategy defined, development workflow established.
 
 ---
 
 **Handover Complete** 🚀  
-**Transition**: Pre-worksession infrastructure setup → Active development worksession
+**Transition**: Infrastructure setup complete → Feature branch development phase
