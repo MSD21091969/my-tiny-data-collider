@@ -214,10 +214,138 @@ config/toolsets/core/casefile_management/
 - Clean generated files: `.\scripts\cleanup_generated_files.ps1`
 - Regenerate to recreate proper structure
 
-## Future Enhancements
+## Testing Strategy
 
-- Implement test template generation
-- Add composite tool orchestration
-- Support for advanced data transformations
-- Integration with CI/CD pipelines
-- Tool versioning and migration support
+### YAML-Driven Test Scenarios
+
+Tools now include embedded test scenarios in their YAML configuration, eliminating overlapping test layers and providing a single source of truth for validation.
+
+#### Test Scenario Structure
+
+```yaml
+# In tool YAML configuration
+test_scenarios:
+  # Happy path scenarios
+  happy_paths:
+    - name: "basic_create"
+      description: "Create casefile with valid inputs"
+      environment: "valid_user_session"
+      input:
+        title: "Test Casefile"
+        description: "Happy path test"
+      expected:
+        status: "COMPLETED"
+        has_casefile_id: true
+        execution_time_ms: "< 1000"
+    
+    - name: "create_with_tags"
+      description: "Create casefile with tags"
+      environment: "valid_user_session"
+      input:
+        title: "Tagged Casefile"
+        tags: ["test", "demo"]
+      expected:
+        status: "COMPLETED"
+        tags_contain: ["test", "demo"]
+
+  # Unhappy path scenarios  
+  unhappy_paths:
+    - name: "missing_permission"
+      description: "Fail when user lacks permission"
+      environment: "read_only_user"
+      input:
+        title: "Should Fail"
+      expected:
+        status: "FAILED"
+        error_type: "PermissionError"
+        error_contains: "casefiles:write"
+    
+    - name: "expired_session"
+      description: "Fail with expired authentication"
+      environment: "expired_session_user"
+      input:
+        title: "Should Fail"
+      expected:
+        status: "FAILED"
+        error_type: "AuthenticationError"
+        error_contains: "expired"
+
+# Environment fixtures
+test_environments:
+  valid_user_session:
+    user_id: "test_user_123"
+    session_id: "test_session_456"
+    permissions: ["casefiles:write", "casefiles:read", "casefiles:delete"]
+    session_valid: true
+    token_valid: true
+    
+  read_only_user:
+    user_id: "readonly_user_789"
+    session_id: "readonly_session_999"
+    permissions: ["casefiles:read"]  # Missing write permission
+    session_valid: true
+    token_valid: true
+    
+  expired_session_user:
+    user_id: "test_user_123"
+    session_id: "expired_session_000"
+    permissions: ["casefiles:write"]
+    session_valid: false  # Session expired
+    token_valid: false
+```
+
+#### Test Execution
+
+Run YAML-driven tests using the unified test runner:
+
+```bash
+# Run tests for specific tool
+python -m tests.helpers.test_runner config/toolsets/core/casefile_management/create_casefile_inherited.yaml
+
+# Run tests for all tools
+python -m tests.helpers.test_runner "config/toolsets/**/*.yaml"
+
+# Run with verbose output and custom reports
+python -m tests.helpers.test_runner -v -r my_test_report "config/toolsets/**/*.yaml"
+```
+
+#### Benefits
+
+- **Single Source of Truth**: Tests defined alongside tool configuration
+- **No Overlapping Layers**: Eliminates ToolFactory validation, system validation tests, and manual test files
+- **Environment-Aware**: Happy/unhappy scenarios with standardized test environments
+- **Unified Execution**: Single command for comprehensive testing
+- **CI/CD Integration**: Automated testing with multiple report formats (HTML, JSON, summary)
+
+#### Test Environment Fixtures
+
+Predefined environments provide consistent testing contexts:
+
+- `valid_user_session`: Full permissions, active session
+- `read_only_user`: Read-only access permissions  
+- `expired_session_user`: Expired authentication
+- `invalid_session_user`: Non-existent session
+- `admin_user`: Administrator privileges
+- `unauthenticated_user`: No authentication
+
+### Migration from Legacy Testing
+
+**Removed Components:**
+- ToolFactory validation during generation (redundant)
+- System validation test suites (overlapping)
+- Manual pytest test files (maintenance burden)
+- Multiple validation layers (complexity)
+
+**Current Approach:**
+- Embedded test scenarios in YAML configurations
+- Unified test execution via `tests.helpers.test_runner`
+- Environment fixtures for consistent testing
+- Automated report generation
+
+### Testing Workflow Integration
+
+1. **Define test scenarios** in tool YAML alongside configuration
+2. **Generate tools** using existing workflow: `python scripts/generate_tools.py`
+3. **Run tests** using: `python -m tests.helpers.test_runner "config/toolsets/**/*.yaml"`
+4. **Review reports** in `tests/reports/` (HTML, JSON, summary formats)
+5. **CI/CD integration** via automated test execution

@@ -10,79 +10,134 @@ This toolset provides the core functionality for managing casefiles throughout t
 
 ## Tools
 
-### Core CRUD Operations
+### Inheritance-Based Tool Generation
 
-#### Create Casefile (`create_casefile_tool.yaml`)
-- **Purpose**: Initialize new casefiles with metadata
-- **Parameters**: title, description, tags, metadata
-- **Business Rules**: Requires auth, casefile:write permission
+#### Create Casefile (Inherited) (`create_casefile_inherited.yaml`)
+- **Purpose**: Initialize new casefiles with metadata using automatic DTO inheritance
+- **Approach**: Inherits ALL parameters, business rules, and models from method definition
+- **Parameters**: Automatically inherited from `create_casefile` method (title, description, tags, metadata)
+- **Business Rules**: Automatically inherited (auth required, casefile:write permission)
 - **Integration**: Internal API call to CasefileService.create_casefile
+- **Testing**: Embedded YAML test scenarios with happy/unhappy paths
 
-#### Read Casefile (`get_casefile_tool.yaml`)
-- **Purpose**: Retrieve complete casefile information
-- **Parameters**: casefile_id
-- **Business Rules**: Requires auth, casefile:read permission
-- **Integration**: Internal API call to CasefileService.get_casefile
+## Key Features
 
-#### Update Casefile (`update_casefile_tool.yaml`)
-- **Purpose**: Modify existing casefile metadata
-- **Parameters**: casefile_id, title, description, tags, metadata
-- **Business Rules**: Requires auth, casefile:write permission
-- **Integration**: Internal API call to CasefileService.update_casefile
+### Automatic Inheritance
+- **Zero duplication**: All parameters, rules, and models inherited from method definitions
+- **Single source of truth**: Method definitions drive both implementation and tooling
+- **Consistent validation**: Business rules automatically applied
+- **Type safety**: Pydantic models inherited and enforced
 
-#### Delete Casefile (`delete_casefile_tool.yaml`)
-- **Purpose**: Permanently remove casefiles
-- **Parameters**: casefile_id
-- **Business Rules**: Requires auth, casefile:write permission
-- **Integration**: Internal API call to CasefileService.delete_casefile
+### Embedded Testing
+- **YAML-driven scenarios**: Test cases defined alongside tool configuration
+- **Environment fixtures**: Standardized test environments (valid_user_session, read_only_user, etc.)
+- **Happy/unhappy paths**: Comprehensive validation coverage
+- **CI/CD integration**: Automated testing via `python -m tests.helpers.test_runner`
 
-#### List Casefiles (`list_casefiles_tool.yaml`)
-- **Purpose**: Query casefiles with filtering and pagination
-- **Parameters**: filters, pagination options
-- **Business Rules**: Requires auth, casefile:read permission
-- **Integration**: Internal API call to CasefileService.list_casefiles
-
-## Common Patterns
-
-### Authentication & Authorization
+### Session & Permission Management
 All tools require:
-- Active user session
-- Appropriate casefile permissions
-- Audit logging enabled
+- Active user session with proper context
+- Appropriate casefile permissions (read/write/delete)
+- Audit logging with full traceability
+- Session metadata capture
 
-### Error Handling
-- Validation errors for invalid parameters
-- Permission errors for unauthorized access
-- Not found errors for missing casefiles
-- Service errors for internal failures
+## Implementation Pattern
 
-### Response Format
-All tools return standardized responses:
-```python
-{
-    "request_id": "uuid",
-    "status": "COMPLETED|FAILED|PENDING",
-    "payload": {...},  # Business data
-    "error": "string|None",
-    "metadata": {
-        "execution_time_ms": 150,
-        # ... additional metadata
-    }
-}
+### Tool Configuration Structure
+```yaml
+name: create_casefile_inherited
+display_name: Create Casefile (Inherited)
+description: Create a new casefile using automatic DTO inheritance
+
+# INHERITED: All parameters from method definition
+# INHERITED: All business rules from method definition
+# INHERITED: All validation from method definition
+
+test_scenarios:
+  happy_paths:
+    - name: "basic_create"
+      environment: "valid_user_session"
+      input:
+        title: "Test Casefile"
+      expected:
+        status: "COMPLETED"
+        has_casefile_id: true
+  unhappy_paths:
+    - name: "missing_title"
+      environment: "valid_user_session"
+      input: {}
+      expected:
+        status: "FAILED"
+        error_type: "ValidationError"
 ```
 
-## Business Rules
+### Generated Tool Structure
+```python
+# Automatically generated from YAML + method inheritance
+class CreateCasefileInheritedTool:
+    def __init__(self):
+        # Inherited parameters automatically populated
+        self.parameters = inherited_from_method_definition
+
+    async def execute(self, context, **kwargs):
+        # Inherited business rules automatically enforced
+        # Inherited validation automatically applied
+        # Service call with proper context
+        return await CasefileService.create_casefile(request)
+```
+
+## Testing Strategy
+
+### YAML-Driven Test Scenarios
+- **Embedded configuration**: Tests defined in tool YAML
+- **Environment fixtures**: Consistent test contexts
+- **Automated execution**: `python -m tests.helpers.test_runner`
+- **Multiple report formats**: HTML, JSON, summary reports
+
+### Test Environment Fixtures
+- `valid_user_session`: Full permissions, active session
+- `read_only_user`: Read-only access permissions
+- `expired_session_user`: Expired authentication
+- `invalid_session_user`: Non-existent session
+- `admin_user`: Administrator privileges
+- `unauthenticated_user`: No authentication
+
+### Coverage Areas
+- Parameter validation (inherited rules)
+- Permission checking (business rules)
+- Error condition handling
+- Response format verification
+- Session management
+- Audit trail validation
+
+## Migration from Manual Tools
+
+### Previous Approach (Removed)
+- Manual YAML configuration for each tool
+- Duplicated parameter definitions
+- Separate business rule specification
+- Manual test file maintenance
+- Multiple validation layers
+
+### Current Approach (Inherited)
+- Single method definition drives everything
+- Automatic tool generation from YAML templates
+- Inherited validation and business rules
+- Embedded test scenarios
+- Unified test execution
+
+## Business Rules (Inherited)
 
 ### Session Requirements
-- All operations require active user sessions
-- Session context used for audit trails
-- Session metadata included in operations
+- Active user sessions required
+- Session context for audit trails
+- Session metadata in operations
 
 ### Permission Model
 - `casefile:read` - View casefile information
 - `casefile:write` - Modify casefile data
 - `casefile:delete` - Remove casefiles
-- Permissions checked per operation
+- Automatic permission checking
 
 ### Audit Trail
 - All operations logged with user context
@@ -90,57 +145,31 @@ All tools return standardized responses:
 - Operation timestamps recorded
 - Error conditions documented
 
-## Implementation Details
+## Performance Characteristics
 
-### Service Integration
-- Direct API calls to CasefileService
-- Synchronous operations only
-- Standard request/response patterns
-- Error propagation maintained
-
-### Data Validation
-- Pydantic model validation
-- Business rule enforcement
-- Type safety throughout
-- Comprehensive error messages
-
-### Performance Characteristics
+### Execution Performance
 - Fast internal operations (< 200ms typical)
 - Minimal external dependencies
 - Efficient database queries
-- Cached permission checks where applicable
+- Cached permission checks
 
-## Testing Strategy
-
-### Unit Tests
-- Parameter validation
-- Permission checking
-- Error condition handling
-- Response format verification
-
-### Integration Tests
-- End-to-end service calls
-- Database state verification
-- Audit log validation
-- Session management
-
-### Performance Tests
-- Response time benchmarks
-- Concurrent operation handling
-- Memory usage monitoring
-- Database query optimization
+### Testing Performance
+- Parallel scenario execution
+- Fast environment setup/teardown
+- Comprehensive coverage without redundancy
+- CI/CD optimized execution
 
 ## Future Enhancements
 
 ### Planned Additions
-- Bulk operations (batch create/update/delete)
-- Archive/restore functionality
+- Additional inherited tools for full CRUD operations
+- Bulk operations support
 - Advanced filtering and search
-- Casefile templates
-- Workflow integration
+- Casefile templates and workflows
+- External system integrations
 
-### Potential Toolset Expansions
-- Casefile collaboration features
+### Toolset Expansions
+- Collaboration features
 - Advanced permission models
-- Integration with external systems
-- Automated casefile lifecycle management
+- Automated lifecycle management
+- Analytics and reporting

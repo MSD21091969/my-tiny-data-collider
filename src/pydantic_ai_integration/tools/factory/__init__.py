@@ -39,6 +39,46 @@ TYPE_MAPPING = {
 }
 
 
+def _map_param_type_to_yaml(python_type: str) -> str:
+    """
+    Map Python type string back to YAML type.
+    
+    Args:
+        python_type: Python type string (e.g., "str", "List[str]")
+        
+    Returns:
+        YAML type string (e.g., "string", "array")
+    """
+    # Handle List types
+    if python_type.startswith("List["):
+        return "array"
+    
+    # Handle Dict types
+    if python_type.startswith("Dict["):
+        return "object"
+    
+    # Handle Optional types
+    if python_type.startswith("Optional["):
+        # Extract inner type
+        inner_type = python_type[9:-1]  # Remove "Optional[...]"
+        return _map_param_type_to_yaml(inner_type)
+    
+    # Handle Union types
+    if python_type.startswith("Union["):
+        # For simplicity, return "string" for Union types
+        return "string"
+    
+    # Direct mapping
+    type_map = {
+        "str": "string",
+        "int": "integer", 
+        "float": "float",
+        "bool": "boolean",
+    }
+    
+    return type_map.get(python_type, "string")
+
+
 class ToolFactory:
     """Factory for generating tools from YAML configurations."""
     
@@ -78,11 +118,13 @@ class ToolFactory:
         
         self.project_root = project_root
         self.config_dir = project_root / "config" / "tools"
+        self.toolsets_dir = project_root / "config" / "toolsets"  # Also search toolsets
         self.templates_dir = Path(__file__).parent / "templates"
         self.output_dir = Path(__file__).parent.parent / "generated"
         
         logger.info(f"Tool Factory initialized:")
         logger.info(f"  Config dir: {self.config_dir}")
+        logger.info(f"  Toolsets dir: {self.toolsets_dir}")
         logger.info(f"  Templates dir: {self.templates_dir}")
         logger.info(f"  Output dir: {self.output_dir}")
         
@@ -104,7 +146,89 @@ class ToolFactory:
         # Store YAML path for folder structure generation
         config['_yaml_path'] = yaml_file
 
-        # Validate required fields at a high level
+        # INHERIT FROM METHOD DEFINITION BEFORE VALIDATION
+        # For api_call tools, populate missing fields from MANAGED_METHODS
+        implementation = config.setdefault("implementation", {})
+        impl_type = implementation.get("type") or implementation.get("template") or "simple"
+        implementation["type"] = impl_type
+        
+        if impl_type == "api_call":
+            implementation.setdefault("api_call", {})
+            api_call = implementation["api_call"]
+            method_name = api_call.get("method_name")
+            
+            if method_name:
+                from ...method_registry import validate_method_exists, get_method_definition
+                if validate_method_exists(method_name):
+                    # Enrich with method metadata
+                    method_def = get_method_definition(method_name)
+                    api_call["_method_metadata"] = {
+                        "service_name": method_def.metadata.service_name,
+                        "module_path": method_def.metadata.module_path,
+                        "request_model": method_def.models.request_model_name,
+                        "response_model": method_def.models.response_model_name,
+                        "required_permissions": method_def.business_rules.required_permissions,
+                        "requires_casefile": method_def.business_rules.requires_casefile,
+                    }
+                    
+                    # INHERIT PARAMETERS FROM METHOD DEFINITION
+                    # This eliminates duplicate parameter definitions in tool YAML
+                    if not config.get('parameters'):
+                        # Auto-populate parameters from method definition
+                        config['parameters'] = []
+                        for param_def in method_def.parameters:
+                            param_config = {
+                                'name': param_def.name,
+                                'type': _map_param_type_to_yaml(param_def.param_type),
+                                'required': param_def.required,
+                                'description': param_def.description or f"Parameter: {param_def.name}"
+                            }
+                            
+                            # Add constraints if available
+                            if param_def.min_value is not None:
+                                param_config['min_value'] = param_def.min_value
+                            if param_def.max_value is not None:
+                                param_config['max_value'] = param_def.max_value
+                            if param_def.min_length is not None:
+                                param_config['min_length'] = param_def.min_length
+                            if param_def.max_length is not None:
+                                param_config['max_length'] = param_def.max_length
+                            if param_def.pattern:
+                                param_config['pattern'] = param_def.pattern
+                            if param_def.default_value is not None:
+                                param_config['default'] = param_def.default_value
+                            
+                            config['parameters'].append(param_config)
+                        
+                        logger.info(f"  ✓ Inherited {len(config['parameters'])} parameters from method '{method_name}'")
+                    
+                    # INHERIT BUSINESS RULES FROM METHOD DEFINITION
+                    # This ensures tool-method synchronization
+                    if not config.get('business_rules'):
+                        config['business_rules'] = {}
+                    
+                    business_rules = config['business_rules']
+                    method_rules = method_def.business_rules
+                    
+                    # Inherit permissions if not specified
+                    if not business_rules.get('required_permissions'):
+                        business_rules['required_permissions'] = method_rules.required_permissions
+                    
+                    # Inherit casefile requirements if not specified
+                    if 'requires_casefile' not in business_rules:
+                        business_rules['requires_casefile'] = method_rules.requires_casefile
+                    
+                    # Inherit timeout if not specified
+                    if 'timeout_seconds' not in business_rules:
+                        business_rules['timeout_seconds'] = method_rules.timeout_seconds
+                    
+                    logger.info(f"  ✓ Inherited business rules from method '{method_name}'")
+                    
+                    logger.info(f"  ✓ Method '{method_name}' found in MANAGED_METHODS registry")
+                else:
+                    logger.warning(f"  ⚠ Method '{method_name}' not found in MANAGED_METHODS registry (will validate at generation)")
+
+        # NOW VALIDATE REQUIRED FIELDS (after inheritance)
         required_fields = ["name", "description", "category", "parameters"]
         for field in required_fields:
             if field not in config:
@@ -149,32 +273,10 @@ class ToolFactory:
             casefile_policies.setdefault(key, value)
 
         # Implementation defaults
-        implementation = config.setdefault("implementation", {})
-        impl_type = implementation.get("type") or implementation.get("template") or "simple"
-        implementation["type"] = impl_type
         if impl_type == "simple":
             implementation.setdefault("simple", {})
         elif impl_type == "api_call":
-            implementation.setdefault("api_call", {})
-            # Validate method_name exists in MANAGED_METHODS registry
-            api_call = implementation["api_call"]
-            method_name = api_call.get("method_name")
-            if method_name:
-                from ...method_registry import validate_method_exists, get_method_definition
-                if validate_method_exists(method_name):
-                    # Enrich with method metadata
-                    method_def = get_method_definition(method_name)
-                    api_call["_method_metadata"] = {
-                        "service_name": method_def.metadata.service_name,
-                        "module_path": method_def.metadata.module_path,
-                        "request_model": method_def.models.request_model_name,
-                        "response_model": method_def.models.response_model_name,
-                        "required_permissions": method_def.business_rules.required_permissions,
-                        "requires_casefile": method_def.business_rules.requires_casefile,
-                    }
-                    logger.info(f"  ✓ Method '{method_name}' found in MANAGED_METHODS registry")
-                else:
-                    logger.warning(f"  ⚠ Method '{method_name}' not found in MANAGED_METHODS registry (will validate at generation)")
+            pass  # Already handled above
         elif impl_type == "data_transform":
             implementation.setdefault("data_transform", {})
         elif impl_type == "composite":
@@ -336,10 +438,21 @@ class ToolFactory:
         config["has_error_tests"] = bool(processed_errors)
 
         # Derive helpful paths for templates
-        yaml_relative_path = yaml_file.relative_to(self.config_dir)
-        config["yaml_relative_path"] = str(yaml_relative_path).replace("\\", "/")
+        # Handle both config/tools and config/toolsets directories
+        if yaml_file.is_relative_to(self.config_dir):
+            base_dir = self.config_dir
+            yaml_relative_path = str(yaml_file.relative_to(self.config_dir))
+        elif yaml_file.is_relative_to(self.toolsets_dir):
+            base_dir = self.toolsets_dir
+            yaml_relative_path = str(yaml_file.relative_to(self.toolsets_dir))
+        else:
+            # Fallback for other locations
+            base_dir = yaml_file.parent
+            yaml_relative_path = yaml_file.name
+        
+        config["yaml_relative_path"] = yaml_relative_path.replace("\\", "/")
 
-        module_parts = [part for part in yaml_relative_path.parent.parts if part]
+        module_parts = [part for part in Path(yaml_relative_path).parent.parts if part]
         generated_base = "src.pydantic_ai_integration.tools.generated"
         module_package_suffix = ".".join(module_parts)
         config["generated_module_package"] = (
@@ -410,7 +523,16 @@ class ToolFactory:
         
         # Use YAML path structure (domain/subdomain) from config
         yaml_path = config.get('_yaml_path', Path('general'))
-        relative_path = yaml_path.relative_to(self.config_dir).parent
+        
+        # Determine which base directory this came from
+        if yaml_path.is_relative_to(self.config_dir):
+            base_dir = self.config_dir
+        elif yaml_path.is_relative_to(self.toolsets_dir):
+            base_dir = self.toolsets_dir
+        else:
+            base_dir = yaml_path.parent
+            
+        relative_path = yaml_path.relative_to(base_dir).parent
         
         # Create output directory matching YAML structure
         output_subdir = self.output_dir / relative_path
@@ -432,6 +554,38 @@ class ToolFactory:
         
         logger.info(f"Generated tool: {output_file.relative_to(self.project_root)}")
         return output_file
+    
+    def _update_init_files_with_imports(self, output_dir: Path):
+        """Update __init__.py files to import all tools in their directories."""
+        # Walk up from output_dir to root, updating __init__.py files
+        current = output_dir
+        while current != self.output_dir.parent:
+            if (current / "__init__.py").exists():
+                # Collect all .py files in this directory
+                imports = []
+                for py_file in current.glob("*.py"):
+                    if py_file.name != "__init__.py":
+                        module_name = py_file.stem
+                        imports.append(f"from .{module_name} import *")
+                
+                if imports:
+                    init_content = f'''"""Generated tools in {current.name}."""
+
+{"; ".join(imports)}
+'''
+                    (current / "__init__.py").write_text(init_content)
+                    logger.info(f"Updated {current / '__init__.py'} with imports")
+            
+            current = current.parent
+            if current == self.output_dir.parent:
+                break
+    
+    def _update_all_init_files_with_imports(self):
+        """Update all __init__.py files in the generated directory with imports."""
+        # Walk through all directories and update __init__.py files
+        for dir_path in self.output_dir.rglob("*"):
+            if dir_path.is_dir() and (dir_path / "__init__.py").exists():
+                self._update_init_files_with_imports(dir_path)
     
     def generate_init_files(self):
         """Generate __init__.py files for generated packages."""
@@ -489,7 +643,7 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
             return False
     
     def generate_all_tools(self, validate_only: bool = False) -> Dict[str, bool]:
-        """Process all YAML files in config/tools/ (recursive).
+        """Process all YAML files in config/tools/ and config/toolsets/ (recursive).
         
         Args:
             validate_only: If True, only validate without generating code
@@ -497,15 +651,16 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
         Returns:
             Dictionary mapping tool names to success status
         """
-        if not self.config_dir.exists():
-            logger.error(f"Config directory not found: {self.config_dir}")
-            return {}
+        # Search both config/tools and config/toolsets directories
+        search_dirs = [self.config_dir, self.toolsets_dir]
+        yaml_files = []
         
-        # Recursive glob to find YAMLs in subdirectories
-        yaml_files = list(self.config_dir.glob("**/*.yaml")) + list(self.config_dir.glob("**/*.yml"))
+        for search_dir in search_dirs:
+            if search_dir.exists():
+                yaml_files.extend(list(search_dir.glob("**/*.yaml")) + list(search_dir.glob("**/*.yml")))
         
         if not yaml_files:
-            logger.warning(f"No YAML files found in {self.config_dir}")
+            logger.warning(f"No YAML files found in {self.config_dir} or {self.toolsets_dir}")
             return {}
         
         logger.info(f"Found {len(yaml_files)} tool definition(s)")
@@ -518,6 +673,8 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
         
         if not validate_only:
             self.generate_init_files()
+            # Update all __init__.py files with imports
+            self._update_all_init_files_with_imports()
         
         success_count = sum(1 for v in results.values() if v)
         logger.info(f"Successfully processed: {success_count}/{len(yaml_files)} tools")
@@ -563,15 +720,19 @@ def generate_tools_cli():
     print()
     
     if args.tool_name:
-        # Process specific tool - search recursively in subdirectories
-        yaml_files = list(factory.config_dir.glob(f"**/{args.tool_name}.yaml")) + list(factory.config_dir.glob(f"**/{args.tool_name}.yml"))
+        # Process specific tool - search recursively in both config/tools and config/toolsets
+        yaml_files = []
+        for search_dir in [factory.config_dir, factory.toolsets_dir]:
+            if search_dir.exists():
+                yaml_files.extend(list(search_dir.glob(f"**/{args.tool_name}.yaml")) + list(search_dir.glob(f"**/{args.tool_name}.yml")))
+        
         if not yaml_files:
-            print(f"❌ Tool configuration not found: {args.tool_name}.yaml (searched recursively in {factory.config_dir})")
+            print(f"❌ Tool configuration not found: {args.tool_name}.yaml (searched recursively in {factory.config_dir} and {factory.toolsets_dir})")
             sys.exit(1)
         elif len(yaml_files) > 1:
             print(f"❌ Multiple tool configurations found for '{args.tool_name}':")
             for yf in yaml_files:
-                print(f"  - {yf.relative_to(factory.config_dir)}")
+                print(f"  - {yf.relative_to(factory.project_root)}")
             print("Please specify the full path or ensure unique tool names.")
             sys.exit(1)
         

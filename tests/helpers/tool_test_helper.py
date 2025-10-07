@@ -1,7 +1,8 @@
-"""Test helpers for tool testing scenarios.
+"""
+Consolidated test helpers for tool testing.
 
-This module provides utilities to reduce boilerplate in tool testing,
-making it easier to write and maintain comprehensive test suites.
+Provides utilities for testing MDS tools with reduced boilerplate.
+Consolidated from multiple test helper files into single, clean interface.
 """
 import asyncio
 from typing import Dict, Any, Optional, List, AsyncGenerator

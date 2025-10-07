@@ -319,6 +319,43 @@ def _create_parameter_def(field_name: str, field_info: Any) -> MethodParameterDe
     return param_def
 
 
+def _create_parameter_def_from_field(field_name: str, field_info: Any) -> MethodParameterDef:
+    """
+    Create MethodParameterDef from Pydantic FieldInfo.
+    
+    Args:
+        field_name: Name of the field
+        field_info: Pydantic FieldInfo object
+        
+    Returns:
+        MethodParameterDef instance
+    """
+    # Determine parameter type from annotation
+    param_type = _python_type_to_string(field_info.annotation)
+    
+    # Extract description
+    description = field_info.description or f"Parameter: {field_name}"
+    
+    # Determine if required
+    required = field_info.is_required()
+    
+    # Get default value
+    default_value = None
+    if not required and field_info.default is not None:
+        default_value = field_info.default
+    
+    # Create parameter definition
+    param_def = MethodParameterDef(
+        name=field_name,
+        param_type=param_type,
+        required=required,
+        description=description,
+        default_value=default_value
+    )
+    
+    return param_def
+
+
 def _python_type_to_string(python_type: Any) -> str:
     """
     Convert Python type annotation to string representation.
@@ -467,11 +504,49 @@ def load_methods_from_yaml(yaml_path: str) -> Dict[str, ManagedMethodDefinition]
                 response_model_path=module_path
             )
             
+            # EXTRACT PARAMETERS FROM PYDANTIC MODELS
+            # This enables inheritance in ToolFactory
+            parameters = []
+            if module_path != 'unknown' and request_name != 'Unknown':
+                try:
+                    # Import the models module
+                    import importlib
+                    models_module = importlib.import_module(module_path)
+                    
+                    # Get the request model class
+                    request_model_class = getattr(models_module, request_name, None)
+                    if request_model_class and hasattr(request_model_class, 'model_fields'):
+                        # Extract parameters from CreateCasefilePayload (nested in BaseRequest)
+                        # Look for 'payload' field which contains the actual parameters
+                        if 'payload' in request_model_class.model_fields:
+                            payload_field = request_model_class.model_fields['payload']
+                            payload_annotation = payload_field.annotation
+                            
+                            # Handle Optional[T] unwrapping
+                            import typing
+                            if hasattr(typing, 'get_origin') and typing.get_origin(payload_annotation) is typing.Union:
+                                args = typing.get_args(payload_annotation)
+                                if len(args) == 2 and type(None) in args:
+                                    payload_annotation = args[0] if args[1] is type(None) else args[1]
+                            
+                            # Extract from payload model
+                            if hasattr(payload_annotation, 'model_fields'):
+                                for field_name, field_info in payload_annotation.model_fields.items():
+                                    param_def = _create_parameter_def_from_field(field_name, field_info)
+                                    parameters.append(param_def)
+                        
+                        logger.info(f"  ✓ Extracted {len(parameters)} parameters from {request_name}")
+                    else:
+                        logger.warning(f"  ⚠ Could not extract parameters from {request_name}")
+                        
+                except Exception as e:
+                    logger.warning(f"  ⚠ Failed to extract parameters from {module_path}.{request_name}: {e}")
+            
             # Create method definition
             method_def = ManagedMethodDefinition(
                 metadata=metadata,
                 business_rules=business_rules,
-                parameters=[],  # Will be populated by decorator from actual signature
+                parameters=parameters,  # Now populated from Pydantic models
                 models=models,
                 implementation_class=service_name,
                 implementation_method=method_name
