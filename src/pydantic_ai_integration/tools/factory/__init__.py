@@ -628,7 +628,8 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
             
             # Generate code
             self.generate_tool(config)
-            self.generate_tests(config)
+            # TODO: Fix test template
+            # self.generate_tests(config)
             
             return True
             

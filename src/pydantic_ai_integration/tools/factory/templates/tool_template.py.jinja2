@@ -142,17 +142,21 @@ async def {{ tool.name }}(
     
     {% elif tool.implementation.type == 'api_call' and tool.implementation.api_call %}
     # API call implementation
-    from {{ tool.implementation.api_call.client_module }} import {{ tool.implementation.api_call.client_class }}
-    {% if tool.implementation.api_call.request_type %}
-    from {{ tool.implementation.api_call.client_module.replace('.clients', '.models') }} import {{ tool.implementation.api_call.request_type }}
+    {% set api = tool.implementation.api_call %}
+    {% set service_class = api.service_class or api.client_class %}
+    {% set module_path = api.module_path or api.client_module %}
+    {% set request_model = api.request_model or api.request_type %}
+    from {{ module_path }} import {{ service_class }}
+    {% if request_model %}
+    from {{ api.models_module or module_path.replace('.service', '.models') }} import {{ request_model }}
     {% endif %}
     
     # Initialize service/client (no parameters - services use dependency injection)
-    service = {{ tool.implementation.api_call.client_class }}()
+    service = {{ service_class }}()
     
     # Build request with BaseRequest envelope fields
-    {% if tool.implementation.api_call.request_type %}
-    request = {{ tool.implementation.api_call.request_type }}(
+    {% if request_model %}
+    request = {{ request_model }}(
         user_id=ctx.user_id,
         session_id=ctx.session_id,
         context=ctx.model_dump(),
@@ -162,9 +166,9 @@ async def {{ tool.name }}(
             {% endfor %}
         }
     )
-    response = await service.{{ tool.implementation.api_call.method_name }}(request=request)
+    response = await service.{{ api.method_name }}(request=request)
     {% else %}
-    response = await service.{{ tool.implementation.api_call.method_name }}(
+    response = await service.{{ api.method_name }}(
         {% for param in tool.parameters %}
         {{ param.name }}={{ param.name }}{% if not loop.last %},{% endif %}
         {% endfor %}

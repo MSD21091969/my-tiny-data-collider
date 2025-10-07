@@ -176,11 +176,11 @@ class TestCodeIntegrity:
         """Verify all service classes are accessible."""
         services = [
             ("casefileservice.service", "CasefileService"),
-            ("gmailclient.service", "GmailClient"),
-            ("driveclient.service", "DriveClient"),
-            ("sheetsclient.service", "SheetsClient"),
+            ("pydantic_ai_integration.integrations.google_workspace.clients", "GmailClient"),
+            ("pydantic_ai_integration.integrations.google_workspace.clients", "DriveClient"),
+            ("pydantic_ai_integration.integrations.google_workspace.clients", "SheetsClient"),
             ("communicationservice.service", "CommunicationService"),
-            ("pydantic_ai_integration.tool_session_service", "ToolSessionService"),
+            ("tool_sessionservice.service", "ToolSessionService"),
         ]
         
         errors = []
