@@ -433,134 +433,6 @@ class ToolFactory:
         logger.info(f"Generated tool: {output_file.relative_to(self.project_root)}")
         return output_file
     
-    def generate_tests(self, config: Dict[str, Any]) -> Path:
-        """Generate test suite from config.
-        
-        Args:
-            config: Tool configuration dictionary
-            
-        Returns:
-            Path to generated unit test file
-        """
-        # Generate unit tests - organize by YAML path structure
-        template = self.jinja_env.get_template('test_template.py.jinja2')
-        output = template.render(tool=config)
-        
-        # Use YAML path structure (domain/subdomain)
-        yaml_path = config.get('_yaml_path', Path('general'))
-        relative_path = yaml_path.relative_to(self.config_dir).parent
-        
-        # Write to tests/unit/domain/subdomain directory
-        test_output_dir = self.project_root / "tests" / "unit" / relative_path
-        test_output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Ensure each level has __init__.py
-        current = self.project_root / "tests" / "unit"
-        for part in relative_path.parts:
-            current = current / part
-            init_file = current / "__init__.py"
-            if not init_file.exists():
-                init_file.write_text(f'"""Unit tests for {part} tools."""\n')
-        
-        output_file = test_output_dir / f"test_{config['name']}.py"
-        
-        with open(output_file, 'w') as f:
-            f.write(output)
-        
-        logger.info(f"Generated unit tests: {output_file.relative_to(self.project_root)}")
-        
-        # Generate integration tests
-        self.generate_integration_tests(config)
-        
-        # Generate API tests
-        self.generate_api_tests(config)
-        
-        return output_file
-    
-    def generate_integration_tests(self, config: Dict[str, Any]) -> Optional[Path]:
-        """Generate integration test suite from config.
-        
-        Args:
-            config: Tool configuration dictionary
-            
-        Returns:
-            Path to generated integration test file or None if skipped
-        """
-        # Check if integration test template exists
-        try:
-            template = self.jinja_env.get_template('integration_test_template.py.jinja2')
-        except Exception as e:
-            logger.warning(f"Integration test template not found, skipping: {e}")
-            return None
-        
-        output = template.render(tool=config)
-        
-        # Use YAML path structure (domain/subdomain)
-        yaml_path = config.get('_yaml_path', Path('general'))
-        relative_path = yaml_path.relative_to(self.config_dir).parent
-        
-        # Write to tests/integration/domain/subdomain directory
-        integration_output_dir = self.project_root / "tests" / "integration" / relative_path
-        integration_output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Ensure each level has __init__.py
-        current = self.project_root / "tests" / "integration"
-        for part in relative_path.parts:
-            current = current / part
-            init_file = current / "__init__.py"
-            if not init_file.exists():
-                init_file.write_text(f'"""Integration tests for {part} tools."""\n')
-        
-        output_file = integration_output_dir / f"test_{config['name']}_integration.py"
-        
-        with open(output_file, 'w') as f:
-            f.write(output)
-        
-        logger.info(f"Generated integration tests: {output_file.relative_to(self.project_root)}")
-        return output_file
-    
-    def generate_api_tests(self, config: Dict[str, Any]) -> Optional[Path]:
-        """Generate API test suite from config.
-        
-        Args:
-            config: Tool configuration dictionary
-            
-        Returns:
-            Path to generated API test file or None if skipped
-        """
-        # Check if API test template exists
-        try:
-            template = self.jinja_env.get_template('api_test_template.py.jinja2')
-        except Exception as e:
-            logger.warning(f"API test template not found, skipping: {e}")
-            return None
-        
-        output = template.render(tool=config)
-        
-        # Use YAML path structure (domain/subdomain)
-        yaml_path = config.get('_yaml_path', Path('general'))
-        relative_path = yaml_path.relative_to(self.config_dir).parent
-        
-        # Write to tests/api/domain/subdomain directory
-        api_output_dir = self.project_root / "tests" / "api" / relative_path
-        api_output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Ensure each level has __init__.py
-        current = self.project_root / "tests" / "api"
-        for part in relative_path.parts:
-            current = current / part
-            init_file = current / "__init__.py"
-            if not init_file.exists():
-                init_file.write_text(f'"""API tests for {part} tools."""\n')
-        
-        output_file = api_output_dir / f"test_{config['name']}_api.py"
-        
-        with open(output_file, 'w') as f:
-            f.write(output)
-        
-        logger.info(f"Generated API tests: {output_file.relative_to(self.project_root)}")
-        return output_file
-    
     def generate_init_files(self):
         """Generate __init__.py files for generated packages."""
         # src/pydantic_ai_integration/tools/generated/__init__.py
@@ -577,27 +449,6 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
 '''
             init_file.write_text(init_content)
             logger.info(f"Created {init_file.relative_to(self.project_root)}")
-        
-        # tests/generated/__init__.py
-        test_init = self.project_root / "tests" / "generated" / "__init__.py"
-        if not test_init.exists():
-            test_init.parent.mkdir(parents=True, exist_ok=True)
-            test_init.write_text('"""Auto-generated unit test suites."""\n')
-            logger.info(f"Created {test_init.relative_to(self.project_root)}")
-        
-        # tests/integration/__init__.py
-        integration_init = self.project_root / "tests" / "integration" / "__init__.py"
-        if not integration_init.exists():
-            integration_init.parent.mkdir(parents=True, exist_ok=True)
-            integration_init.write_text('"""Auto-generated integration test suites."""\n')
-            logger.info(f"Created {integration_init.relative_to(self.project_root)}")
-        
-        # tests/api/__init__.py
-        api_init = self.project_root / "tests" / "api" / "__init__.py"
-        if not api_init.exists():
-            api_init.parent.mkdir(parents=True, exist_ok=True)
-            api_init.write_text('"""Auto-generated API test suites."""\n')
-            logger.info(f"Created {api_init.relative_to(self.project_root)}")
     
     def process_tool(self, yaml_file: Path, validate_only: bool = False) -> bool:
         """Process a single tool configuration.
@@ -628,8 +479,6 @@ All tools are automatically registered with MANAGED_TOOLS when imported.
             
             # Generate code
             self.generate_tool(config)
-            # TODO: Fix test template
-            # self.generate_tests(config)
             
             return True
             
@@ -714,12 +563,19 @@ def generate_tools_cli():
     print()
     
     if args.tool_name:
-        # Process specific tool
-        yaml_file = factory.config_dir / f"{args.tool_name}.yaml"
-        if not yaml_file.exists():
-            print(f"❌ Tool configuration not found: {yaml_file}")
+        # Process specific tool - search recursively in subdirectories
+        yaml_files = list(factory.config_dir.glob(f"**/{args.tool_name}.yaml")) + list(factory.config_dir.glob(f"**/{args.tool_name}.yml"))
+        if not yaml_files:
+            print(f"❌ Tool configuration not found: {args.tool_name}.yaml (searched recursively in {factory.config_dir})")
+            sys.exit(1)
+        elif len(yaml_files) > 1:
+            print(f"❌ Multiple tool configurations found for '{args.tool_name}':")
+            for yf in yaml_files:
+                print(f"  - {yf.relative_to(factory.config_dir)}")
+            print("Please specify the full path or ensure unique tool names.")
             sys.exit(1)
         
+        yaml_file = yaml_files[0]
         success = factory.process_tool(yaml_file, args.validate_only)
         print()
         print("=" * 60)

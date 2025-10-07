@@ -7,26 +7,26 @@ from datetime import datetime
 import logging
 from pydantic import ValidationError
 
-from ..pydantic_models.operations.tool_execution_ops import (
-    ToolRequest, ToolResponse, ToolResponsePayload
+from pydantic_models.operations.tool_execution_ops import (
+    ToolRequest, ToolResponse, ToolResponsePayload, ToolRequestPayload
 )
-from ..pydantic_models.canonical.tool_session import ToolSession, ToolEvent
-from ..pydantic_models.operations.tool_session_ops import (
+from pydantic_models.canonical.tool_session import ToolSession, ToolEvent
+from pydantic_models.operations.tool_session_ops import (
     CreateSessionRequest, CreateSessionResponse, SessionCreatedPayload,
     GetSessionRequest, GetSessionResponse, SessionDataPayload,
     ListSessionsRequest, ListSessionsResponse, SessionListPayload,
     CloseSessionRequest, CloseSessionResponse, SessionClosedPayload,
 )
-from ..pydantic_models.views.session_views import SessionSummary
-from ..pydantic_ai_integration.dependencies import MDSContext
-from ..pydantic_ai_integration.tool_decorator import (
+from pydantic_models.views.session_views import SessionSummary
+from pydantic_ai_integration.dependencies import MDSContext
+from pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
     validate_tool_exists,
     get_tool_names
 )
-from ..pydantic_models.base.types import RequestStatus
+from pydantic_models.base.types import RequestStatus
 from .repository import ToolSessionRepository
-from ..coreservice.id_service import get_id_service
+from coreservice.id_service import get_id_service
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class ToolSessionService:
         # If this session is linked to a casefile, update the casefile to include this session
         if casefile_id:
             try:
-                from ..casefileservice.service import CasefileService
+                from casefileservice.service import CasefileService
                 casefile_service = CasefileService()
                 await casefile_service.add_session_to_casefile(casefile_id, session_id)
                 logger.info(f"Successfully linked session {session_id} to casefile {casefile_id}")
@@ -496,3 +496,68 @@ class ToolSessionService:
                 "casefile_id": session.casefile_id
             }
         )
+    
+    async def process_tool_request_with_session_management(
+        self,
+        user_id: str,
+        tool_name: str,
+        parameters: Dict[str, Any],
+        casefile_id: Optional[str] = None,
+        session_token: Optional[str] = None,
+        client_request_id: Optional[str] = None,
+        auto_create_session: bool = True
+    ) -> ToolResponse:
+        """
+        Process a tool request with automatic session management.
+        
+        This method automatically handles session creation/resumption, making it
+        easier for tools to be invoked without explicit session management.
+        
+        Args:
+            user_id: User executing the tool
+            tool_name: Name of the tool to execute
+            parameters: Tool parameters
+            casefile_id: Optional casefile context
+            session_token: Optional existing session to resume
+            client_request_id: Optional client request ID
+            auto_create_session: Whether to create session if none exists
+            
+        Returns:
+            Tool response
+        """
+        from pydantic_ai_integration.session_manager import ensure_session_for_tool
+        
+        # Get or create session context
+        context, session_created = await ensure_session_for_tool(
+            user_id=user_id,
+            tool_name=tool_name,
+            casefile_id=casefile_id,
+            session_token=session_token,
+            client_request_id=client_request_id,
+            auto_create=auto_create_session
+        )
+        
+        # Create tool request using the session context
+        tool_request = ToolRequest(
+            user_id=user_id,
+            session_id=context.session_id,
+            payload=ToolRequestPayload(
+                tool_name=tool_name,
+                parameters=parameters,
+                session_request_id=context.session_request_id
+            )
+        )
+        
+        # Process the tool request
+        response = await self.process_tool_request(tool_request)
+        
+        # Add session metadata to response
+        if response.metadata is None:
+            response.metadata = {}
+        response.metadata.update({
+            "session_created": session_created,
+            "session_id": context.session_id,
+            "session_request_id": context.session_request_id
+        })
+        
+        return response

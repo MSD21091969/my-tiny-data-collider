@@ -1,0 +1,247 @@
+# Update Casefile Tool Definition
+# Generated from methods_inventory_v1.yaml
+# Method: CasefileService.update_casefile
+
+name: update_casefile_tool
+display_name: Update Casefile
+description: Update casefile metadata including title, description, and tags
+category: workspace
+version: "1.0.0"
+tags:
+  - casefile
+  - crud
+  - workspace
+  - update
+
+metadata:
+  source_method: update_casefile
+  service: CasefileService
+  generated_from: methods_inventory_v1.yaml
+
+classification:
+  domain: workspace
+  subdomain: casefile
+  capability: update
+  complexity: atomic
+  maturity: stable
+  integration_tier: internal
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions:
+    - casefiles:write
+  timeout_seconds: 30
+  visibility: public
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: request
+  log_request_payload: true
+  log_full_response: true
+
+casefile_policies:
+  requires_casefile: true
+  allowed_casefile_states:
+    - active
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: true
+
+parameters:
+  - name: casefile_id
+    type: string
+    description: Unique identifier of the casefile to update
+    required: true
+    min_length: 1
+    pattern: "^cf_[a-zA-Z0-9_-]+$"
+    examples:
+      - "cf_abc123xyz"
+
+  - name: title
+    type: string
+    description: Updated title for the casefile
+    required: false
+    min_length: 1
+    max_length: 200
+    examples:
+      - "Updated Support Case #12345"
+
+  - name: description
+    type: string
+    description: Updated description
+    required: false
+    max_length: 5000
+    examples:
+      - "Added new findings from investigation"
+
+  - name: tags
+    type: array
+    description: Updated list of tags (replaces existing tags)
+    required: false
+    items:
+      type: string
+      max_length: 50
+    max_length: 20
+    examples:
+      - ["urgent", "resolved", "q4-2025"]
+
+  - name: metadata
+    type: object
+    description: Updated metadata (merges with existing)
+    required: false
+    examples:
+      - {"priority": "low", "status": "closed"}
+
+implementation:
+  type: api_call
+  api_call:
+    service_class: CasefileService
+    module_path: src.casefileservice.service
+    method_name: update_casefile
+    request_model: UpdateCasefileRequest
+    response_model: UpdateCasefileResponse
+    models_module: src.pydantic_models.operations.casefile_ops
+    
+    request_mapping:
+      casefile_id: "{{ casefile_id }}"
+      title: "{{ title }}"
+      description: "{{ description }}"
+      tags: "{{ tags }}"
+      metadata: "{{ metadata }}"
+    
+    response_mapping: |
+      # Extract updated casefile details
+      result = {
+          "casefile_id": response.payload.casefile_id,
+          "title": response.payload.title,
+          "description": response.payload.description,
+          "updated_at": response.payload.updated_at.isoformat() if response.payload.updated_at else None,
+          "status": response.status.value,
+          "execution_time_ms": response.metadata.get("execution_time_ms")
+      }
+    
+    retry_policy:
+      max_attempts: 1
+      backoff_seconds: 0
+
+returns:
+  type: object
+  description: Updated casefile confirmation
+  properties:
+    casefile_id:
+      type: string
+      description: Unique identifier of the casefile
+    title:
+      type: string
+      description: Updated title
+    description:
+      type: string
+      description: Updated description
+    updated_at:
+      type: string
+      description: ISO 8601 timestamp of update
+    status:
+      type: string
+      description: Request execution status
+    execution_time_ms:
+      type: number
+      description: Execution time in milliseconds
+  required:
+    - casefile_id
+    - status
+
+audit_events:
+  success_event: casefile_updated
+  failure_event: casefile_update_failed
+  log_response_fields:
+    - casefile_id
+    - title
+  redact_fields: []
+  emit_casefile_event: true
+
+examples:
+  - description: Update casefile title
+    context:
+      session:
+        user_id: user_123
+        session_id: session_456
+        casefile_id: cf_abc123
+      permissions:
+        - casefiles:write
+    input:
+      casefile_id: "cf_abc123"
+      title: "RESOLVED: Support Case #12345"
+    expected_output:
+      casefile_id: "cf_abc123"
+      title: "RESOLVED: Support Case #12345"
+      status: "COMPLETED"
+    expect_casefile_changes: true
+
+  - description: Update multiple fields
+    context:
+      session:
+        user_id: user_123
+        session_id: session_456
+        casefile_id: cf_abc123
+      permissions:
+        - casefiles:write
+    input:
+      casefile_id: "cf_abc123"
+      title: "Closed Investigation"
+      description: "Investigation completed with findings documented"
+      tags:
+        - closed
+        - resolved
+      metadata:
+        resolution: complete
+        closed_date: "2025-10-06"
+    expected_output:
+      casefile_id: "cf_abc123"
+      title: "Closed Investigation"
+      status: "COMPLETED"
+    expect_casefile_changes: true
+
+error_scenarios:
+  - description: Casefile not found
+    input:
+      casefile_id: "cf_nonexistent"
+      title: "New Title"
+    expected_error:
+      type: NotFoundError
+      message: "Casefile not found: cf_nonexistent"
+
+  - description: Missing write permission
+    input:
+      casefile_id: "cf_abc123"
+      title: "New Title"
+    expected_error:
+      type: PermissionError
+      message: "User lacks required permission: casefiles:write"
+
+  - description: Update archived casefile
+    input:
+      casefile_id: "cf_archived"
+      title: "New Title"
+    expected_error:
+      type: StateError
+      message: "Cannot update casefile in state: archived"
+
+documentation:
+  summary: |
+    Updates metadata for an existing casefile. All parameters except casefile_id
+    are optional - only provided fields will be updated.
+    
+    Required permission: casefiles:write
+    Required: User must have write access to the casefile
+    Required: Casefile must be in 'active' state
+    
+    Tags are replaced entirely (not merged). Metadata is merged with existing values.
+    Updates are fully audited with before/after snapshots.
+  
+  changelog:
+    - version: "1.0.0"
+      date: "2025-10-06"
+      notes: "Initial stable release, mapped to CasefileService.update_casefile"

@@ -6,8 +6,8 @@ from typing import List, Optional
 import os
 import logging
 
-from ..pydantic_models.canonical.casefile import CasefileModel
-from ..pydantic_models.views.casefile_views import CasefileSummary
+from pydantic_models.canonical.casefile import CasefileModel
+from pydantic_models.views.casefile_views import CasefileSummary
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +138,7 @@ class CasefileRepository:
             
             results.append(
                 CasefileSummary(
-                    id=casefile.id,
+                    casefile_id=casefile.id,
                     title=casefile.metadata.title,
                     description=casefile.metadata.description,
                     tags=casefile.metadata.tags,

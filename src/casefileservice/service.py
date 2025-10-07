@@ -6,7 +6,7 @@ from typing import Dict, Any, Iterable, List, Optional
 from datetime import datetime
 import logging
 
-from ..pydantic_models.operations.casefile_ops import (
+from pydantic_models.operations.casefile_ops import (
     AddSessionToCasefileRequest,
     AddSessionToCasefileResponse,
     CasefileCreatedPayload,
@@ -42,10 +42,10 @@ from ..pydantic_models.operations.casefile_ops import (
     StoreSheetDataResponse,
     SheetStorageResultPayload,
 )
-from ..pydantic_models.canonical.casefile import CasefileModel, CasefileMetadata
-from ..pydantic_models.canonical.acl import CasefileACL, PermissionEntry
-from ..pydantic_models.base.types import RequestStatus
-from ..pydantic_models.workspace import (
+from pydantic_models.canonical.casefile import CasefileModel, CasefileMetadata
+from pydantic_models.canonical.acl import CasefileACL, PermissionEntry
+from pydantic_models.base.types import RequestStatus
+from pydantic_models.workspace import (
     CasefileDriveData,
     CasefileGmailData,
     CasefileSheetsData,
@@ -228,9 +228,8 @@ class CasefileService:
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
             payload=CasefileUpdatedPayload(
-                casefile_id=casefile_id,
-                updated_at=metadata.updated_at,
-                casefile=casefile
+                casefile=casefile,
+                updated_fields=updates_applied
             ),
             metadata={
                 "execution_time_ms": execution_time_ms,
@@ -331,7 +330,8 @@ class CasefileService:
             status=RequestStatus.COMPLETED,
             payload=CasefileDeletedPayload(
                 casefile_id=casefile_id,
-                deleted_at=datetime.now().isoformat()
+                deleted_at=datetime.now().isoformat(),
+                title=casefile.metadata.title
             ),
             metadata={
                 "execution_time_ms": execution_time_ms,

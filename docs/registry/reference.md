@@ -1,6 +1,6 @@
 # Methods Registry Reference
 
-**Version**: 1.0.0 | **Date**: 2025-10-06
+**Version**: 1.0.0 | **Date**: 2025-10-07
 
 Quick reference for classification schema, model coverage, and method statistics.
 
@@ -53,6 +53,86 @@ classification:
 - `internal` - Internal services only (18 methods)
 - `external` - Requires external APIs (6 methods)
 - `hybrid` - Internal + external (6 methods)
+
+---
+
+## Versioning & Release Process
+
+### Semantic Versioning
+
+**MAJOR.MINOR.PATCH** - Breaking.Non-breaking.Fixes
+
+#### When to Increment
+- **MAJOR** (2.0.0): Breaking changes (rename parameters, change types, remove methods)
+- **MINOR** (1.1.0): Non-breaking additions (new methods, optional parameters)
+- **PATCH** (1.0.1): Non-breaking fixes (typos, metadata corrections)
+
+#### Breaking Change Examples
+- ❌ Rename method parameter
+- ❌ Change parameter type (string → int)
+- ❌ Make optional parameter required
+- ❌ Remove method or response field
+- ❌ Change required permissions
+
+#### Non-Breaking Examples
+- ✅ Add new optional parameter
+- ✅ Add new method
+- ✅ Fix description typos
+- ✅ Update classification metadata
+- ✅ Add new permission (non-required)
+
+### Release Workflow
+
+#### PATCH Release (15 min)
+```bash
+# Edit config/methods_inventory_v1.yaml
+# Update version: "1.0.1"
+# Add CHANGELOG entry
+python scripts/generate_method_docs.py
+git commit -m "Release v1.0.1: Fix description typos"
+git tag v1.0.1  # Optional
+```
+
+#### MINOR Release (1-2 hrs)
+```bash
+# Copy config/methods_inventory_v1.yaml → v1.1.yaml
+# Add new methods/parameters
+# Update version: "1.1.0"
+# Add detailed CHANGELOG entry
+python scripts/generate_method_docs.py
+pytest tests/test_method_registry.py
+git commit -m "Release v1.1.0: Add archive functionality"
+git tag -a v1.1.0 -m "Release v1.1.0: Add archive functionality"
+git push origin v1.1.0
+```
+
+#### MAJOR Release (4-8 hrs)
+```bash
+# Copy config/methods_inventory_v1.yaml → v2.0.yaml
+# Make breaking changes with migration guide
+# Update version: "2.0.0"
+# Add comprehensive CHANGELOG with migration guide
+python scripts/generate_method_docs.py
+pytest  # Full test suite
+git commit -m "Release v2.0.0: Unified parameter naming"
+git tag -a v2.0.0 -m "Release v2.0.0: Unified parameter naming"
+git push origin v2.0.0
+# Create GitHub release with migration guide
+```
+
+### Deprecation Policy
+
+1. **Mark deprecated** in YAML: `deprecated: true`, `deprecated_since`, `replacement`
+2. **Maintain compatibility** for minimum 1 MAJOR version
+3. **Runtime warnings** when deprecated methods called
+4. **Remove in next MAJOR** version with migration guide
+
+### Automated Release Script
+
+```bash
+# Use automated script for standard releases
+python scripts/release_version.py --type minor --changelog "Add archive functionality"
+```
 
 ---
 
@@ -132,9 +212,7 @@ Examples:
 **Full API Documentation**: See [../methods/README.md](../methods/README.md)
 
 **Registry System**:
-- [CHANGELOG.md](./CHANGELOG.md) - Version history
-- [versioning-guide.md](./versioning-guide.md) - Semver rules
-- [release-process.md](./release-process.md) - Release workflows
+- [CHANGELOG.md](./CHANGELOG.md) - Version history, releases, and migration guides
 
 **Source Files**:
 - `config/methods_inventory_v1.yaml` - Method metadata (YAML)

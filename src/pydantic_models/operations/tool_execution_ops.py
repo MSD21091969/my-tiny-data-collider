@@ -32,7 +32,7 @@ class ToolRequestPayload(BaseModel):
     def validate_tool_exists(cls, v: str) -> str:
         """Validate tool is registered in MANAGED_TOOLS."""
         # Import here to avoid circular dependency
-        from ...pydantic_ai_integration.tool_decorator import validate_tool_exists, get_tool_names
+        from pydantic_ai_integration.tool_decorator import validate_tool_exists, get_tool_names
         
         if not validate_tool_exists(v):
             available = ', '.join(get_tool_names())

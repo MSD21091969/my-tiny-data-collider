@@ -62,7 +62,7 @@ class ToolEvent(BaseModel):
     @staticmethod
     def _get_id_service_static():
         """Get ID service (avoid circular import)."""
-        from ...coreservice.id_service import get_id_service
+        from coreservice.id_service import get_id_service
         return get_id_service()
     
     def _ensure_serializable_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:

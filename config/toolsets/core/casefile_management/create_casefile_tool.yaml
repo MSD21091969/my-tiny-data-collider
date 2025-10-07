@@ -1,0 +1,238 @@
+# Create Casefile Tool Definition
+# Generated from methods_inventory_v1.yaml
+# Method: CasefileService.create_casefile
+
+name: create_casefile_tool
+display_name: Create Casefile
+description: Create a new casefile with metadata, description, and optional tags
+category: workspace
+version: "1.0.0"
+tags:
+  - casefile
+  - crud
+  - workspace
+
+metadata:
+  source_method: create_casefile
+  service: CasefileService
+  generated_from: methods_inventory_v1.yaml
+
+classification:
+  domain: workspace
+  subdomain: casefile
+  capability: create
+  complexity: atomic
+  maturity: stable
+  integration_tier: internal
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions:
+    - casefiles:write
+  timeout_seconds: 30
+  visibility: public
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: request
+  log_request_payload: true
+  log_full_response: true
+
+casefile_policies:
+  requires_casefile: false
+  allowed_casefile_states:
+    - active
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: true
+
+parameters:
+  - name: title
+    type: string
+    description: Title of the casefile
+    required: true
+    min_length: 1
+    max_length: 200
+    examples:
+      - "Customer Support Case #12345"
+      - "Investigation: Data Breach Q3 2025"
+      - "Legal Review - Contract ABC"
+
+  - name: description
+    type: string
+    description: Detailed description of the casefile purpose and context
+    required: false
+    max_length: 5000
+    examples:
+      - "Investigation notes for customer complaint regarding service outage on Oct 1"
+      - "Tracking evidence and communications for legal case ABC-2025-001"
+
+  - name: tags
+    type: array
+    description: Optional tags for categorization and search
+    required: false
+    items:
+      type: string
+      max_length: 50
+    max_length: 20
+    examples:
+      - ["urgent", "customer-support", "q4-2025"]
+      - ["legal", "contract-review"]
+
+  - name: metadata
+    type: object
+    description: Optional additional metadata as key-value pairs
+    required: false
+    examples:
+      - {"priority": "high", "assigned_team": "support"}
+      - {"case_type": "investigation", "jurisdiction": "US-CA"}
+
+implementation:
+  type: api_call
+  api_call:
+    service_class: CasefileService
+    module_path: src.casefileservice.service
+    method_name: create_casefile
+    request_model: CreateCasefileRequest
+    response_model: CreateCasefileResponse
+    models_module: src.pydantic_models.operations.casefile_ops
+    
+    request_mapping:
+      # Map tool parameters to CreateCasefilePayload
+      title: "{{ title }}"
+      description: "{{ description }}"
+      tags: "{{ tags }}"
+      metadata: "{{ metadata }}"
+    
+    response_mapping: |
+      # Extract casefile_id and created_at from response payload
+      result = {
+          "casefile_id": response.payload.casefile_id,
+          "title": response.payload.title,
+          "created_at": response.payload.created_at.isoformat() if response.payload.created_at else None,
+          "owner_user_id": response.payload.owner_user_id,
+          "status": response.status.value,
+          "execution_time_ms": response.metadata.get("execution_time_ms")
+      }
+    
+    retry_policy:
+      max_attempts: 1
+      backoff_seconds: 0
+
+returns:
+  type: object
+  description: Created casefile details
+  properties:
+    casefile_id:
+      type: string
+      description: Unique identifier for the created casefile
+    title:
+      type: string
+      description: Title of the casefile
+    created_at:
+      type: string
+      description: ISO 8601 timestamp of creation
+    owner_user_id:
+      type: string
+      description: User ID of the casefile owner
+    status:
+      type: string
+      description: Request execution status (COMPLETED/FAILED)
+    execution_time_ms:
+      type: number
+      description: Time taken to execute the request in milliseconds
+  required:
+    - casefile_id
+    - title
+    - owner_user_id
+    - status
+
+audit_events:
+  success_event: casefile_created
+  failure_event: casefile_creation_failed
+  log_response_fields:
+    - casefile_id
+    - title
+    - owner_user_id
+  redact_fields: []
+  emit_casefile_event: true
+
+examples:
+  - description: Create basic casefile with title only
+    context:
+      session:
+        user_id: user_123
+        session_id: session_456
+      permissions:
+        - casefiles:write
+    input:
+      title: "Support Case #12345"
+    expected_output:
+      casefile_id: "cf_abc123"
+      title: "Support Case #12345"
+      status: "COMPLETED"
+    expect_casefile_changes: true
+
+  - description: Create casefile with full metadata
+    context:
+      session:
+        user_id: user_123
+        session_id: session_456
+      permissions:
+        - casefiles:write
+    input:
+      title: "Investigation: Q3 Incident"
+      description: "Root cause analysis for October service outage"
+      tags:
+        - urgent
+        - incident
+        - q3-2025
+      metadata:
+        priority: high
+        team: engineering
+    expected_output:
+      casefile_id: "cf_xyz789"
+      title: "Investigation: Q3 Incident"
+      status: "COMPLETED"
+    expect_casefile_changes: true
+
+error_scenarios:
+  - description: Missing required permission
+    input:
+      title: "Test Casefile"
+    expected_error:
+      type: PermissionError
+      message: "User lacks required permission: casefiles:write"
+
+  - description: Title too long
+    input:
+      title: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    expected_error:
+      type: ValidationError
+      message: "title must be at most 200 characters"
+
+  - description: No active session
+    input:
+      title: "Test Casefile"
+    expected_error:
+      type: SessionError
+      message: "No active session found"
+
+documentation:
+  summary: |
+    Creates a new casefile in the system. Casefiles are containers for organizing
+    investigation notes, evidence, and communications. Each casefile has an owner
+    (the creating user), access control, and audit trail.
+    
+    Required permission: casefiles:write
+    
+    The created casefile starts in 'active' state and can be used immediately for
+    storing workspace data (Gmail, Drive, Sheets).
+  
+  changelog:
+    - version: "1.0.0"
+      date: "2025-10-06"
+      notes: "Initial stable release, mapped to CasefileService.create_casefile"

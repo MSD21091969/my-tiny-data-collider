@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, computed_field
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from ...coreservice.id_service import get_id_service
+from coreservice.id_service import get_id_service
 from ..workspace import (
     CasefileDriveData,
     CasefileGmailData,

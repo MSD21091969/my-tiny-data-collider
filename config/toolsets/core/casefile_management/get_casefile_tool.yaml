@@ -1,0 +1,211 @@
+# Get Casefile Tool Definition
+# Generated from methods_inventory_v1.yaml
+# Method: CasefileService.get_casefile
+
+name: get_casefile_tool
+display_name: Get Casefile
+description: Retrieve a casefile by ID with full metadata and permissions
+category: workspace
+version: "1.0.0"
+tags:
+  - casefile
+  - crud
+  - workspace
+  - read
+
+metadata:
+  source_method: get_casefile
+  service: CasefileService
+  generated_from: methods_inventory_v1.yaml
+
+classification:
+  domain: workspace
+  subdomain: casefile
+  capability: read
+  complexity: atomic
+  maturity: stable
+  integration_tier: internal
+
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions:
+    - casefiles:read
+  timeout_seconds: 30
+  visibility: public
+
+session_policies:
+  requires_active_session: true
+  allow_new_session: false
+  allow_session_resume: true
+  session_event_type: request
+  log_request_payload: true
+  log_full_response: true
+
+casefile_policies:
+  requires_casefile: true
+  allowed_casefile_states:
+    - active
+    - archived
+  create_if_missing: false
+  enforce_access_control: true
+  audit_casefile_changes: false
+
+parameters:
+  - name: casefile_id
+    type: string
+    description: Unique identifier of the casefile to retrieve
+    required: true
+    min_length: 1
+    pattern: "^cf_[a-zA-Z0-9_-]+$"
+    examples:
+      - "cf_abc123xyz"
+      - "cf_support_12345"
+
+implementation:
+  type: api_call
+  api_call:
+    service_class: CasefileService
+    module_path: src.casefileservice.service
+    method_name: get_casefile
+    request_model: GetCasefileRequest
+    response_model: GetCasefileResponse
+    models_module: src.pydantic_models.operations.casefile_ops
+    
+    request_mapping:
+      casefile_id: "{{ casefile_id }}"
+    
+    response_mapping: |
+      # Extract full casefile details from response
+      result = {
+          "casefile_id": response.payload.casefile_id,
+          "title": response.payload.title,
+          "description": response.payload.description,
+          "tags": response.payload.tags,
+          "metadata": response.payload.metadata,
+          "owner_user_id": response.payload.owner_user_id,
+          "created_at": response.payload.created_at.isoformat() if response.payload.created_at else None,
+          "updated_at": response.payload.updated_at.isoformat() if response.payload.updated_at else None,
+          "state": response.payload.state,
+          "permissions": response.payload.permissions if hasattr(response.payload, 'permissions') else [],
+          "status": response.status.value,
+          "execution_time_ms": response.metadata.get("execution_time_ms")
+      }
+    
+    retry_policy:
+      max_attempts: 2
+      backoff_seconds: 1.0
+
+returns:
+  type: object
+  description: Casefile details with full metadata
+  properties:
+    casefile_id:
+      type: string
+      description: Unique identifier of the casefile
+    title:
+      type: string
+      description: Title of the casefile
+    description:
+      type: string
+      description: Detailed description
+    tags:
+      type: array
+      items:
+        type: string
+      description: List of tags
+    metadata:
+      type: object
+      description: Additional metadata key-value pairs
+    owner_user_id:
+      type: string
+      description: User ID of the casefile owner
+    created_at:
+      type: string
+      description: ISO 8601 timestamp of creation
+    updated_at:
+      type: string
+      description: ISO 8601 timestamp of last update
+    state:
+      type: string
+      description: Current state (active/archived)
+    permissions:
+      type: array
+      description: User's permissions on this casefile
+    status:
+      type: string
+      description: Request execution status
+    execution_time_ms:
+      type: number
+      description: Execution time in milliseconds
+  required:
+    - casefile_id
+    - title
+    - owner_user_id
+    - status
+
+audit_events:
+  success_event: casefile_retrieved
+  failure_event: casefile_retrieval_failed
+  log_response_fields:
+    - casefile_id
+    - title
+    - owner_user_id
+  redact_fields: []
+  emit_casefile_event: false
+
+examples:
+  - description: Retrieve existing casefile
+    context:
+      session:
+        user_id: user_123
+        session_id: session_456
+        casefile_id: cf_abc123
+      permissions:
+        - casefiles:read
+    input:
+      casefile_id: "cf_abc123"
+    expected_output:
+      casefile_id: "cf_abc123"
+      title: "Support Case #12345"
+      owner_user_id: "user_123"
+      status: "COMPLETED"
+    expect_casefile_changes: false
+
+error_scenarios:
+  - description: Casefile not found
+    input:
+      casefile_id: "cf_nonexistent"
+    expected_error:
+      type: NotFoundError
+      message: "Casefile not found: cf_nonexistent"
+
+  - description: Missing required permission
+    input:
+      casefile_id: "cf_abc123"
+    expected_error:
+      type: PermissionError
+      message: "User lacks required permission: casefiles:read"
+
+  - description: Invalid casefile_id format
+    input:
+      casefile_id: "invalid_format"
+    expected_error:
+      type: ValidationError
+      message: "casefile_id must match pattern ^cf_[a-zA-Z0-9_-]+$"
+
+documentation:
+  summary: |
+    Retrieves a casefile by its unique identifier. Returns full metadata including
+    title, description, tags, owner information, and timestamps.
+    
+    Required permission: casefiles:read
+    Required: User must have read access to the specified casefile
+    
+    The tool enforces access control - users can only retrieve casefiles they have
+    permission to access based on ownership or explicit sharing.
+  
+  changelog:
+    - version: "1.0.0"
+      date: "2025-10-06"
+      notes: "Initial stable release, mapped to CasefileService.get_casefile"

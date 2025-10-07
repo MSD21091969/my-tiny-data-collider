@@ -32,7 +32,7 @@ compatibility:
 deprecations: []
 
 metadata:
-  total_methods: 30
+  total_methods: 26
   services: 6
   model_coverage: 100%
   classification_schema: "tool_schema_v2.yaml"

@@ -13,7 +13,7 @@ from typing import List
 
 class CasefileSummary(BaseModel):
     """Summary view of a casefile."""
-    id: str = Field(..., description="Casefile ID in format yymmdd_code")
+    casefile_id: str = Field(..., description="Casefile ID in format cf_yymmdd_code")
     title: str = Field(..., description="Casefile title")
     description: str = Field(..., description="Casefile description")
     tags: List[str] = Field(..., description="Casefile tags")

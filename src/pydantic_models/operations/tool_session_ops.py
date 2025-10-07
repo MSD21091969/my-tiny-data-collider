@@ -21,7 +21,7 @@ from ..views.session_views import SessionSummary
 
 class CreateSessionPayload(BaseModel):
     """Payload for creating a new tool session."""
-    casefile_id: str = Field(..., description="Casefile ID to associate with session")
+    casefile_id: Optional[str] = Field(None, description="Optional casefile ID to associate with session")
     title: Optional[str] = Field(None, description="Optional session title")
 
 
@@ -33,7 +33,7 @@ class CreateSessionRequest(BaseRequest[CreateSessionPayload]):
 class SessionCreatedPayload(BaseModel):
     """Response payload for session creation."""
     session_id: str = Field(..., description="Created session ID (ts_yymmdd_xxx)")
-    casefile_id: str = Field(..., description="Associated casefile ID")
+    casefile_id: Optional[str] = Field(None, description="Optional associated casefile ID")
     created_at: str = Field(..., description="Session creation timestamp (ISO 8601)")
 
 

@@ -1,5 +1,7 @@
 # Tiny Data Collider - Solid Pod Structure
 
+*Last updated: October 7, 2025*
+
 > Working with the Python stack? Run the clean-slate workflow in the repo root first (clone → create venv → `pip install -e ".[dev]"` → `python scripts/generate_tools.py` → `python scripts/import_generated_tools.py`) so the runtime is ready before wiring this pod.
 
 ## 📁 Recommended Organization

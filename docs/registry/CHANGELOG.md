@@ -5,6 +5,31 @@ All notable changes to the service methods registry will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+---
+
+## Release Process Summary
+
+### Quick Reference
+| Type | Version Change | Use Case | Time | Tag |
+|------|----------------|----------|------|-----|
+| PATCH | 1.0.0 → 1.0.1 | Bug fixes, typos, metadata | 15 min | Optional |
+| MINOR | 1.0.0 → 1.1.0 | New methods, enhancements | 1-2 hrs | Recommended |
+| MAJOR | 1.0.0 → 2.0.0 | Breaking changes | 4-8 hrs | **Required** |
+
+### Automated Release
+```bash
+python scripts/release_version.py --type minor --changelog "Add archive functionality"
+```
+
+### Manual Process
+1. Update YAML version and changes
+2. Add detailed CHANGELOG entry with migration guide (MAJOR only)
+3. Regenerate docs: `python scripts/generate_method_docs.py`
+4. Run tests: `pytest tests/test_method_registry.py`
+5. Commit, tag, and push release
+
+---
+
 ## Versioning Rules
 
 ### For Methods (`methods_inventory_v*.yaml`)

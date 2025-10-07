@@ -1,7 +1,9 @@
 # Service Methods API Reference
 
+*Last updated: October 7, 2025*
+
 **Version:** 1.0.0  
-**Generated:** 2025-10-06  
+**Generated:** 2025-10-07  
 **Total Methods:** 26
 
 ## Overview
@@ -60,9 +62,10 @@ All methods follow the **BaseRequest→BaseResponse** pattern with:
 ## Quick Links
 
 - [Methods Registry Documentation](../registry/README.md) - System documentation
-- [Reference Guide](../registry/reference.md) - Classification schema, stats, model coverage
+- [Classification Schema](../registry/reference.md) - Taxonomy definitions and versioning
 - [Methods Inventory YAML](../../config/methods_inventory_v1.yaml) - Source configuration
-- [Versioning Guide](../registry/versioning-guide.md) - Semver rules
+- [Model Mapping](../registry/reference.md) - Request/Response coverage
+- [Versioning Guide](../registry/reference.md) - Semver rules
 - [CHANGELOG](../registry/CHANGELOG.md) - Version history
 
 ## Usage Pattern

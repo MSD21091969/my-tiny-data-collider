@@ -1,15 +1,15 @@
 # Methods Registry Documentation
 
+*Last updated: October 7, 2025*
+
 **Central documentation for the MANAGED_METHODS registry system**
 
 ## Quick Links
 
 | Document | Purpose |
 |----------|---------|
-| [reference.md](./reference.md) | Quick reference: classification schema, stats, model coverage |
-| [CHANGELOG.md](./CHANGELOG.md) | Version history and release notes |
-| [versioning-guide.md](./versioning-guide.md) | Semver rules, breaking changes, deprecation policy |
-| [release-process.md](./release-process.md) | Step-by-step release checklists (PATCH/MINOR/MAJOR) |
+| [reference.md](./reference.md) | Complete reference: classification schema, versioning, release process, stats, model coverage |
+| [CHANGELOG.md](./CHANGELOG.md) | Detailed version history, release notes, and migration guides |
 
 ## Structure Overview
 
