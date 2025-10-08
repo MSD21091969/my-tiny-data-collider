@@ -1,5 +1,7 @@
 # Tool Generation Workflow
 
+*Last updated: October 8, 2025*
+
 This document outlines the standardized workflow for tool generation in the my-tiny-data-collider repository.
 
 ## Overview
