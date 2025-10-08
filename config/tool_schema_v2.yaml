@@ -1,56 +1,47 @@
-# Tool Definition Schema (v2)
+# Tool Definition Schema (v2) - SLIM VERSION
+#
+# SYNCHRONIZATION STATUS: ✅ UP TO DATE
+# Last synchronized: October 8, 2025 - Foundation Sync
+# Status: Schema aligned with R-A-R pattern implementation
+# Sync reference: CONFIG_AUDIT_REPORT.md (October 8, 2025)
 #
 # Purpose:
 #   Canonical schema for declarative tool definitions consumed by the Tool Factory.
-#   This version captures implementation patterns, audit requirements, and
-#   session/casefile policies needed to maintain a complete audit trail.
+#   This version focuses on execution metadata only - policies moved to Request DTOs (R-A-R pattern).
+#
+# ARCHITECTURAL CHANGE (R-A-R Pattern):
+#   - Policies (auth, permissions, session, casefile) moved to Request DTOs
+#   - Parameters inherited from methods via method_name reference
+#   - Tool = execution metadata only (WHAT to call, not WHEN/WHERE)
 #
 # Notes:
-#   - Schema is expressed informally using YAML annotations to keep dependencies light.
+#   - Schema trimmed from 44+ fields to 12 essential fields
+#   - Business rules, session policies, casefile policies moved to Request DTOs
+#   - Audit configuration handled by Response DTOs
 #   - Validation helpers in the factory will enforce these rules programmatically.
 #
 # Top-level structure:
 #
-# name:           string  (required, snake_case)
-# display_name:   string  (optional, defaults to title case)
-# description:    string  (required)
-# category:       string  (required)
-# version:        string  (semver, default "1.0.0")
-# tags:           list[string] (default [])
+# name:           string  (required, snake_case) - Unique tool identifier
+# description:    string  (required) - What the tool does
+# category:       string  (required) - Tool category for organization
+# version:        string  (semver, default "1.0.0") - Tool version
+# tags:           list[string] (default []) - Tags for discovery/filtering
+# method_name:    string  (optional) - Reference to method in MANAGED_METHODS for parameter inheritance
+# parameters:     list (optional) - Explicit parameter definitions (empty = inherit from method)
 # metadata:       map (optional) - arbitrary key/value annotations
 #
-# classification: # ✅ systematic tool organization and discovery (optional when method_name specified)
-#   domain:             enum [communication, workspace, automation, utilities] (required)
-#   subdomain:          string (required) - specific area within domain
-#   capability:         enum [create, read, update, delete, process, search] (required)
-#   complexity:         enum [atomic, composite, pipeline] (required)
-#   maturity:           enum [experimental, beta, stable, deprecated] (required)
-#   integration_tier:   enum [internal, external, hybrid] (required)
-#   # Note: When implementation.method_name is specified, classification is inherited from method
-#   #       and these fields become optional overrides
+# DELETED FIELDS (moved to Request DTOs):
+# - business_rules (auth, permissions, timeouts)
+# - session_policies (session lifecycle management)
+# - casefile_policies (casefile access control)
+# - audit_events (audit trail configuration)
+# - classification (inherited from method when method_name specified)
 #
-# business_rules:
-#   enabled:                  bool (default true)
-#   requires_auth:            bool (default true)
-#   required_permissions:     list[string] (default [])
-#   timeout_seconds:          int (default 30)
-#   rate_limit_per_minute:    int (optional)
-#   visibility:               enum [public, internal, experimental] (optional)
-#
-# session_policies:  # ✅ ensures audit trail consistency for session lifecycle
-#   requires_active_session:  bool (default true)
-#   allow_new_session:        bool (default false)
-#   allow_session_resume:     bool (default true)
-#   session_event_type:       enum [request, resume, system] (default request)
-#   log_request_payload:      bool (default true)
-#   log_full_response:        bool (default true)
-#
-# casefile_policies: # ✅ enforces user/casefile rules for audit trail
-#   requires_casefile:        bool (default false)
-#   allowed_casefile_states:  list[string] (default ["active"])
-#   create_if_missing:        bool (default false)
-#   enforce_access_control:   bool (default true)
-#   audit_casefile_changes:   bool (default true)
+# implementation:   # descriptive definition of how the tool executes
+#   type: enum [simple, api_call, data_transform, composite, method_wrapper]
+#   method_name: string (optional) - references method in MANAGED_METHODS registry
+#                                     When specified, tool inherits parameters/classification from method
 #
 # parameters:   # list of parameter definitions (optional when method_name specified)
 #   - name:        string (required)
@@ -125,13 +116,6 @@
 #   items:       map  # when type == array
 #   required:    list[string] (optional)
 #
-# audit_events:  # metadata to enforce audit trail completeness
-#   success_event: string (default "tool_success")
-#   failure_event: string (default "tool_failure")
-#   log_response_fields: list[string] (optional)
-#   redact_fields: list[string] (optional)
-#   emit_casefile_event: bool (default true)
-#
 # examples:  # drives test generation and documentation
 #   - description: string (required)
 #     context:
@@ -157,7 +141,15 @@
 #       notes: string
 #
 # ---
-# Classification Field Definitions:
+# REMOVED SECTIONS (R-A-R Pattern):
+# - business_rules: Moved to Request DTOs (auth, permissions, timeouts)
+# - session_policies: Moved to Request DTOs (session lifecycle)
+# - casefile_policies: Moved to Request DTOs (casefile access control)
+# - audit_events: Handled by Response DTOs (audit trail)
+# - classification: Inherited from method when method_name specified
+#
+# ---
+# Classification Field Definitions (inherited from methods_inventory_v1.yaml):
 #
 # domain: High-level functional category
 #   - communication: Tools for messaging, email, chat, notifications

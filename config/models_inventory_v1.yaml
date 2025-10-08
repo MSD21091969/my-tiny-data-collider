@@ -1,9 +1,21 @@
-# Models Inventory v1
-# Auto-generated model registry for my-tiny-data-collider
-# Date: 2025-10-08
+# ============================================================
+# MODELS INVENTORY v1.0.1 - AUTO-REGENERATED
+# ============================================================
+# Last synchronized: 2025-10-08
+# Synchronization reference: October 8, 2025 Foundation Sync
+# Generated from actual codebase using scripts/scan_models.py
+#
+# This inventory reflects the actual state of Pydantic models
+# in the codebase at the time of generation.
+#
+# VERSIONING:
+# - v1.0.0: Initial baseline (manual)
+# - v1.0.1: First auto-regenerated version (2025-10-08)
+# ============================================================
 
-version: "1.0.0"
-description: "Registry of all Pydantic models organized by layer and domain"
+version: "1.0.1"
+generated_at: "2025-10-08"
+description: "Complete registry of all Pydantic models organized by layer and domain"
 
 layers:
   # Layer 0: Base Infrastructure
@@ -11,94 +23,179 @@ layers:
     description: "Foundation models - envelopes, types, base classes"
     models:
       - name: BaseRequest
-        file: base/envelopes.py
-        type: generic_base
-        description: "Generic request envelope with system metadata"
-        
+        file: base\envelopes.py
+        description: "Base model for all requests in the system."
       - name: BaseResponse
-        file: base/envelopes.py
-        type: generic_base
-        description: "Generic response envelope with status tracking"
-        
+        file: base\envelopes.py
+        description: "Base model for all responses in the system."
+      - name: RequestEnvelope
+        file: base\envelopes.py
+        description: "Envelope for all requests including authentication and context information."
       - name: RequestStatus
-        file: base/types.py
-        type: enum
-        description: "Request lifecycle status"
-        
-      - name: ErrorPayload
-        file: base/types.py
-        type: error_model
-        description: "Standard error structure"
-  
+        file: base\types.py
+        description: "Status of a request."
+
   # Layer 1: Payload Models (Business Data)
   layer_1_payloads:
     description: "Business data models - operation parameters and results"
-    
+
     casefile_domain:
       models:
         - name: CreateCasefilePayload
-          file: operations/casefile_ops.py
-          operation: create_casefile
+          file: operations\casefile_ops.py
           fields: [title, description, tags]
-          
         - name: CasefileCreatedPayload
-          file: operations/casefile_ops.py
-          operation: create_casefile
-          fields: [casefile_id, title, created_at]
-          
-        - name: UpdateCasefilePayload
-          file: operations/casefile_ops.py
-          operation: update_casefile
-          fields: [casefile_id, title, description, status, tags]
-          
+          file: operations\casefile_ops.py
+          fields: [casefile_id, title, created_at, created_by]
         - name: GetCasefilePayload
-          file: operations/casefile_ops.py
-          operation: get_casefile
+          file: operations\casefile_ops.py
           fields: [casefile_id]
-          
+        - name: CasefileDataPayload
+          file: operations\casefile_ops.py
+          fields: [casefile]
+        - name: UpdateCasefilePayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, title, description, tags, notes]
+        - name: CasefileUpdatedPayload
+          file: operations\casefile_ops.py
+          fields: [casefile, updated_fields]
         - name: ListCasefilesPayload
-          file: operations/casefile_ops.py
-          operation: list_casefiles
-          fields: [status, tags, created_after, created_before, limit, offset]
-          
+          file: operations\casefile_ops.py
+          fields: [user_id, tags, search_query, limit, offset]
+        - name: CasefileListPayload
+          file: operations\casefile_ops.py
+          fields: [casefiles, total_count, offset, limit]
         - name: DeleteCasefilePayload
-          file: operations/casefile_ops.py
-          operation: delete_casefile
-          fields: [casefile_id, force]
-          
-    tool_session_domain:
-      models:
-        - name: CreateToolSessionPayload
-          file: operations/tool_session_ops.py
-          operation: create_tool_session
-          fields: [session_name, tool_name]
-          
-        - name: GetToolSessionPayload
-          file: operations/tool_session_ops.py
-          operation: get_tool_session
-          fields: [session_id]
-          
+          file: operations\casefile_ops.py
+          fields: [casefile_id, confirm]
+        - name: CasefileDeletedPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, deleted_at, title]
+        - name: AddSessionToCasefilePayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, session_id, session_type]
+        - name: SessionAddedPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, session_id, session_type, total_sessions]
+        - name: GrantPermissionPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, target_user_id, permission, expires_at, notes]
+        - name: PermissionGrantedPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, target_user_id, permission, granted_by, granted_at]
+        - name: RevokePermissionPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, target_user_id]
+        - name: PermissionRevokedPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, target_user_id, revoked_by, revoked_at]
+        - name: ListPermissionsPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id]
+        - name: PermissionListPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, owner_id, public_access, permissions, total_users]
+        - name: CheckPermissionPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, user_id, required_permission]
+        - name: PermissionCheckPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, user_id, permission, can_read, can_write, can_share, can_delete, has_required_permission]
+        - name: StoreGmailMessagesPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, messages, sync_token, overwrite, threads, labels]
+        - name: GmailStorageResultPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, messages_stored, threads_stored, labels_stored, sync_status, sync_token, synced_at]
+        - name: StoreDriveFilesPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, files, sync_token, overwrite]
+        - name: DriveStorageResultPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, files_stored, sync_status, sync_token, synced_at]
+        - name: StoreSheetDataPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, sheet_payloads, sync_token]
+        - name: SheetStorageResultPayload
+          file: operations\casefile_ops.py
+          fields: [casefile_id, sheets_stored, sync_status, sync_token, synced_at]
+
     chat_session_domain:
       models:
         - name: CreateChatSessionPayload
-          file: operations/chat_session_ops.py
-          operation: create_chat_session
-          fields: [casefile_id]
-          
+          file: operations\chat_session_ops.py
+          fields: [casefile_id, title]
+        - name: ChatSessionCreatedPayload
+          file: operations\chat_session_ops.py
+          fields: [session_id, casefile_id, created_at]
+        - name: GetChatSessionPayload
+          file: operations\chat_session_ops.py
+          fields: [session_id, include_messages]
+        - name: ChatSessionDataPayload
+          file: operations\chat_session_ops.py
+          fields: [session_id, user_id, casefile_id, created_at, updated_at, active, message_count, event_count, messages, metadata]
+        - name: ListChatSessionsPayload
+          file: operations\chat_session_ops.py
+          fields: [user_id, casefile_id, active_only, limit, offset]
+        - name: ChatSessionListPayload
+          file: operations\chat_session_ops.py
+          fields: [sessions, total_count, offset, limit]
+        - name: CloseChatSessionPayload
+          file: operations\chat_session_ops.py
+          fields: [session_id]
+        - name: ChatSessionClosedPayload
+          file: operations\chat_session_ops.py
+          fields: [session_id, closed_at, total_messages, total_events, duration_seconds]
+
+    tool_execution_domain:
+      models:
+        - name: ToolRequestPayload
+          file: operations\tool_execution_ops.py
+          fields: [tool_name, parameters, prompt, casefile_id, session_request_id]
+        - name: ToolResponsePayload
+          file: operations\tool_execution_ops.py
+          fields: [result, events, session_request_id]
+        - name: ChatMessagePayload
+          file: operations\tool_execution_ops.py
+          fields: [content, message_type, tool_calls, session_request_id, casefile_id]
         - name: ChatRequestPayload
-          file: operations/tool_execution_ops.py
-          operation: chat
+          file: operations\tool_execution_ops.py
           fields: [message, session_id, casefile_id, session_request_id]
-          
         - name: ChatResultPayload
-          file: operations/tool_execution_ops.py
-          operation: chat
+          file: operations\tool_execution_ops.py
           fields: [message, related_messages, events]
-  
+
+    tool_session_domain:
+      models:
+        - name: CreateSessionPayload
+          file: operations\tool_session_ops.py
+          fields: [casefile_id, title]
+        - name: SessionCreatedPayload
+          file: operations\tool_session_ops.py
+          fields: [session_id, casefile_id, created_at]
+        - name: GetSessionPayload
+          file: operations\tool_session_ops.py
+          fields: [session_id]
+        - name: SessionDataPayload
+          file: operations\tool_session_ops.py
+          fields: [session_id, user_id, casefile_id, created_at, updated_at, active, title, request_count, event_count, metadata]
+        - name: ListSessionsPayload
+          file: operations\tool_session_ops.py
+          fields: [user_id, casefile_id, active_only, limit, offset]
+        - name: SessionListPayload
+          file: operations\tool_session_ops.py
+          fields: [sessions, total_count, offset, limit]
+        - name: CloseSessionPayload
+          file: operations\tool_session_ops.py
+          fields: [session_id]
+        - name: SessionClosedPayload
+          file: operations\tool_session_ops.py
+          fields: [session_id, closed_at, total_requests, total_events, duration_seconds]
+
   # Layer 2: Request/Response DTOs (Execution Envelopes)
   layer_2_dtos:
     description: "Request/Response DTOs wrapping payloads"
-    
+
     casefile_operations:
       - CreateCasefileRequest
       - CreateCasefileResponse
@@ -110,110 +207,154 @@ layers:
       - ListCasefilesResponse
       - DeleteCasefileRequest
       - DeleteCasefileResponse
-      
-    tool_session_operations:
-      - CreateToolSessionRequest
-      - CreateToolSessionResponse
-      - GetToolSessionRequest
-      - GetToolSessionResponse
-      - ListToolSessionsRequest
-      - ListToolSessionsResponse
-      - EndToolSessionRequest
-      - EndToolSessionResponse
-      
-    chat_operations:
-      - ChatRequest
-      - ChatResponse
+      - AddSessionToCasefileRequest
+      - AddSessionToCasefileResponse
+      - GrantPermissionRequest
+      - GrantPermissionResponse
+      - RevokePermissionRequest
+      - RevokePermissionResponse
+      - ListPermissionsRequest
+      - ListPermissionsResponse
+      - CheckPermissionRequest
+      - CheckPermissionResponse
+      - StoreGmailMessagesRequest
+      - StoreGmailMessagesResponse
+      - StoreDriveFilesRequest
+      - StoreDriveFilesResponse
+      - StoreSheetDataRequest
+      - StoreSheetDataResponse
+
+    chat_session_operations:
+      - CreateChatSessionRequest
+      - CreateChatSessionResponse
+      - GetChatSessionRequest
+      - GetChatSessionResponse
+      - ListChatSessionsRequest
+      - ListChatSessionsResponse
+      - CloseChatSessionRequest
+      - CloseChatSessionResponse
+
+    tool_execution_operations:
       - ToolRequest
       - ToolResponse
-  
+      - ChatRequest
+      - ChatResponse
+
+    tool_session_operations:
+      - CreateSessionRequest
+      - CreateSessionResponse
+      - GetSessionRequest
+      - GetSessionResponse
+      - ListSessionsRequest
+      - ListSessionsResponse
+      - CloseSessionRequest
+      - CloseSessionResponse
+
   # Layer 3: Canonical Models (Entities)
   layer_3_canonical:
     description: "Domain entities - single source of truth"
     models:
-      - name: Casefile
-        file: canonical/casefile.py
-        description: "Core casefile entity"
-        
-      - name: ToolSession
-        file: canonical/tool_session.py
-        description: "Tool execution session"
-        
+      - name: PermissionLevel
+        file: canonical\acl.py
+        description: "Permission levels for casefile access."
+      - name: PermissionEntry
+        file: canonical\acl.py
+        description: "Single permission entry for a user on a casefile."
+      - name: CasefileACL
+        file: canonical\acl.py
+        description: "Access Control List for a casefile."
+      - name: CasefileMetadata
+        file: canonical\casefile.py
+        description: "Metadata for a casefile."
+      - name: ResourceReference
+        file: canonical\casefile.py
+        description: "Reference to an external resource linked to a casefile."
+      - name: CasefileModel
+        file: canonical\casefile.py
+        description: "Complete casefile model with metadata and linked resources."
+      - name: MessageType
+        file: canonical\chat_session.py
+        description: "Types of chat messages."
       - name: ChatSession
-        file: canonical/chat_session.py
-        description: "Chat conversation session"
-        
-      - name: ChatMessagePayload
-        file: operations/tool_execution_ops.py
-        description: "Canonical chat message structure"
-        
-      - name: ACLEntry
-        file: canonical/acl.py
-        description: "Access control entry"
-        
-      - name: ACLPermission
-        file: canonical/acl.py
-        description: "Permission definition"
-  
+        file: canonical\chat_session.py
+        description: "Complete record of a chat session with messages."
+      - name: AuthToken
+        file: canonical\tool_session.py
+        description: "JWT authentication token structure."
+      - name: ToolEvent
+        file: canonical\tool_session.py
+        description: "Record of a tool execution within a session."
+      - name: ToolSession
+        file: canonical\tool_session.py
+        description: "Complete record of a tool session with requests and responses."
+
   # Layer 4: External API Models
   layer_4_external:
     description: "Google Workspace API data structures"
     models:
-      - name: GmailMessage
-        file: workspace/gmail.py
-        api: Gmail API
-        
-      - name: GmailThread
-        file: workspace/gmail.py
-        api: Gmail API
-        
+      - name: DriveOwner
+        file: workspace\drive.py
+        description: "Metadata describing a file owner."
       - name: DriveFile
-        file: workspace/drive.py
-        api: Drive API
-        
-      - name: DrivePermission
-        file: workspace/drive.py
-        api: Drive API
-        
+        file: workspace\drive.py
+        description: "Representation of a Google Drive file."
+      - name: DriveFolder
+        file: workspace\drive.py
+        description: "Representation of a Google Drive folder."
+      - name: CasefileDriveData
+        file: workspace\drive.py
+        description: "Typed Drive artifacts stored on a casefile."
+      - name: GmailAttachment
+        file: workspace\gmail.py
+        description: "Metadata describing a Gmail attachment."
+      - name: GmailMessage
+        file: workspace\gmail.py
+        description: "Envelope + payload for a Gmail message."
+      - name: GmailThread
+        file: workspace\gmail.py
+        description: "Thread metadata for a set of Gmail messages."
+      - name: GmailLabel
+        file: workspace\gmail.py
+        description: "Representation of a Gmail label."
+      - name: CasefileGmailData
+        file: workspace\gmail.py
+        description: "Typed Gmail data stored on a casefile."
+      - name: SheetRange
+        file: workspace\sheets.py
+        description: "Represents a rectangular range of spreadsheet values."
+      - name: SheetMetadata
+        file: workspace\sheets.py
+        description: "Metadata for a Google Sheet tab."
       - name: SheetData
-        file: workspace/sheets.py
-        api: Sheets API
-        
-      - name: CellValue
-        file: workspace/sheets.py
-        api: Sheets API
-  
+        file: workspace\sheets.py
+        description: "Top-level spreadsheet data captured for a casefile."
+      - name: CasefileSheetsData
+        file: workspace\sheets.py
+        description: "Typed Sheets data stored on a casefile."
+
   # Layer 5: View Models (API Responses)
   layer_5_views:
     description: "Denormalized views for API responses"
     models:
-      - name: CasefileView
-        file: views/casefile_views.py
-        description: "Enriched casefile with related data"
-        
-      - name: CasefileListView
-        file: views/casefile_views.py
-        description: "List view with pagination"
-        
-      - name: SessionView
-        file: views/session_views.py
-        description: "Enriched session with metadata"
+      - name: CasefileSummary
+        file: views\casefile_views.py
+        description: "Summary view of a casefile."
+      - name: SessionSummary
+        file: views\session_views.py
+        description: "Summary of a tool session."
+      - name: ChatSessionSummary
+        file: views\session_views.py
+        description: "Summary of a chat session."
 
 statistics:
-  total_models: 60+
+  total_models: 124
   by_layer:
     layer_0: 4
-    layer_1: 20+
-    layer_2: 23
-    layer_3: 6
-    layer_4: 6
-    layer_5: 3+
-  by_domain:
-    casefile: 25+
-    tool_session: 10+
-    chat: 8+
-    workspace: 6+
-    base: 4+
+    layer_1: 47
+    layer_2: 46
+    layer_3: 11
+    layer_4: 13
+    layer_5: 3
 
 notes:
   - All operations follow R-A-R pattern (Request-Action-Response)

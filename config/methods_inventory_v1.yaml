@@ -2,6 +2,16 @@
 # METHODS INVENTORY v1.0.0
 # ============================================================
 # Service methods registry with classification and metadata
+#
+# SYNCHRONIZATION STATUS: ✅ UP TO DATE
+# Last synchronized: October 8, 2025 - Foundation Sync
+# Registry status: 26 methods loaded into MANAGED_METHODS at startup
+# Sync reference: CONFIG_AUDIT_REPORT.md (October 8, 2025)
+# 
+# IMPLEMENTATION:
+# - Methods loaded via register_methods_from_yaml() in src/__init__.py
+# - Populates MANAGED_METHODS registry at application startup
+# - Tools inherit parameters from registered methods
 # 
 # VERSION HISTORY:
 # - v1.0.0 (2025-10-06): Initial baseline release with 26 methods
@@ -10,6 +20,27 @@
 # - MAJOR: Breaking changes (signature modifications, renamed methods)
 # - MINOR: Non-breaking additions (new methods, optional parameters)
 # - PATCH: Non-breaking fixes (description updates, metadata corrections)
+#
+# IMPORTANT: MANAGED_METHODS Registry Stores Only 16 Fields
+# ----------------------------------------------------------
+# The business_rules sections below are REFERENCE DATA for tools/services.
+# They are NOT stored in the MANAGED_METHODS registry (ManagedMethodDefinition).
+# 
+# Registry stores only:
+# - Identity: name, description, version
+# - Classification: domain, subdomain, capability, complexity, maturity, integration_tier  
+# - Execution: request_model_class, response_model_class, implementation_class, implementation_method
+# - Tracking: registered_at
+#
+# Actual policy enforcement (auth, permissions, timeouts) happens in:
+# - Request DTOs (BaseRequest with policies)
+# - Service method implementations
+# - R-A-R pattern execution layer
+#
+# This YAML serves as:
+# 1. Source of truth for method metadata during registration
+# 2. Reference documentation for policy requirements
+# 3. Input for tool generation (tools may inherit these as reference)
 #
 # See: docs/registry/versioning-guide.md
 # Changelog: docs/registry/CHANGELOG.md

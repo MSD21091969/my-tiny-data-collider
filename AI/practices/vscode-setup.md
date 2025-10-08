@@ -1,8 +1,8 @@
 # VS Code AI Integration Setup
 
-*Last updated: October 7, 2025*
+*Last updated: October 8, 2025 at 19:30*
 
-Comprehensive guide for configuring VS Code for effective AI-assisted development in this repository.
+Comprehensive guide for configuring VS Code for effective AI-assisted development in the my-tiny-data-collider repository.
 
 ## 🎯 Overview
 
@@ -168,30 +168,34 @@ Create `.github/copilot-instructions.md`:
 # Copilot Instructions for my-tiny-data-collider
 
 ## Project Context
-This is a Python-based data processing and AI integration platform using:
-- Pydantic for data validation
-- FastAPI for web services
-- Firebase/Firestore for persistence
-- Tool-based architecture for AI integration
+Python-based data processing and AI integration platform using:
+- Python 3.11+, Pydantic, FastAPI, Firebase/Firestore
+- 6-Layer Model System: Base → Payloads → DTOs → Methods → Tools → YAML
+- Service-Repository pattern with tool-based AI integration
+- 100% DTO compliance (23/23 operations following R-A-R pattern)
+- 52 models across 6 layers, 26 registered methods
 
 ## Code Standards
-- Use async/await for service methods
-- Follow Pydantic model patterns
+- Use async/await for all service methods
+- Follow Pydantic model patterns with R-A-R naming
 - Include comprehensive error handling
-- Write descriptive docstrings
-- Use type hints throughout
+- Write descriptive docstrings with Args, Returns, Raises
+- Use type hints everywhere (100% type coverage required)
+- Minimum 85% test coverage for AI-generated code
 
 ## Architecture Patterns
 - Service-Repository pattern for data access
-- Tool decorator pattern for AI integration
-- Request-Response DTOs for API communication
-- Factory pattern for tool generation
+- Tool decorator pattern (@register_mds_tool) for AI integration
+- Request-Response DTOs (BaseRequest[T] → BaseResponse[T])
+- Parameter inheritance: DTO → Method → Tool (single source of truth)
+- Factory pattern for YAML → Python tool generation
 
 ## Quality Requirements
-- All code must include unit tests
-- Documentation must be updated with code changes
-- Security considerations for all user-facing features
+- All code must include unit tests with proper mocking
+- Documentation updates with every code change
+- Security validation for all user-facing features
 - Performance optimization for data processing operations
+- Run validation scripts before committing (validate_dto_alignment.py)
 ```
 
 ## 🔧 Task Automation
@@ -299,8 +303,9 @@ Create `.vscode/tasks.json`:
 
 ## 📚 Related Resources
 
-- [Conversation Practices](./conversation-practices.md)
+- [Conversation Practices](conversation-practices.md)
 - [Prompt Templates](../prompts/README.md)
 - [Quality Assurance](../workflows/quality-assurance.md)
+- [Copilot Instructions](../../.github/copilot-instructions.md)
 - [VS Code Documentation](https://code.visualstudio.com/docs)
 - [GitHub Copilot Documentation](https://docs.github.com/en/copilot)

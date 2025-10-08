@@ -1,14 +1,16 @@
 # Prompt Templates
 
-*Last updated: October 7, 2025*
+*Last updated: October 8, 2025 at 19:30*
 
-This directory contains reusable prompt templates for consistent AI collaboration across the repository.
+Reusable prompt templates for consistent AI collaboration in my-tiny-data-collider repository.
 
 ## 📁 Template Categories
 
 | Category | Purpose | Location |
 |----------|---------|----------|
 | **Code Generation** | Creating new code components | [code-generation/](./code-generation/) |
+| **Tool Engineering** | YAML tool definitions and generation | [code-generation/](./code-generation/) |
+| **DTO Design** | Request-Response DTO patterns | [code-generation/](./code-generation/) |
 | **Code Review** | Reviewing and improving code | [code-review/](./code-review/) |
 | **Documentation** | Writing and updating docs | [documentation/](./documentation/) |
 | **Debugging** | Troubleshooting issues | [debugging/](./debugging/) |
@@ -39,9 +41,17 @@ Examples:
 
 ### Most Used Templates
 1. [Code Generation Template](./code-generation/general.md)
-2. [Bug Fix Template](./debugging/bug-fix.md)
-3. [Documentation Update](./documentation/update.md)
-4. [Test Creation](./testing/unit-test.md)
+2. [Tool YAML Definition](./code-generation/tool-yaml-template.md) - NEW
+3. [DTO Pattern Template](./code-generation/dto-pattern-template.md) - NEW
+4. [Bug Fix Template](./debugging/bug-fix.md)
+5. [Documentation Update](./documentation/update.md)
+6. [Test Creation](./testing/unit-test.md)
+
+### Repository-Specific Templates
+- **Tool Engineering**: YAML tool definitions with parameter inheritance
+- **Method Integration**: Connecting DTOs to service methods
+- **Composite Tools**: Multi-step workflow orchestration
+- **R-A-R Validation**: Request-Action-Response pattern compliance
 
 ### VS Code Integration
 Templates are designed to work with:
@@ -102,4 +112,6 @@ Templates are designed to work with:
 - [Conversation Practices](../practices/conversation-practices.md)
 - [Quality Assurance](../workflows/quality-assurance.md)
 - [VS Code Setup](../practices/vscode-setup.md)
-- [Template Examples](../examples/prompt-examples.md)
+- [Template Examples](../examples/README.md)
+- [HANDOVER Document](../../HANDOVER.md)
+- [Copilot Instructions](../../.github/copilot-instructions.md)

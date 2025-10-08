@@ -1,6 +1,6 @@
 # AI Conversation Practices
 
-*Last updated: October 7, 2025*
+*Last updated: October 8, 2025 at 19:30*
 
 Guidelines for effective communication and collaboration with AI assistants in software development.
 
@@ -179,5 +179,7 @@ Examples: [Reference implementations or similar patterns]
 
 - [Prompt Templates](../prompts/README.md)
 - [Quality Assurance Workflows](../workflows/quality-assurance.md)
-- [VS Code Integration](../practices/vscode-setup.md)
-- [Conversation Examples](../examples/conversation-examples.md)
+- [VS Code Integration](vscode-setup.md)
+- [AI Framework Overview](../README.md)
+- [HANDOVER Document](../../HANDOVER.md)
+- [Copilot Instructions](../../.github/copilot-instructions.md)

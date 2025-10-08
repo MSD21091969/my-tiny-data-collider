@@ -1,87 +1,201 @@
-# AI Collaboration Framework
+# AI Collaboration Framework# AI Collaboration Framework
 
-Last updated: October 8, 2025
 
-## Structure
 
-```
-AI/
-├── practices/        # Conversation standards, collaboration guidelines
-├── workflows/        # Development processes, quality assurance
-├── prompts/          # Reusable prompt templates
+**Updated:** October 8, 2025 at 20:50Last updated: October 8, 2025 at 19:30
+
+
+
+## Structure## Structure
+
+
+
+``````
+
+AI/AI/
+
+├── practices/        # Conversation standards, VS Code setup├── practices/        # Conversation standards, collaboration guidelines
+
+└── prompts/          # Reusable prompt templates├── workflows/        # Development processes, quality assurance
+
+```├── prompts/          # Reusable prompt templates
+
 └── examples/         # Real repository examples
-```
 
-## Quick Start
+## Repository Context```
 
-**Contributors:** Read practices/conversation-practices.md, prompts/README.md  
-**AI Assistants:** Check ../.github/copilot-instructions.md, workflows/quality-assurance.md
 
-## Principles
 
-**Communication:** Precise, unambiguous, factual. No emojis, DRY prose.  
-**Documentation:** Update README.md and HANDOVER.md only. Report progress in chat.  
-**Code Quality:** Type hints required, async/await patterns, 85% test coverage.  
-**Review:** All AI-generated code requires human validation.
+**Name:** my-tiny-data-collider  ## Quick Start
 
-## Repository Context
-
-**Name:** my-tiny-data-collider  
 **Stack:** Python 3.11+, FastAPI, Pydantic, Firebase  
-**Architecture:** Service-Repository pattern, tool-based AI integration  
-**Primary Branch:** develop
+
+**Architecture:** Tool Engineering + R-A-R Management (intertwined)  **Contributors:** Read practices/conversation-practices.md, prompts/README.md  
+
+**Status:** Foundation synchronized, RequestHub design complete**AI Assistants:** Check ../.github/copilot-instructions.md, workflows/quality-assurance.md
+
+
+
+### Core Systems## Principles
+
+
+
+**Tool Engineering:** Model→Method→Tool chain via YAML code generation  **Communication:** Precise, unambiguous, factual. No emojis, DRY prose.  
+
+**R-A-R Management:** RequestHub orchestrates all routes with DTO-driven validation**Documentation:** Update README.md and HANDOVER.md only. Report progress in chat.  
+
+**Code Quality:** Type hints required, async/await patterns, 85% test coverage.  
+
+**Intertwined:** Tools create Request DTOs → RequestHub validates/enriches → Services execute**Review:** All AI-generated code requires human validation.
+
+
+
+### Key Directories## Repository Context
+
+- `src/pydantic_models/` - 124 models, 23 Request/Response pairs
+
+- `src/coreservice/` - RequestHub (not implemented yet)**Name:** my-tiny-data-collider  
+
+- `src/casefileservice/` - Business logic services**Stack:** Python 3.11+, FastAPI, Pydantic, Firebase  
+
+- `config/methods_inventory_v1.yaml` - 26 method definitions**Architecture:** Service-Repository pattern, tool-based AI integration  
+
+- `config/models_inventory_v1.yaml` - 124 model definitions**Primary Branch:** develop  
+
+- `config/toolsets/` - Tool YAML definitions**Current Feature:** feature/dto-inheritance (READY FOR MERGE)  
+
+- `scripts/` - generate_tools.py, validate_dto_alignment.py, show_tools.py**Status:** 100% DTO compliance (23/23 operations), 52 models across 6 layers
+
+- `HANDOVER.md` - Current state, architecture, roadmap
 
 ### Core Directories
-- `src/pydantic_models/` - Data models (100% DTO coverage)
+
+## Development Standards- `src/pydantic_models/` - Data models (100% DTO coverage, 23/23 operations)
+
 - `src/casefileservice/` - Casefile CRUD operations
-- `src/communicationservice/` - Chat session management
-- `src/tool_sessionservice/` - Tool execution lifecycle
-- `src/pydantic_ai_integration/` - AI tool system
-- `config/` - YAML configurations (methods_inventory_v1.yaml, tool_schema_v2.yaml)
-- `docs/` - Documentation (ai-collaboration/, methods/, registry/)
-- `scripts/` - Automation (generate_tools.py, validate_dto_alignment.py)
+
+### Code Pattern- `src/communicationservice/` - Chat session management
+
+```python- `src/tool_sessionservice/` - Tool execution lifecycle
+
+async def method_name(- `src/pydantic_ai_integration/` - AI tool system and registries
+
+    self,  - `method_registry.py` - MANAGED_METHODS global registry (26 methods)
+
+    request: RequestModel,  - `model_registry.py` - Model discovery APIs (52 models)
+
+    context: MDSContext,  - `tool_decorator.py` - MANAGED_TOOLS registry with @register_mds_tool
+
+    session: ToolSession- `config/` - YAML configurations
+
+) -> ResponseModel:  - `methods_inventory_v1.yaml` - 26 method definitions
+
+    """Docstring with Args, Returns, Raises."""  - `models_inventory_v1.yaml` - 52 model definitions across 6 layers
+
+    result = await self.repository.operation(request.payload)  - `tool_schema_v2.yaml` - Tool schema with method inheritance
+
+    return ResponseModel(payload=result)  - `toolsets/` - Tool YAML definitions (core, helpers, prototypes, workflows)
+
+```  - `policies/` - Audit, security, and session policies
+
+- `scripts/` - Automation tools
+
+### Architecture  - `generate_tools.py` - Tool generation from YAML
+
+- **Models** (L0-L2): Pydantic DTOs  - `validate_dto_alignment.py` - Parameter drift detection
+
+- **Methods** (L3): MANAGED_METHODS registry  - `show_tools.py` - Display registered tools
+
+- **Tools** (L4): Generated wrappers- `AI/` - AI collaboration framework (this directory)
+
+- **YAML** (L5): Declarative configs
 
 ### Key Files
-- `HANDOVER.md` - Current development state
-- `docs/ai-collaboration/practices/conversation-practices.md` - Communication standards
-- `docs/registry/reference.md` - System architecture (26 methods, 52 models)
 
-## Development Standards
+**Flow:** Tool creates DTO → RequestHub validates → Service executes- `HANDOVER.md` - Current development state and session notes
 
-### Code Pattern
+- `.github/copilot-instructions.md` - GitHub Copilot configuration
+
+### Tool Generation- `config/methods_inventory_v1.yaml` - Method registry (26 methods)
+
+```bash- `config/models_inventory_v1.yaml` - Model registry (52 models)
+
+python scripts/generate_tools.py            # Generate all
+
+python scripts/validate_dto_alignment.py    # Check drift## Development Standards
+
+python scripts/show_tools.py                # List tools
+
+```### Code Pattern
+
 ```python
-async def method_name(self, request: RequestModel) -> ResponseModel:
-    """Docstring with Args, Returns, Raises."""
-    result = await self.repository.operation(request.payload)
-    return ResponseModel(
-        request_id=request.request_id,
-        status=RequestStatus.COMPLETED,
-        payload=result
-    )
-```
 
-### Architecture
-- **6-Layer Model System:** L0 (Base) → L1 (Payloads) → L2 (DTOs) → L3 (Methods) → L4 (Tools) → L5 (YAML)
-- **Parameter Flow:** Define once in DTO, auto-extract to Method, auto-inherit to Tool
-- **R-A-R Pattern:** Request-Action-Response for all operations
-- **Tool Registration:** `@register_mds_tool` decorator
+## Communication Standardsasync def method_name(self, request: RequestModel) -> ResponseModel:
+
+    """Docstring with Args, Returns, Raises."""
+
+- Update README.md and HANDOVER.md only    result = await self.repository.operation(request.payload)
+
+- No intermediate docs    return ResponseModel(
+
+- DRY, factual, systematic        request_id=request.request_id,
+
+- Code examples over prose        status=RequestStatus.COMPLETED,
+
+- No emojis        payload=result
+
+    )
+
+## Commit Format```
+
+
+
+```### Architecture
+
+type(scope): Short description- **6-Layer Model System:** L0 (Base) → L1 (Payloads) → L2 (DTOs) → L3 (Methods) → L4 (Tools) → L5 (YAML)
+
+- **Parameter Flow:** Define once in DTO (L1), auto-extract to Method (L3), auto-inherit to Tool (L4)
+
+- Factual changes- **R-A-R Pattern:** Request-Action-Response for all operations (23/23 compliant)
+
+```- **Tool Registration:** `@register_mds_tool` decorator for AI integration
+
+- **Single Source of Truth:** Parameters defined in DTOs, inherited everywhere
+
+Types: feat, fix, refactor, test, docs, chore
 
 ### Tool Engineering
-```bash
+
+## References```bash
+
 # Generate tools from YAML
-python scripts/generate_tools.py
 
-# Validate DTO alignment
-python scripts/validate_dto_alignment.py
-```
+| Topic | Location |python scripts/generate_tools.py
 
-Tool YAML structure:
+|-------|----------|
+
+| Copilot Instructions | ../.github/copilot-instructions.md |# Validate DTO alignment (detect parameter drift)
+
+| Current State | ../HANDOVER.md |python scripts/validate_dto_alignment.py
+
+| Conversation Standards | practices/conversation-practices.md |
+
+| VS Code Setup | practices/vscode-setup.md |# Display registered tools
+
+| Prompt Templates | prompts/README.md |python scripts/show_tools.py
+
+| Method Registry | ../config/methods_inventory_v1.yaml |```
+
+| Model Registry | ../config/models_inventory_v1.yaml |
+
+Tool YAML structure (parameters auto-inherited from method):
 ```yaml
 name: tool_name
 implementation:
   type: api_call
   method_name: workspace.casefile.create_casefile
-# Parameters auto-inherited from method
+# Parameters auto-inherited from method DTO
+# Override only for transformations or additional UI fields
 ```
 
 ## Testing
@@ -90,9 +204,11 @@ implementation:
 pytest                              # All tests
 pytest --cov=src --cov-report=html # With coverage
 pytest tests/integration/          # Integration only
+pytest -m unit                      # Unit tests only
 ```
 
-**Requirements:** 85% coverage minimum, comprehensive assertions, proper mocking.
+**Requirements:** 85% coverage minimum for AI-generated code, comprehensive assertions, proper mocking.  
+**Standards:** All service methods require tests, edge cases covered, async patterns validated.
 
 ## Quality Gates
 
@@ -115,8 +231,13 @@ Types: feat, fix, refactor, test, docs, chore
 
 | Topic | Location |
 |-------|----------|
-| API Reference | ../docs/methods/README.md |
-| System Architecture | ../docs/registry/reference.md |
+| Copilot Instructions | ../.github/copilot-instructions.md |
+| Current Development State | ../HANDOVER.md |
 | Conversation Standards | practices/conversation-practices.md |
 | Quality Assurance | workflows/quality-assurance.md |
-| Tool Generation | ../TOOL_GENERATION_WORKFLOW.md |
+| Develop Branch Guide | workflows/develop-branch-guide.md |
+| Prompt Templates | prompts/README.md |
+| VS Code Setup | practices/vscode-setup.md |
+| Method Registry | ../config/methods_inventory_v1.yaml |
+| Model Registry | ../config/models_inventory_v1.yaml |
+| Tool Schema | ../config/tool_schema_v2.yaml |

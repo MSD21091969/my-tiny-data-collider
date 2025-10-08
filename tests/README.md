@@ -1,156 +1,197 @@
-# Test Infrastructure
+# Tests Directory
 
-**Last Updated:** October 7, 2025
+*Last updated: October 8, 2025 at 19:50*
 
-This directory contains the unified test infrastructure for the my-tiny-data-collider project. The testing approach has been simplified to use YAML-driven test scenarios embedded directly in tool configurations, eliminating overlapping validation layers.
+Simplified test infrastructure focused on essential validation for the 6-layer architecture.
 
-## Directory Structure
+## 📁 Directory Structure
 
 ```
 tests/
 ├── README.md              # This documentation
-├── conftest.py            # Pytest configuration and shared fixtures
+├── conftest.py            # Pytest configuration and fixtures
 ├── test_imports.py        # Basic import validation tests
-├── helpers/               # Consolidated test utilities
-│   ├── __init__.py
-│   ├── tool_test_helper.py    # Core test utilities
-│   ├── test_environments.py   # Test environment fixtures
-│   ├── test_scenario_runner.py # Scenario execution engine
-│   ├── test_report_generator.py # Report generation
-│   └── test_runner.py         # Main test execution script
-├── reports/               # Generated test reports (auto-created)
-└── data/                  # Test data files (auto-created)
+├── reports/               # Generated test reports (auto-created, not committed)
+│   └── .gitkeep
+└── archive/               # Archived test infrastructure
+    ├── README.md
+    └── helpers/           # YAML-driven test helpers (archived)
 ```
 
-## Testing Approach
+## 🎯 Current Test Approach
 
-### YAML-Driven Testing
+### Core Tests
 
-Test scenarios are now embedded directly in tool YAML configurations under the `test_scenarios` section. This approach:
+#### test_imports.py
+**Purpose**: Validate basic package structure and imports
+**Tests**:
+- `test_casefile_service_import()` - Verify CasefileService imports
+- `test_tool_session_service_import()` - Verify ToolSessionService imports  
+- `test_pydantic_models_import()` - Verify Pydantic models import
 
-- **Eliminates redundancy**: Single source of truth for tool behavior and testing
-- **Simplifies maintenance**: Tests evolve with tool configurations
-- **Enables automation**: CI/CD can run tests directly from tool definitions
-- **Provides consistency**: Standardized test environments and scenarios
-
-### Test Scenario Structure
-
-Each tool YAML can include a `test_scenarios` section:
-
-```yaml
-tool_name: my_tool
-# ... tool configuration ...
-
-test_scenarios:
-  happy_paths:
-    - name: "basic_create"
-      description: "Create casefile with minimal valid inputs"
-      environment: "valid_user_session"
-      input:
-        title: "Test Casefile"
-      expected:
-        status: "COMPLETED"
-        has_casefile_id: true
-
-  unhappy_paths:
-    - name: "missing_title"
-      description: "Fail when required title is missing"
-      environment: "valid_user_session"
-      input: {}  # Empty input
-      expected:
-        status: "FAILED"
-        error_type: "ValidationError"
-```
-
-## Test Environments
-
-Predefined test environments provide consistent user sessions and permissions:
-
-- `valid_user_session`: Full permissions, valid session
-- `read_only_user`: Read-only permissions
-- `expired_session_user`: Expired session/token
-- `invalid_session_user`: Non-existent session
-- `admin_user`: Administrator with all permissions
-- `unauthenticated_user`: No authentication
-
-## Running Tests
-
-### Command Line Execution
-
-Use the main test runner script:
-
+**Run**:
 ```bash
-# Run tests for a specific tool
-python -m tests.helpers.test_runner config/toolsets/core/casefile_management/create_casefile_inherited.yaml
-
-# Run tests for all tools in a directory
-python -m tests.helpers.test_runner "config/toolsets/**/*.yaml"
-
-# Run with verbose output
-python -m tests.helpers.test_runner -v config/toolsets/**/*.yaml
-
-# Generate custom report name
-python -m tests.helpers.test_runner -r my_custom_report config/toolsets/**/*.yaml
-```
-
-### Pytest Integration
-
-Basic validation tests still use pytest:
-
-```bash
-# Run import validation tests
 pytest tests/test_imports.py -v
-
-# Run with coverage
-pytest --cov=src tests/test_imports.py
 ```
 
-## Report Generation
+### Pytest Configuration (conftest.py)
 
-Tests generate multiple report formats in `tests/reports/`:
+Provides shared fixtures for all tests:
+- `project_root` - Project root directory
+- `src_path` - Source directory path
+- `config_path` - Configuration directory path
+- `tools_config_path` - Tools configuration path
+- `methods_yaml_path` - Methods inventory path
+- `add_src_to_path` - Auto-adds src to Python path
 
-- **HTML Report**: Interactive web view with detailed results
-- **JSON Report**: Machine-readable structured data
-- **Summary Report**: Concise text summary
+## 🧪 Running Tests
 
-## Migration from Legacy Tests
+### All Tests
+```bash
+# Run all tests
+pytest
 
-The following legacy test files have been removed:
+# With verbose output
+pytest -v
 
-- `test_factory_integration.py` → Functionality moved to YAML scenarios
-- `test_method_decorator.py` → Validation now in tool generation
-- `test_test_helpers.py` → Consolidated into `tool_test_helper.py`
-- `system_validation/` → Redundant with YAML-driven approach
-- `api/` and `integration/` → Empty directories removed
+# With coverage
+pytest --cov=src --cov-report=html
 
-### Migration Steps Completed
+# Specific test file
+pytest tests/test_imports.py
+```
 
-1. ✅ **Created new clean structure** with consolidated helpers
-2. ✅ **Implemented YAML-driven test scenarios** in tool configurations
-3. ✅ **Removed redundant/overlapping test files** and directories
-4. ✅ **Updated CI/CD scripts** to use new test runner
-5. ✅ **Cleaned up directory structure** and documentation
+### Coverage Reports
+```bash
+# Generate HTML coverage report
+pytest --cov=src --cov-report=html
 
-## Continuous Integration
+# View report
+# Open htmlcov/index.html in browser
+```
 
-Update your CI/CD pipeline to use the new test runner:
+### Test Reports
+Generated reports are stored in `tests/reports/` but should not be committed to version control.
 
+## 📝 Writing New Tests
+
+### Test Structure
+```python
+def test_something():
+    """Test description following AAA pattern."""
+    # Arrange
+    test_data = create_test_data()
+    
+    # Act
+    result = function_under_test(test_data)
+    
+    # Assert
+    assert result.status == expected_status
+    assert result.payload is not None
+```
+
+### Using Fixtures
+```python
+def test_with_config(config_path):
+    """Test using config path fixture."""
+    methods_file = config_path / "methods_inventory_v1.yaml"
+    assert methods_file.exists()
+```
+
+### Async Tests
+```python
+import pytest
+
+@pytest.mark.asyncio
+async def test_async_operation():
+    """Test async service method."""
+    service = MyService()
+    result = await service.async_method()
+    assert result is not None
+```
+
+## 🎯 Focus Areas for Testing
+
+Given the 6-layer architecture with parameter inheritance:
+
+### 1. Model Validation
+- Test R-A-R pattern compliance
+- Validate payload models
+- Test request/response DTOs
+
+### 2. Parameter Alignment
+- Verify parameter extraction from DTOs
+- Validate method parameter definitions
+- Check tool parameter inheritance
+
+### 3. Service Logic
+- Test service method implementations
+- Validate business logic
+- Check error handling
+
+### 4. Tool Registration
+- Verify tools are registered in MANAGED_TOOLS
+- Validate tool metadata
+- Check parameter mappings
+
+## 📦 Archived Test Infrastructure
+
+The `archive/` directory contains YAML-driven test infrastructure that was previously used:
+
+- **helpers/** - Comprehensive test utilities for YAML-driven testing
+  - `tool_test_helper.py` - Tool testing utilities
+  - `test_environments.py` - Test environment fixtures
+  - `test_scenario_runner.py` - Scenario execution engine
+  - `test_report_generator.py` - Report generation
+  - `test_runner.py` - Main test execution script
+
+This infrastructure was designed to work with YAML test scenarios embedded in tool configurations. It has been archived because:
+1. Overlaps with archived `scripts/yaml_test_executor.py`
+2. Has import errors with current codebase structure
+3. Complex infrastructure for the current testing needs
+
+Can be restored if YAML-driven testing approach is adopted in the future.
+
+## 🔄 Testing Workflow
+
+### Before Committing
+```bash
+# 1. Run validation scripts
+python scripts/validate_dto_alignment.py
+
+# 2. Run tests
+pytest -v
+
+# 3. Check coverage
+pytest --cov=src --cov-report=term-missing
+```
+
+### CI/CD Integration
 ```yaml
-# Example GitHub Actions step
-- name: Run Tool Tests
-  run: python -m tests.helpers.test_runner "config/toolsets/**/*.yaml" -v
-
-- name: Upload Test Reports
-  uses: actions/upload-artifact@v3
-  with:
-    name: test-reports
-    path: tests/reports/
+# Example GitHub Actions workflow
+- name: Run Tests
+  run: |
+    pytest --cov=src --cov-fail-under=80
+    
+- name: Validate DTO Alignment
+  run: |
+    python scripts/validate_dto_alignment.py
 ```
 
-## Benefits
+## 📊 Test Coverage Goals
 
-- **Single Source of Truth**: Tests defined in YAML alongside tools
-- **No Overlapping Layers**: Eliminated redundant validation
-- **Simplified Structure**: Clear, organized directory structure
-- **Environment-Aware**: Happy/unhappy scenarios with different contexts
-- **Unified Execution**: Single command for comprehensive testing
+- **Overall**: 80% minimum
+- **AI-Generated Code**: 85% minimum
+- **Core Services**: 90% target
+- **Models**: 100% (Pydantic validation)
+
+## 🔗 Related Documentation
+
+- [Scripts README](../scripts/README.md) - Validation scripts
+- [HANDOVER Document](../HANDOVER.md) - Current development state
+- [AI Framework](../AI/README.md) - AI collaboration guidelines
+- [Quality Assurance](../AI/workflows/quality-assurance.md) - QA processes
+
+---
+
+**Note**: Keep tests simple and focused. The core workflow relies on validation scripts (`validate_dto_alignment.py`) for parameter alignment checks. Tests should focus on business logic and integration validation.
