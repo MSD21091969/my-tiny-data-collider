@@ -1,0 +1,224 @@
+# Models Inventory v1
+# Auto-generated model registry for my-tiny-data-collider
+# Date: 2025-10-08
+
+version: "1.0.0"
+description: "Registry of all Pydantic models organized by layer and domain"
+
+layers:
+  # Layer 0: Base Infrastructure
+  layer_0_base:
+    description: "Foundation models - envelopes, types, base classes"
+    models:
+      - name: BaseRequest
+        file: base/envelopes.py
+        type: generic_base
+        description: "Generic request envelope with system metadata"
+        
+      - name: BaseResponse
+        file: base/envelopes.py
+        type: generic_base
+        description: "Generic response envelope with status tracking"
+        
+      - name: RequestStatus
+        file: base/types.py
+        type: enum
+        description: "Request lifecycle status"
+        
+      - name: ErrorPayload
+        file: base/types.py
+        type: error_model
+        description: "Standard error structure"
+  
+  # Layer 1: Payload Models (Business Data)
+  layer_1_payloads:
+    description: "Business data models - operation parameters and results"
+    
+    casefile_domain:
+      models:
+        - name: CreateCasefilePayload
+          file: operations/casefile_ops.py
+          operation: create_casefile
+          fields: [title, description, tags]
+          
+        - name: CasefileCreatedPayload
+          file: operations/casefile_ops.py
+          operation: create_casefile
+          fields: [casefile_id, title, created_at]
+          
+        - name: UpdateCasefilePayload
+          file: operations/casefile_ops.py
+          operation: update_casefile
+          fields: [casefile_id, title, description, status, tags]
+          
+        - name: GetCasefilePayload
+          file: operations/casefile_ops.py
+          operation: get_casefile
+          fields: [casefile_id]
+          
+        - name: ListCasefilesPayload
+          file: operations/casefile_ops.py
+          operation: list_casefiles
+          fields: [status, tags, created_after, created_before, limit, offset]
+          
+        - name: DeleteCasefilePayload
+          file: operations/casefile_ops.py
+          operation: delete_casefile
+          fields: [casefile_id, force]
+          
+    tool_session_domain:
+      models:
+        - name: CreateToolSessionPayload
+          file: operations/tool_session_ops.py
+          operation: create_tool_session
+          fields: [session_name, tool_name]
+          
+        - name: GetToolSessionPayload
+          file: operations/tool_session_ops.py
+          operation: get_tool_session
+          fields: [session_id]
+          
+    chat_session_domain:
+      models:
+        - name: CreateChatSessionPayload
+          file: operations/chat_session_ops.py
+          operation: create_chat_session
+          fields: [casefile_id]
+          
+        - name: ChatRequestPayload
+          file: operations/tool_execution_ops.py
+          operation: chat
+          fields: [message, session_id, casefile_id, session_request_id]
+          
+        - name: ChatResultPayload
+          file: operations/tool_execution_ops.py
+          operation: chat
+          fields: [message, related_messages, events]
+  
+  # Layer 2: Request/Response DTOs (Execution Envelopes)
+  layer_2_dtos:
+    description: "Request/Response DTOs wrapping payloads"
+    
+    casefile_operations:
+      - CreateCasefileRequest
+      - CreateCasefileResponse
+      - GetCasefileRequest
+      - GetCasefileResponse
+      - UpdateCasefileRequest
+      - UpdateCasefileResponse
+      - ListCasefilesRequest
+      - ListCasefilesResponse
+      - DeleteCasefileRequest
+      - DeleteCasefileResponse
+      
+    tool_session_operations:
+      - CreateToolSessionRequest
+      - CreateToolSessionResponse
+      - GetToolSessionRequest
+      - GetToolSessionResponse
+      - ListToolSessionsRequest
+      - ListToolSessionsResponse
+      - EndToolSessionRequest
+      - EndToolSessionResponse
+      
+    chat_operations:
+      - ChatRequest
+      - ChatResponse
+      - ToolRequest
+      - ToolResponse
+  
+  # Layer 3: Canonical Models (Entities)
+  layer_3_canonical:
+    description: "Domain entities - single source of truth"
+    models:
+      - name: Casefile
+        file: canonical/casefile.py
+        description: "Core casefile entity"
+        
+      - name: ToolSession
+        file: canonical/tool_session.py
+        description: "Tool execution session"
+        
+      - name: ChatSession
+        file: canonical/chat_session.py
+        description: "Chat conversation session"
+        
+      - name: ChatMessagePayload
+        file: operations/tool_execution_ops.py
+        description: "Canonical chat message structure"
+        
+      - name: ACLEntry
+        file: canonical/acl.py
+        description: "Access control entry"
+        
+      - name: ACLPermission
+        file: canonical/acl.py
+        description: "Permission definition"
+  
+  # Layer 4: External API Models
+  layer_4_external:
+    description: "Google Workspace API data structures"
+    models:
+      - name: GmailMessage
+        file: workspace/gmail.py
+        api: Gmail API
+        
+      - name: GmailThread
+        file: workspace/gmail.py
+        api: Gmail API
+        
+      - name: DriveFile
+        file: workspace/drive.py
+        api: Drive API
+        
+      - name: DrivePermission
+        file: workspace/drive.py
+        api: Drive API
+        
+      - name: SheetData
+        file: workspace/sheets.py
+        api: Sheets API
+        
+      - name: CellValue
+        file: workspace/sheets.py
+        api: Sheets API
+  
+  # Layer 5: View Models (API Responses)
+  layer_5_views:
+    description: "Denormalized views for API responses"
+    models:
+      - name: CasefileView
+        file: views/casefile_views.py
+        description: "Enriched casefile with related data"
+        
+      - name: CasefileListView
+        file: views/casefile_views.py
+        description: "List view with pagination"
+        
+      - name: SessionView
+        file: views/session_views.py
+        description: "Enriched session with metadata"
+
+statistics:
+  total_models: 60+
+  by_layer:
+    layer_0: 4
+    layer_1: 20+
+    layer_2: 23
+    layer_3: 6
+    layer_4: 6
+    layer_5: 3+
+  by_domain:
+    casefile: 25+
+    tool_session: 10+
+    chat: 8+
+    workspace: 6+
+    base: 4+
+
+notes:
+  - All operations follow R-A-R pattern (Request-Action-Response)
+  - Parameters extracted on-demand from Layer 1 payloads
+  - Tools inherit parameters from methods which extract from Layer 2 DTOs
+  - Canonical models (Layer 3) are single source of truth for entities
+  - External API models (Layer 4) map to Google Workspace APIs
+  - Views (Layer 5) denormalize data for efficient API responses

@@ -38,13 +38,8 @@ import logging
 # Import from local module (tool infrastructure belongs together)
 from .tool_definition import (
     ManagedToolDefinition,
-    ToolMetadata,
-    ToolBusinessRules,
     ToolParameterDef,
     ParameterType,
-    ToolSessionPolicies,
-    ToolCasefilePolicies,
-    ToolAuditConfig,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,141 +56,53 @@ def register_mds_tool(
     description: str,
     category: str = "general",
     version: str = "1.0.0",
-    display_name: Optional[str] = None,
-    enabled: bool = True,
-    requires_auth: bool = True,
-    required_permissions: Optional[List[str]] = None,
-    requires_casefile: bool = False,
-    timeout_seconds: int = 30,
     tags: Optional[List[str]] = None,
-    docs_url: Optional[str] = None,
-    session_policies: Optional[ToolSessionPolicies | Dict[str, Any]] = None,
-    casefile_policies: Optional[ToolCasefilePolicies | Dict[str, Any]] = None,
-    audit_config: Optional[ToolAuditConfig | Dict[str, Any]] = None,
+    method_name: Optional[str] = None,
 ) -> Callable:
     """
-    Unified tool registration decorator.
+    Unified tool registration decorator - SLIM VERSION.
     
-    This decorator is the FOUNDATION of tool engineering. It:
-    1. Creates a ManagedToolDefinition with metadata + business rules
-    2. Wraps the implementation with Pydantic validation
-    3. Registers with agent runtime for execution
-    4. Stores in global MANAGED_TOOLS registry for discovery
-    
-    FIELD PURPOSES:
-    Metadata fields (WHAT):
-    - name: Tool identifier (used in API, validation, execution)
-    - description: Human-readable purpose
-    - category: Organization/filtering
-    - version: Compatibility tracking
-    - display_name: Pretty name for UI
-    - tags: Discovery keywords
-    - docs_url: Link to documentation
-    
-    Business logic fields (WHEN/WHERE):
-    - enabled: Tool availability toggle
-    - requires_auth: Whether user must be authenticated
-    - required_permissions: Specific permissions needed
-    - requires_casefile: Whether casefile context is mandatory
-    - timeout_seconds: Max execution time
-    
-    Execution fields (HOW):
-    - params_model: Pydantic model for validation (the guardrails!)
+    After R-A-R refactor:
+    - Policies moved to Request DTOs
+    - Parameters inherited from methods
+    - Tool = execution metadata only
     
     Args:
         name: Unique tool identifier
         params_model: Pydantic model class for parameter validation
         description: What the tool does
         category: Tool category for organization
-        version: Tool version for compatibility
-        display_name: Optional human-friendly name
-        enabled: Whether tool is available
-        requires_auth: Whether authentication is required
-        required_permissions: List of required permissions
-        requires_casefile: Whether casefile context is required
-        timeout_seconds: Max execution time
+        version: Tool version
         tags: List of tags for discovery
-        docs_url: Link to documentation
+        method_name: Optional reference to method in MANAGED_METHODS (for parameter inheritance)
         
     Returns:
         Decorated function with validation and registration
-        
-    Example:
-        >>> class MyToolParams(BaseModel):
-        ...     value: int = Field(..., ge=0, le=100)
-        ...
-        >>> @register_mds_tool(
-        ...     name="my_tool",
-        ...     params_model=MyToolParams,
-        ...     description="Does something",
-        ...     required_permissions=["tools:execute"]
-        ... )
-        ... async def my_tool(ctx: MDSContext, value: int) -> Dict[str, Any]:
-        ...     return {"result": value * 2}
     """
     def decorator(func: Callable[..., Awaitable[Dict[str, Any]]]) -> Callable:
         """Inner decorator that processes the function."""
         
         # Extract parameter definitions from Pydantic model
-        # This bridges Pydantic's Field() constraints to our ToolParameterDef
         parameters = _extract_parameter_definitions(params_model)
         
-        # Create metadata (WHAT the tool is)
-        metadata = ToolMetadata(
-            name=name,
-            display_name=display_name or name,
-            description=description,
-            category=category,
-            version=version,
-            tags=tags or [],
-            docs_url=docs_url
-        )
-        
-        # Create business rules (WHEN/WHERE it can run)
-        business_rules = ToolBusinessRules(
-            enabled=enabled,
-            requires_auth=requires_auth,
-            required_permissions=required_permissions or [],
-            requires_casefile=requires_casefile,
-            timeout_seconds=timeout_seconds
-        )
-        
-        # Normalize optional policy inputs (allow dicts from templates)
-        session_policy_obj: Optional[ToolSessionPolicies]
-        if isinstance(session_policies, dict):
-            session_policy_obj = ToolSessionPolicies(**session_policies)
-        else:
-            session_policy_obj = session_policies
-
-        casefile_policy_obj: Optional[ToolCasefilePolicies]
-        if isinstance(casefile_policies, dict):
-            casefile_policy_obj = ToolCasefilePolicies(**casefile_policies)
-        else:
-            casefile_policy_obj = casefile_policies
-
-        audit_config_obj: Optional[ToolAuditConfig]
-        if isinstance(audit_config, dict):
-            audit_config_obj = ToolAuditConfig(**audit_config)
-        else:
-            audit_config_obj = audit_config
-
-        # Create complete tool definition (single source of truth)
+        # Create slim tool definition
         tool_def = ManagedToolDefinition(
-            metadata=metadata,
-            business_rules=business_rules,
+            name=name,
+            description=description,
+            version=version,
+            category=category,
+            tags=tags or [],
+            method_name=method_name,
             parameters=parameters,
             implementation=func,
             params_model=params_model,
-            session_policies=session_policy_obj,
-            casefile_policies=casefile_policy_obj,
-            audit_config=audit_config_obj,
         )
         
         # Store in global registry
         MANAGED_TOOLS[name] = tool_def
         logger.info(
             f"Registered tool '{name}' (category: {category}, "
-            f"requires_auth: {requires_auth}, enabled: {enabled})"
+            f"method_name: {method_name or 'N/A'})"
         )
         
         # Create validated wrapper
@@ -503,11 +410,8 @@ def list_tools_by_category(category: str, enabled_only: bool = True) -> List[Man
     """
     tools = [
         tool for tool in MANAGED_TOOLS.values()
-        if tool.metadata.category == category
+        if tool.category == category
     ]
-    
-    if enabled_only:
-        tools = [t for t in tools if t.business_rules.enabled]
     
     return tools
 
@@ -827,19 +731,76 @@ def get_classification_summary() -> Dict[str, Any]:
     return summary
 
 
+def get_tool_parameters(tool_name: str) -> List[ToolParameterDef]:
+    """
+    Get parameters for a tool (inherited from method or explicit).
+    
+    Parameter Inheritance Flow:
+    1. If tool has explicit parameters → use them
+    2. If tool has method_name → inherit from method
+    3. Otherwise → empty list
+    
+    Args:
+        tool_name: Name of the tool
+        
+    Returns:
+        List of parameter definitions
+        
+    Raises:
+        KeyError: If tool not found
+    """
+    tool_def = MANAGED_TOOLS.get(tool_name)
+    if not tool_def:
+        raise KeyError(f"Tool '{tool_name}' not found in MANAGED_TOOLS registry")
+    
+    # If tool has explicit parameters, use them
+    if tool_def.parameters:
+        return tool_def.parameters
+    
+    # Otherwise, inherit from method
+    if tool_def.method_name:
+        from . import method_registry
+        try:
+            method_params = method_registry.get_method_parameters(tool_def.method_name)
+            # Convert MethodParameterDef → ToolParameterDef
+            tool_params = []
+            for mp in method_params:
+                tool_params.append(ToolParameterDef(
+                    name=mp.name,
+                    param_type=ParameterType(mp.param_type),  # Convert string to enum
+                    required=mp.required,
+                    description=mp.description,
+                    default_value=mp.default_value,
+                    min_value=mp.min_value,
+                    max_value=mp.max_value,
+                    min_length=mp.min_length,
+                    max_length=mp.max_length,
+                    pattern=mp.pattern,
+                ))
+            return tool_params
+        except Exception as e:
+            logger.warning(
+                f"Failed to inherit parameters from method '{tool_def.method_name}' "
+                f"for tool '{tool_name}': {e}"
+            )
+            return []
+    
+    return []
+
+
 # Notes for future development:
 #
+# PARAMETER INHERITANCE:
+# Tools inherit parameters from methods via method_name reference.
+# Use get_tool_parameters() to resolve actual parameters at runtime.
+#
 # RATE LIMITING:
-# Add rate_limiter field to ManagedToolDefinition that stores a RateLimiter instance.
-# Service layer checks rate_limiter.check(user_id) before execution.
+# Policies (rate limiting, permissions) belong in Request DTOs now.
+# Service layer validates ToolRequest before execution.
 #
 # PERMISSIONS:
-# Add permission_checker field that's a Callable[[List[str]], bool].
-# Service layer calls tool_def.permission_checker(user.permissions) before execution.
-#
-# COST TRACKING:
-# Add cost_per_execution field (float) to business_rules.
-# Service layer logs cost in ToolEvent.metadata for billing/analytics.
+# Permission checks happen in ToolRequest validation (R-A-R pattern).
+# Tool definitions no longer store business rules.
 #
 # VERSIONING:
 # Multiple versions can coexist: MANAGED_TOOLS["tool_name:v1"], ["tool_name:v2"]
@@ -848,3 +809,4 @@ def get_classification_summary() -> Dict[str, Any]:
 # TOOLSETS:
 # Group tools via category or create ToolsetDefinition model.
 # API can list/filter by toolset for easier discovery.
+

@@ -1,15 +1,17 @@
 """
-Unified tool definition model - the foundation of tool engineering.
+Tool definition model - SLIM VERSION for MANAGED_TOOLS registry.
 
-This module defines the core data structures that bridge:
-- API layer (schema, validation)
-- Service layer (execution orchestration)
-- Agent layer (runtime tool registration)
+After R-A-R pattern implementation:
+- Policies (auth, permissions, session, casefile) live in Request DTOs
+- Parameters inherited from methods via method_name reference
+- Tool = execution metadata only (WHAT to call, not WHEN/WHERE)
 
-METADATA vs BUSINESS LOGIC SEPARATION:
-- Metadata fields: WHAT the tool is (name, description, category, parameters)
-- Business logic fields: WHEN/WHERE to use it (enabled, permissions, rate_limits)
-- Execution fields: HOW it runs (implementation, params_model, validation)
+DELETED (44+ fields → 12 fields):
+- ToolMetadata: Flattened into parent
+- ToolBusinessRules: Policies moved to Request DTOs
+- ToolSessionPolicies: DELETED (belongs in ToolRequest DTO)
+- ToolCasefilePolicies: DELETED (belongs in ToolRequest DTO)  
+- ToolAuditConfig: DELETED (handled by Response DTOs)
 """
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -19,11 +21,7 @@ from datetime import datetime
 
 
 class ParameterType(str, Enum):
-    """
-    Parameter types that map to both Pydantic and OpenAPI.
-    
-    METADATA: These describe WHAT type of data is expected.
-    """
+    """Parameter types that map to both Pydantic and OpenAPI."""
     STRING = "string"
     INTEGER = "integer"
     FLOAT = "float"
@@ -35,11 +33,7 @@ class ParameterType(str, Enum):
 class ToolParameterDef(BaseModel):
     """
     Definition of a single tool parameter.
-    
-    FIELD PURPOSES:
-    - name, param_type, description: METADATA (describes the parameter)
-    - required, default_value: BUSINESS LOGIC (validation rules)
-    - pydantic_field: EXECUTION (actual validator instance)
+    Kept for Tool inheritance from Method parameters.
     """
     name: str = Field(..., description="Parameter name")
     param_type: ParameterType = Field(..., description="Parameter type")
@@ -47,7 +41,7 @@ class ToolParameterDef(BaseModel):
     description: Optional[str] = Field(None, description="Human-readable description")
     default_value: Optional[Any] = Field(None, description="Default value if not provided")
     
-    # Constraints (business logic - guardrails)
+    # Constraints for validation
     min_value: Optional[float] = Field(None, description="Minimum value for numeric types")
     max_value: Optional[float] = Field(None, description="Maximum value for numeric types")
     min_length: Optional[int] = Field(None, description="Minimum length for string types")
@@ -69,255 +63,74 @@ class ToolParameterDef(BaseModel):
     )
 
 
-class ToolMetadata(BaseModel):
-    """
-    Pure metadata about a tool - the WHAT.
-    
-    These fields describe the tool but don't affect execution.
-    They're used for:
-    - Discovery (listing tools)
-    - Documentation (OpenAPI schema)
-    - Categorization (filtering, organization)
-    - Audit trail (tracking what was executed)
-    """
-    name: str = Field(..., description="Unique tool name (used as identifier)")
-    display_name: Optional[str] = Field(None, description="Human-friendly display name")
-    description: str = Field(..., description="What this tool does")
-    category: str = Field("general", description="Tool category for organization")
-    version: str = Field("1.0.0", description="Tool version for compatibility tracking")
-    author: Optional[str] = Field(None, description="Tool author/maintainer")
-    tags: List[str] = Field(default_factory=list, description="Tags for discovery/filtering")
-    
-    # Documentation URLs
-    docs_url: Optional[str] = Field(None, description="Link to detailed documentation")
-    example_url: Optional[str] = Field(None, description="Link to usage examples")
-    
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "name": "example_tool",
-                "display_name": "Example Tool",
-                "description": "Processes numeric values",
-                "category": "examples",
-                "version": "1.0.0",
-                "tags": ["demo", "numeric"]
-            }
-        }
-    )
-
-
-class ToolBusinessRules(BaseModel):
-    """
-    Business logic configuration - the WHEN/WHERE.
-    
-    These fields control:
-    - Availability (enabled, deprecated)
-    - Access control (permissions, rate limits)
-    - Execution constraints (timeout, retries)
-    - Cost management (resource limits)
-    """
-    enabled: bool = Field(True, description="Whether tool is available for use")
-    deprecated: bool = Field(False, description="Whether tool is deprecated")
-    deprecation_message: Optional[str] = Field(None, description="Message if deprecated")
-    
-    # Access control (business logic)
-    requires_auth: bool = Field(True, description="Whether authentication is required")
-    required_permissions: List[str] = Field(
-        default_factory=list,
-        description="Permissions required to execute (e.g., ['casefiles:write'])"
-    )
-    allowed_roles: List[str] = Field(
-        default_factory=list,
-        description="Roles allowed to execute (empty = all authenticated users)"
-    )
-    
-    # Rate limiting (business logic)
-    rate_limit_per_minute: Optional[int] = Field(None, description="Max executions per minute per user")
-    rate_limit_per_hour: Optional[int] = Field(None, description="Max executions per hour per user")
-    
-    # Execution constraints (business logic)
-    timeout_seconds: int = Field(30, description="Max execution time before timeout")
-    max_retries: int = Field(0, description="Number of retries on failure")
-    requires_casefile: bool = Field(False, description="Whether casefile context is required")
-    
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "enabled": True,
-                "requires_auth": True,
-                "required_permissions": ["tools:execute"],
-                "timeout_seconds": 30,
-                "requires_casefile": False
-            }
-        }
-    )
-
-
-class ToolSessionPolicies(BaseModel):
-    """Session lifecycle policies controlling request/resume behavior."""
-
-    requires_active_session: bool = Field(True, description="Whether an active session is required before execution")
-    allow_new_session: bool = Field(False, description="Whether the tool may create a new session")
-    allow_session_resume: bool = Field(True, description="Whether the tool may resume an inactive session")
-    session_event_type: str = Field("request", description="Event type emitted to the audit trail (request|resume|system)")
-    log_request_payload: bool = Field(True, description="Whether the tool request payload is persisted to the audit trail")
-    log_full_response: bool = Field(True, description="Whether the tool response is persisted in full")
-
-
-class ToolCasefilePolicies(BaseModel):
-    """Rules governing how a tool interacts with casefiles."""
-
-    requires_casefile: bool = Field(False, description="Whether execution mandates a casefile context")
-    allowed_casefile_states: List[str] = Field(default_factory=lambda: ["active"], description="Allowed casefile lifecycle states")
-    create_if_missing: bool = Field(False, description="Whether the tool may create a casefile automatically")
-    enforce_access_control: bool = Field(True, description="Whether casefile ACL rules are enforced")
-    audit_casefile_changes: bool = Field(True, description="Whether casefile mutations are logged to the audit trail")
-
-
-class ToolAuditConfig(BaseModel):
-    """Audit trail configuration for successful and failed executions."""
-
-    success_event: str = Field("tool_success", description="Event type emitted on successful execution")
-    failure_event: str = Field("tool_failure", description="Event type emitted on failed execution")
-    log_response_fields: List[str] = Field(default_factory=list, description="Subset of response fields to persist in audit logs")
-    redact_fields: List[str] = Field(default_factory=list, description="Fields that should be redacted before logging")
-    emit_casefile_event: bool = Field(True, description="Whether to emit a casefile event alongside the tool event")
-
-
 class ManagedToolDefinition(BaseModel):
     """
-    Complete tool definition that serves as the single source of truth.
+    SLIM tool definition for MANAGED_TOOLS registry.
+    12 fields - pure essentials only.
     
-    ARCHITECTURE:
-    This model bridges three layers:
-    1. API Layer: Provides schema for validation and discovery
-    2. Service Layer: Provides execution orchestration
-    3. Agent Layer: Provides runtime registration
-    
-    FIELD CATEGORIZATION:
-    - metadata: Pure information (WHAT is this tool?)
-    - business_rules: Execution policy (WHEN/WHERE can it run?)
-    - parameters: Input specification (WHAT data does it need?)
-    - implementation: Execution function (HOW does it work?)
-    - params_model: Validation model (HOW to validate inputs?)
-    
-    USAGE:
-    This is created by the @register_mds_tool decorator and stored in
-    MANAGED_TOOLS global registry. Services query this registry for:
-    - Validation (params_model.validate())
-    - Execution (implementation())
-    - Discovery (metadata, parameters)
-    - Authorization (business_rules.required_permissions)
+    Policies (auth, permissions, session, casefile) belong in Request DTOs (R-A-R pattern).
+    Parameters inherited from methods via method_name reference.
     """
+    # Identity
+    name: str = Field(..., description="Unique tool name (used as identifier)")
+    description: str = Field(..., description="What this tool does")
+    version: str = Field("1.0.0", description="Tool version for compatibility tracking")
     
-    # Core metadata (WHAT)
-    metadata: ToolMetadata = Field(..., description="Tool metadata and documentation")
+    # Classification (optional if method_name specified)
+    category: str = Field("general", description="Tool category for organization")
+    tags: List[str] = Field(default_factory=list, description="Tags for discovery/filtering")
     
-    # Business rules (WHEN/WHERE)
-    business_rules: ToolBusinessRules = Field(
-        default_factory=ToolBusinessRules,
-        description="Business logic and execution policies"
-    )
-
-    # Session lifecycle and casefile policies
-    session_policies: Optional[ToolSessionPolicies] = Field(
-        None,
-        description="Session lifecycle rules enforced during execution"
-    )
-    casefile_policies: Optional[ToolCasefilePolicies] = Field(
-        None,
-        description="Casefile interaction policies"
-    )
-    audit_config: Optional[ToolAuditConfig] = Field(
-        None,
-        description="Audit event configuration"
-    )
+    # Method Reference (for parameter inheritance)
+    method_name: Optional[str] = Field(None, description="Reference to method in MANAGED_METHODS")
     
-    # Parameters (WHAT inputs)
+    # Parameters (inherited from method or explicit)
     parameters: List[ToolParameterDef] = Field(
         default_factory=list,
-        description="Tool parameter definitions"
+        description="Tool parameter definitions (empty = inherit from method)"
     )
     
-    # Execution components (HOW)
+    # Execution components
     implementation: Optional[Callable[..., Awaitable[Dict[str, Any]]]] = Field(
         None,
         description="The actual async function implementation",
-        exclude=True  # Don't serialize the function
+        exclude=True
     )
     
     params_model: Optional[Type[BaseModel]] = Field(
         None,
         description="Pydantic model for parameter validation",
-        exclude=True  # Don't serialize the type
+        exclude=True
     )
     
-    # Registration tracking (WHEN - audit)
-    registered_at: str = Field(
-        default_factory=lambda: datetime.now().isoformat(),
-        description="When this tool was registered (ISO 8601)"
+    # Registration tracking
+    registered_at: datetime = Field(
+        default_factory=datetime.now,
+        description="When this tool was registered"
     )
     
     model_config = ConfigDict(
-        arbitrary_types_allowed=True,  # Allow Callable and Type
+        arbitrary_types_allowed=True,
         json_schema_extra={
             "example": {
-                "metadata": {
-                    "name": "example_tool",
-                    "description": "Processes numeric values",
-                    "category": "examples",
-                    "version": "1.0.0"
-                },
-                "business_rules": {
-                    "enabled": True,
-                    "requires_auth": True,
-                    "timeout_seconds": 30
-                },
-                "parameters": [
-                    {
-                        "name": "value",
-                        "param_type": "integer",
-                        "required": True,
-                        "description": "Value to process"
-                    }
-                ]
+                "name": "create_casefile_tool",
+                "description": "Creates new casefile with metadata",
+                "version": "1.0.0",
+                "category": "workspace",
+                "tags": ["casefile", "create"],
+                "method_name": "create_casefile",
+                "parameters": []
             }
         }
     )
     
     def validate_params(self, params: Dict[str, Any]) -> BaseModel:
-        """
-        Validate parameters using the Pydantic model.
-        
-        This is WHERE validation happens - at the boundary between
-        API input and service execution.
-        
-        Args:
-            params: Raw parameter dictionary from API request
-            
-        Returns:
-            Validated Pydantic model instance
-            
-        Raises:
-            ValidationError: If parameters don't match schema
-        """
+        """Validate parameters using the Pydantic model."""
         if self.params_model:
             return self.params_model(**params)
-        
-        # If no model, return params as-is (validation happened elsewhere)
         return params
     
     def get_openapi_schema(self) -> Dict[str, Any]:
-        """
-        Generate OpenAPI parameter schema from Pydantic model.
-        
-        This is HOW we generate API documentation automatically.
-        The schema comes from the params_model, which has all the
-        Field() constraints (ge=, le=, min_length=, etc.)
-        
-        Returns:
-            OpenAPI-compatible parameter schema
-        """
+        """Generate OpenAPI parameter schema from Pydantic model."""
         if self.params_model:
             return self.params_model.model_json_schema()
         
@@ -335,57 +148,15 @@ class ManagedToolDefinition(BaseModel):
             "required": [p.name for p in self.parameters if p.required]
         }
     
-    def check_permission(self, user_permissions: List[str]) -> bool:
-        """
-        Check if user has required permissions.
-        
-        This is WHERE authorization happens - service layer checks
-        this before execution.
-        
-        Args:
-            user_permissions: List of permissions the user has
-            
-        Returns:
-            True if user has all required permissions
-        """
-        if not self.business_rules.required_permissions:
-            return True  # No permissions required
-        
-        return all(
-            perm in user_permissions
-            for perm in self.business_rules.required_permissions
-        )
-    
-    def check_enabled(self) -> tuple[bool, Optional[str]]:
-        """
-        Check if tool is enabled and available.
-        
-        Returns:
-            Tuple of (is_enabled, error_message)
-        """
-        if not self.business_rules.enabled:
-            return False, f"Tool '{self.metadata.name}' is currently disabled"
-        
-        if self.business_rules.deprecated:
-            msg = self.business_rules.deprecation_message or "This tool is deprecated"
-            return False, f"Tool '{self.metadata.name}' is deprecated: {msg}"
-        
-        return True, None
-    
     def to_discovery_format(self) -> Dict[str, Any]:
-        """
-        Convert to format suitable for tool discovery API.
-        
-        This is WHAT gets returned by GET /tools endpoint.
-        Includes metadata, parameters, and business rules relevant to clients.
-        """
+        """Convert to format suitable for tool discovery API."""
         return {
-            "name": self.metadata.name,
-            "display_name": self.metadata.display_name or self.metadata.name,
-            "description": self.metadata.description,
-            "category": self.metadata.category,
-            "version": self.metadata.version,
-            "tags": self.metadata.tags,
+            "name": self.name,
+            "description": self.description,
+            "category": self.category,
+            "version": self.version,
+            "tags": self.tags,
+            "method_name": self.method_name,
             "parameters": [
                 {
                     "name": p.name,
@@ -405,37 +176,5 @@ class ManagedToolDefinition(BaseModel):
                     }
                 }
                 for p in self.parameters
-            ],
-            "enabled": self.business_rules.enabled,
-            "deprecated": self.business_rules.deprecated,
-            "requires_auth": self.business_rules.requires_auth,
-            "requires_casefile": self.business_rules.requires_casefile,
-            "docs_url": self.metadata.docs_url
+            ]
         }
-
-
-# Notes on Field Purposes (for documentation and future development):
-#
-# METADATA FIELDS (immutable, descriptive):
-# - Used for: Discovery, documentation, categorization, audit logs
-# - Examples: name, description, category, version, author, tags
-# - Stored in: ManagedToolDefinition.metadata
-# - When to add: When you need to describe WHAT the tool is
-#
-# BUSINESS LOGIC FIELDS (mutable, policy-driven):
-# - Used for: Authorization, rate limiting, execution control, cost management
-# - Examples: enabled, required_permissions, rate_limit, timeout, retries
-# - Stored in: ManagedToolDefinition.business_rules
-# - When to add: When you need to control WHEN/WHERE tool can execute
-#
-# EXECUTION FIELDS (runtime, functional):
-# - Used for: Validation, execution, type safety
-# - Examples: implementation, params_model, validate_params()
-# - Stored in: ManagedToolDefinition (top level)
-# - When to add: When you need to define HOW tool executes
-#
-# AUDIT FIELDS (temporal, tracking):
-# - Used for: Compliance, debugging, monitoring, analytics
-# - Examples: registered_at, execution timestamps in ToolEvent
-# - Stored in: Multiple places (definition, events, context)
-# - When to add: When you need to track WHEN something happened

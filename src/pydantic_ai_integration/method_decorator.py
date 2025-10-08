@@ -48,10 +48,7 @@ import inspect
 # Import from method infrastructure
 from .method_definition import (
     ManagedMethodDefinition,
-    MethodMetadata,
-    MethodBusinessRules,
     MethodParameterDef,
-    MethodModels,
 )
 
 # Import from registry
@@ -165,55 +162,19 @@ def register_service_method(
         if sig.return_annotation != inspect.Signature.empty:
             response_model = sig.return_annotation
         
-        # Extract parameter definitions from request model
-        parameters = []
-        if request_model and hasattr(request_model, 'model_fields'):
-            parameters = _extract_parameter_definitions_from_request(request_model)
-        
-        # Create metadata (WHAT the method is)
-        metadata = MethodMetadata(
+        # Create slim method definition (flat 16 fields)
+        method_def = ManagedMethodDefinition(
             name=name,
-            display_name=name.replace('_', ' ').title(),
             description=description,
-            service_name=service_name,
-            module_path=service_module,
             version=version,
             domain=classification.get('domain', ''),
             subdomain=classification.get('subdomain', ''),
             capability=classification.get('capability', ''),
             complexity=classification.get('complexity', ''),
             maturity=classification.get('maturity', ''),
-            integration_tier=classification.get('integration_tier', '')
-        )
-        
-        # Create business rules (WHEN/WHERE it can run)
-        business_rules = MethodBusinessRules(
-            enabled=enabled,
-            requires_auth=requires_auth,
-            required_permissions=required_permissions or [],
-            requires_casefile=requires_casefile,
-            casefile_permission_level=casefile_permission_level,
-            timeout_seconds=timeout_seconds,
-            dependencies=dependencies or [],
-            visibility=visibility
-        )
-        
-        # Create model references
-        models = MethodModels(
-            request_model_name=request_model.__name__ if request_model else "Unknown",
-            request_model_path=f"{request_model.__module__}" if request_model else "unknown",
-            response_model_name=response_model.__name__ if response_model else "Unknown",
-            response_model_path=f"{response_model.__module__}" if response_model else "unknown",
+            integration_tier=classification.get('integration_tier', ''),
             request_model_class=request_model,
-            response_model_class=response_model
-        )
-        
-        # Create complete method definition (single source of truth)
-        method_def = ManagedMethodDefinition(
-            metadata=metadata,
-            business_rules=business_rules,
-            parameters=parameters,
-            models=models,
+            response_model_class=response_model,
             implementation_class=service_name,
             implementation_method=name
         )
@@ -223,7 +184,7 @@ def register_service_method(
         
         logger.info(
             f"Registered method '{name}' in service '{service_name}' "
-            f"(domain: {classification.get('domain')}, enabled: {enabled})"
+            f"(domain: {classification.get('domain')})"
         )
         
         # Return original function unmodified
@@ -460,94 +421,40 @@ def load_methods_from_yaml(yaml_path: str) -> Dict[str, ManagedMethodDefinition]
         # Iterate through methods in service
         for method_config in service.get('methods', []):
             method_name = method_config['name']
-            
-            # Create metadata
             classification = method_config['classification']
-            metadata = MethodMetadata(
+            
+            # Extract model classes for validation
+            models_config = method_config.get('models', {})
+            module_path = models_config.get('module') or 'unknown'
+            request_name = models_config.get('request') or 'Unknown'
+            response_name = models_config.get('response') or 'Unknown'
+            
+            request_model_class = None
+            response_model_class = None
+            
+            # Try to import model classes
+            if module_path != 'unknown':
+                try:
+                    import importlib
+                    models_module = importlib.import_module(module_path)
+                    request_model_class = getattr(models_module, request_name, None)
+                    response_model_class = getattr(models_module, response_name, None)
+                except Exception as e:
+                    logger.warning(f"  ⚠ Could not import models from {module_path}: {e}")
+            
+            # Create slim method definition
+            method_def = ManagedMethodDefinition(
                 name=method_name,
-                display_name=method_name.replace('_', ' ').title(),
                 description=method_config['description'],
-                service_name=service_name,
-                module_path=service_module,
                 version=method_config.get('version', '1.0.0'),
                 domain=classification.get('domain', ''),
                 subdomain=classification.get('subdomain', ''),
                 capability=classification.get('capability', ''),
                 complexity=classification.get('complexity', ''),
                 maturity=classification.get('maturity', ''),
-                integration_tier=classification.get('integration_tier', '')
-            )
-            
-            # Create business rules
-            business_rules_config = method_config.get('business_rules', {})
-            business_rules = MethodBusinessRules(
-                enabled=business_rules_config.get('enabled', True),
-                requires_auth=business_rules_config.get('requires_auth', True),
-                required_permissions=business_rules_config.get('required_permissions', []),
-                requires_casefile=business_rules_config.get('requires_casefile', False),
-                casefile_permission_level=business_rules_config.get('casefile_permission_level'),
-                timeout_seconds=business_rules_config.get('timeout_seconds', 30),
-                dependencies=method_config.get('dependencies', []),
-                visibility=method_config.get('visibility', 'public')
-            )
-            
-            # Create model references
-            models_config = method_config.get('models', {})
-            module_path = models_config.get('module') or 'unknown'
-            request_name = models_config.get('request') or 'Unknown'
-            response_name = models_config.get('response') or 'Unknown'
-            
-            models = MethodModels(
-                request_model_name=request_name,
-                request_model_path=module_path,
-                response_model_name=response_name,
-                response_model_path=module_path
-            )
-            
-            # EXTRACT PARAMETERS FROM PYDANTIC MODELS
-            # This enables inheritance in ToolFactory
-            parameters = []
-            if module_path != 'unknown' and request_name != 'Unknown':
-                try:
-                    # Import the models module
-                    import importlib
-                    models_module = importlib.import_module(module_path)
-                    
-                    # Get the request model class
-                    request_model_class = getattr(models_module, request_name, None)
-                    if request_model_class and hasattr(request_model_class, 'model_fields'):
-                        # Extract parameters from CreateCasefilePayload (nested in BaseRequest)
-                        # Look for 'payload' field which contains the actual parameters
-                        if 'payload' in request_model_class.model_fields:
-                            payload_field = request_model_class.model_fields['payload']
-                            payload_annotation = payload_field.annotation
-                            
-                            # Handle Optional[T] unwrapping
-                            import typing
-                            if hasattr(typing, 'get_origin') and typing.get_origin(payload_annotation) is typing.Union:
-                                args = typing.get_args(payload_annotation)
-                                if len(args) == 2 and type(None) in args:
-                                    payload_annotation = args[0] if args[1] is type(None) else args[1]
-                            
-                            # Extract from payload model
-                            if hasattr(payload_annotation, 'model_fields'):
-                                for field_name, field_info in payload_annotation.model_fields.items():
-                                    param_def = _create_parameter_def_from_field(field_name, field_info)
-                                    parameters.append(param_def)
-                        
-                        logger.info(f"  ✓ Extracted {len(parameters)} parameters from {request_name}")
-                    else:
-                        logger.warning(f"  ⚠ Could not extract parameters from {request_name}")
-                        
-                except Exception as e:
-                    logger.warning(f"  ⚠ Failed to extract parameters from {module_path}.{request_name}: {e}")
-            
-            # Create method definition
-            method_def = ManagedMethodDefinition(
-                metadata=metadata,
-                business_rules=business_rules,
-                parameters=parameters,  # Now populated from Pydantic models
-                models=models,
+                integration_tier=classification.get('integration_tier', ''),
+                request_model_class=request_model_class,
+                response_model_class=response_model_class,
                 implementation_class=service_name,
                 implementation_method=method_name
             )
@@ -556,7 +463,7 @@ def load_methods_from_yaml(yaml_path: str) -> Dict[str, ManagedMethodDefinition]
             
             logger.info(
                 f"Loaded method '{method_name}' from YAML "
-                f"(service: {service_name}, domain: {metadata.domain})"
+                f"(service: {service_name}, domain: {classification.get('domain')})"
             )
     
     logger.info(f"Loaded {len(methods)} methods from {yaml_path}")

@@ -8,14 +8,17 @@ ARCHITECTURE:
 - MANAGED_METHODS: Global Dict[str, ManagedMethodDefinition]
 - Discovery APIs: 11 methods matching tool_decorator.py
 - Classification-based queries: domain, subdomain, capability, etc.
+- Parameter extraction: Auto-extract from Pydantic payload models
 - Future: @register_service_method decorator (Phase 10)
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Type, get_type_hints, get_origin, get_args
 from collections import defaultdict
 import logging
+from pydantic import BaseModel
+from pydantic.fields import FieldInfo
 
-from .method_definition import ManagedMethodDefinition
+from .method_definition import ManagedMethodDefinition, MethodParameterDef
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,196 @@ logger = logging.getLogger(__name__)
 # Parallel to MANAGED_TOOLS in tool_decorator.py
 # Format: {method_name: ManagedMethodDefinition}
 MANAGED_METHODS: Dict[str, ManagedMethodDefinition] = {}
+
+
+# ==============================================================================
+# PARAMETER EXTRACTION (DTO → MethodParameterDef)
+# ==============================================================================
+
+def _format_type_annotation(annotation: Any) -> str:
+    """
+    Format type annotation as string for MethodParameterDef.
+    
+    Handles:
+    - Simple types: str, int, bool
+    - Generic types: List[str], Dict[str, Any], Optional[str]
+    - Union types: Union[str, int]
+    
+    Args:
+        annotation: Type annotation from Pydantic field
+        
+    Returns:
+        String representation like "str", "List[str]", "Optional[int]"
+    """
+    origin = get_origin(annotation)
+    
+    # Simple type (no generic)
+    if origin is None:
+        return annotation.__name__ if hasattr(annotation, '__name__') else str(annotation)
+    
+    # Generic type (List, Dict, Optional, Union)
+    args = get_args(annotation)
+    if args:
+        args_str = ', '.join(_format_type_annotation(arg) for arg in args)
+        origin_name = origin.__name__ if hasattr(origin, '__name__') else str(origin)
+        return f"{origin_name}[{args_str}]"
+    
+    return origin.__name__ if hasattr(origin, '__name__') else str(origin)
+
+
+def extract_parameters_from_payload(payload_class: Type[BaseModel]) -> List[MethodParameterDef]:
+    """
+    Extract parameter definitions from Pydantic payload model.
+    
+    This is the FOUNDATION of DTO inheritance - parameters are defined once
+    in the Pydantic model and automatically extracted to method/tool definitions.
+    
+    Extracts:
+    - Field name, type, required status
+    - Description from Field(description=...)
+    - Default value from Field(default=...)
+    - Validation constraints: min_length, max_length, ge, le, pattern
+    
+    Args:
+        payload_class: Pydantic model class (e.g., CreateCasefilePayload)
+        
+    Returns:
+        List of MethodParameterDef with all metadata
+        
+    Example:
+        >>> class CreateCasefilePayload(BaseModel):
+        ...     title: str = Field(..., min_length=1, max_length=200)
+        ...     tags: List[str] = Field(default_factory=list)
+        >>> params = extract_parameters_from_payload(CreateCasefilePayload)
+        >>> params[0].name  # "title"
+        >>> params[0].required  # True
+        >>> params[0].max_length  # 200
+    """
+    params = []
+    
+    # Use Pydantic v2 API
+    for field_name, field_info in payload_class.model_fields.items():
+        # Get type annotation
+        annotation = field_info.annotation
+        type_str = _format_type_annotation(annotation)
+        
+        # Determine if required
+        required = field_info.is_required()
+        
+        # Get description
+        description = field_info.description or ""
+        
+        # Get default value
+        default_value = None if required else (
+            field_info.default if field_info.default is not None 
+            else field_info.default_factory() if field_info.default_factory else None
+        )
+        
+        # Extract validation constraints from field metadata
+        min_value = None
+        max_value = None
+        min_length = None
+        max_length = None
+        pattern = None
+        
+        # Check field metadata for constraints
+        if hasattr(field_info, 'metadata'):
+            for constraint in field_info.metadata:
+                constraint_type = type(constraint).__name__
+                if constraint_type == 'Ge':  # Greater than or equal
+                    min_value = constraint.ge if hasattr(constraint, 'ge') else None
+                elif constraint_type == 'Le':  # Less than or equal
+                    max_value = constraint.le if hasattr(constraint, 'le') else None
+                elif constraint_type == 'MinLen':
+                    min_length = constraint.min_length if hasattr(constraint, 'min_length') else None
+                elif constraint_type == 'MaxLen':
+                    max_length = constraint.max_length if hasattr(constraint, 'max_length') else None
+                elif constraint_type == 'Pattern':
+                    pattern = constraint.pattern if hasattr(constraint, 'pattern') else None
+        
+        # Also check json_schema_extra for constraints (Pydantic v2)
+        if hasattr(field_info, 'json_schema_extra'):
+            extra = field_info.json_schema_extra or {}
+            if isinstance(extra, dict):
+                min_value = min_value or extra.get('ge') or extra.get('min_value')
+                max_value = max_value or extra.get('le') or extra.get('max_value')
+                min_length = min_length or extra.get('min_length')
+                max_length = max_length or extra.get('max_length')
+                pattern = pattern or extra.get('pattern')
+        
+        param = MethodParameterDef(
+            name=field_name,
+            param_type=type_str,
+            required=required,
+            description=description,
+            default_value=default_value,
+            min_value=min_value,
+            max_value=max_value,
+            min_length=min_length,
+            max_length=max_length,
+            pattern=pattern
+        )
+        params.append(param)
+    
+    return params
+
+
+def extract_parameters_from_request_model(request_model_class: Type[BaseModel]) -> List[MethodParameterDef]:
+    """
+    Extract parameters from Request DTO by inspecting its payload type.
+    
+    Handles BaseRequest[PayloadT] generics - extracts PayloadT and then
+    extracts parameters from that payload class.
+    
+    Args:
+        request_model_class: Request DTO class (e.g., CreateCasefileRequest)
+        
+    Returns:
+        List of MethodParameterDef extracted from payload
+        
+    Example:
+        >>> params = extract_parameters_from_request_model(CreateCasefileRequest)
+        >>> # Extracts from CreateCasefilePayload automatically
+    """
+    # Get the payload type from model_fields directly (Pydantic v2)
+    if 'payload' not in request_model_class.model_fields:
+        logger.warning(
+            f"Request model {request_model_class.__name__} has no 'payload' field, "
+            "cannot extract parameters"
+        )
+        return []
+    
+    payload_field = request_model_class.model_fields['payload']
+    payload_type = payload_field.annotation
+    
+    # Handle Optional/Union types
+    origin = get_origin(payload_type)
+    if origin:
+        args = get_args(payload_type)
+        # For Optional[X] or Union[X, None], get first non-None type
+        if args:
+            payload_class = None
+            for arg in args:
+                if arg is not type(None) and hasattr(arg, 'model_fields'):
+                    payload_class = arg
+                    break
+            if not payload_class:
+                payload_class = args[0]
+        else:
+            payload_class = payload_type
+    else:
+        payload_class = payload_type
+    
+    # Validate it's a Pydantic model
+    if not hasattr(payload_class, 'model_fields'):
+        logger.warning(
+            f"Could not determine payload class for {request_model_class.__name__}, "
+            f"got {payload_class}"
+        )
+        return []
+    
+    # Extract from payload class
+    return extract_parameters_from_payload(payload_class)
 
 
 # ==============================================================================
@@ -63,28 +256,49 @@ def get_method_definition(method_name: str) -> Optional[ManagedMethodDefinition]
     return MANAGED_METHODS.get(method_name)
 
 
+def get_method_parameters(method_name: str) -> List[MethodParameterDef]:
+    """
+    Get parameters for a method by extracting them on-demand from request model.
+    
+    Args:
+        method_name: Method name to look up
+        
+    Returns:
+        List of MethodParameterDef extracted from the request model payload
+        
+    Example:
+        >>> params = get_method_parameters("create_casefile")
+        >>> # Returns parameters extracted fresh from CreateCasefileRequest
+    """
+    method_def = MANAGED_METHODS.get(method_name)
+    if not method_def or not method_def.request_model_class:
+        return []
+    
+    return extract_parameters_from_request_model(method_def.request_model_class)
+    """
+    Get method definition by name.
+    Returns None if not found.
+    Parallel to tool_decorator.get_tool_definition().
+    """
+    return MANAGED_METHODS.get(method_name)
+
+
 # ==============================================================================
 # CLASSIFICATION DISCOVERY (6 methods)
 # ==============================================================================
 
-def get_methods_by_domain(domain: str, enabled_only: bool = True) -> List[ManagedMethodDefinition]:
+def get_methods_by_domain(domain: str) -> List[ManagedMethodDefinition]:
     """
     Get all methods in a domain.
     Parallel to tool_decorator.get_tools_by_domain().
     
     Args:
         domain: workspace, communication, automation
-        enabled_only: Only return enabled methods
     """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.metadata.domain == domain:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
+    return [m for m in MANAGED_METHODS.values() if m.domain == domain]
 
 
-def get_methods_by_subdomain(domain: str, subdomain: str, enabled_only: bool = True) -> List[ManagedMethodDefinition]:
+def get_methods_by_subdomain(domain: str, subdomain: str) -> List[ManagedMethodDefinition]:
     """
     Get methods by domain + subdomain.
     Parallel to tool_decorator.get_tools_by_subdomain().
@@ -92,82 +306,55 @@ def get_methods_by_subdomain(domain: str, subdomain: str, enabled_only: bool = T
     Args:
         domain: workspace, communication, automation
         subdomain: casefile, gmail, tool_session, etc.
-        enabled_only: Only return enabled methods
     """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.metadata.domain == domain and method_def.metadata.subdomain == subdomain:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
+    return [
+        m for m in MANAGED_METHODS.values()
+        if m.domain == domain and m.subdomain == subdomain
+    ]
 
 
-def get_methods_by_capability(capability: str, enabled_only: bool = True) -> List[ManagedMethodDefinition]:
+def get_methods_by_capability(capability: str) -> List[ManagedMethodDefinition]:
     """
     Get methods by capability.
     Parallel to tool_decorator.get_tools_by_capability().
     
     Args:
         capability: create, read, update, delete, process, search
-        enabled_only: Only return enabled methods
     """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.metadata.capability == capability:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
+    return [m for m in MANAGED_METHODS.values() if m.capability == capability]
 
 
-def get_methods_by_complexity(complexity: str, enabled_only: bool = True) -> List[ManagedMethodDefinition]:
+def get_methods_by_complexity(complexity: str) -> List[ManagedMethodDefinition]:
     """
     Get methods by complexity.
     Parallel to tool_decorator.get_tools_by_complexity().
     
     Args:
         complexity: atomic, composite, pipeline
-        enabled_only: Only return enabled methods
     """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.metadata.complexity == complexity:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
+    return [m for m in MANAGED_METHODS.values() if m.complexity == complexity]
 
 
-def get_methods_by_maturity(maturity: str, enabled_only: bool = True) -> List[ManagedMethodDefinition]:
+def get_methods_by_maturity(maturity: str) -> List[ManagedMethodDefinition]:
     """
     Get methods by maturity level.
     Parallel to tool_decorator.get_tools_by_maturity().
     
     Args:
         maturity: stable, beta, alpha, experimental
-        enabled_only: Only return enabled methods
     """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.metadata.maturity == maturity:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
+    return [m for m in MANAGED_METHODS.values() if m.maturity == maturity]
 
 
-def get_methods_by_integration_tier(tier: str, enabled_only: bool = True) -> List[ManagedMethodDefinition]:
+def get_methods_by_integration_tier(tier: str) -> List[ManagedMethodDefinition]:
     """
     Get methods by integration tier.
     Parallel to tool_decorator.get_tools_by_integration_tier().
     
     Args:
         tier: internal, external, hybrid
-        enabled_only: Only return enabled methods
     """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.metadata.integration_tier == tier:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
+    return [m for m in MANAGED_METHODS.values() if m.integration_tier == tier]
 
 
 # ==============================================================================
@@ -198,7 +385,6 @@ def get_classification_summary() -> Dict[str, Any]:
     """
     summary = {
         "total_methods": len(MANAGED_METHODS),
-        "enabled_methods": sum(1 for m in MANAGED_METHODS.values() if m.business_rules.enabled),
         "by_domain": defaultdict(int),
         "by_subdomain": defaultdict(int),
         "by_capability": defaultdict(int),
@@ -209,18 +395,17 @@ def get_classification_summary() -> Dict[str, Any]:
     }
     
     for method_def in MANAGED_METHODS.values():
-        summary["by_domain"][method_def.metadata.domain] += 1
-        summary["by_subdomain"][method_def.metadata.subdomain] += 1
-        summary["by_capability"][method_def.metadata.capability] += 1
-        summary["by_complexity"][method_def.metadata.complexity] += 1
-        summary["by_maturity"][method_def.metadata.maturity] += 1
-        summary["by_integration_tier"][method_def.metadata.integration_tier] += 1
-        summary["by_service"][method_def.metadata.service_name] += 1
+        summary["by_domain"][method_def.domain] += 1
+        summary["by_subdomain"][method_def.subdomain] += 1
+        summary["by_capability"][method_def.capability] += 1
+        summary["by_complexity"][method_def.complexity] += 1
+        summary["by_maturity"][method_def.maturity] += 1
+        summary["by_integration_tier"][method_def.integration_tier] += 1
+        summary["by_service"][method_def.implementation_class] += 1
     
     # Convert defaultdict to regular dict for JSON serialization
     return {
         "total_methods": summary["total_methods"],
-        "enabled_methods": summary["enabled_methods"],
         "by_domain": dict(summary["by_domain"]),
         "by_subdomain": dict(summary["by_subdomain"]),
         "by_capability": dict(summary["by_capability"]),
@@ -235,34 +420,15 @@ def get_classification_summary() -> Dict[str, Any]:
 # SERVICE-SPECIFIC QUERIES (bonus)
 # ==============================================================================
 
-def get_methods_by_service(service_name: str, enabled_only: bool = True) -> List[ManagedMethodDefinition]:
+def get_methods_by_service(service_name: str) -> List[ManagedMethodDefinition]:
     """
     Get all methods from a specific service.
     Useful for service-level documentation.
     
     Args:
         service_name: CasefileService, ToolSessionService, etc.
-        enabled_only: Only return enabled methods
     """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.metadata.service_name == service_name:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
-
-
-def get_methods_requiring_casefile(enabled_only: bool = True) -> List[ManagedMethodDefinition]:
-    """
-    Get all methods that require casefile context.
-    Useful for casefile-related tooling.
-    """
-    results = []
-    for method_def in MANAGED_METHODS.values():
-        if method_def.business_rules.requires_casefile:
-            if not enabled_only or method_def.business_rules.enabled:
-                results.append(method_def)
-    return results
+    return [m for m in MANAGED_METHODS.values() if m.implementation_class == service_name]
 
 
 # ==============================================================================
@@ -271,8 +437,7 @@ def get_methods_requiring_casefile(enabled_only: bool = True) -> List[ManagedMet
 
 def register_method(method_name: str, method_def: ManagedMethodDefinition) -> None:
     """
-    Manually register a method definition.
-    Used for initial population and by @register_service_method decorator.
+    Register a method definition.
     
     Args:
         method_name: Unique method identifier
@@ -282,10 +447,7 @@ def register_method(method_name: str, method_def: ManagedMethodDefinition) -> No
         logger.warning(f"Method '{method_name}' already registered, overwriting")
     
     MANAGED_METHODS[method_name] = method_def
-    logger.info(
-        f"Registered method: {method_name} "
-        f"({method_def.metadata.service_name})"
-    )
+    logger.info(f"Registered method: {method_name} ({method_def.implementation_class})")
 
 
 def unregister_method(method_name: str) -> bool:
@@ -325,56 +487,19 @@ def export_methods_by_service() -> Dict[str, List[Dict[str, Any]]]:
     """
     by_service = defaultdict(list)
     for method_def in MANAGED_METHODS.values():
-        service = method_def.metadata.service_name
+        service = method_def.implementation_class
         by_service[service].append(method_def.to_yaml_compatible())
     return dict(by_service)
 
 
-def get_deprecated_methods(include_disabled: bool = False) -> List[Dict[str, Any]]:
+def get_deprecated_methods() -> List[Dict[str, Any]]:
     """
-    Get all deprecated methods with deprecation metadata.
-    
-    Used for:
-    - Generating deprecation reports
-    - Warning users about upcoming removals
-    - Planning migration strategies
-    
-    Args:
-        include_disabled: Whether to include disabled methods
-        
-    Returns:
-        List of dicts with deprecation info:
-        {
-            "name": "method_name",
-            "service": "ServiceName",
-            "deprecated_since": "1.5.0",
-            "removal_version": "2.0.0",
-            "replacement": "new_method_name",
-            "message": "Use new_method_name for better performance"
-        }
+    DEPRECATED FUNCTION - No longer supported.
+    Deprecation metadata removed in slim refactor.
+    Returns empty list for backwards compatibility.
     """
-    deprecated = []
-    
-    for method_name, method_def in MANAGED_METHODS.items():
-        rules = method_def.business_rules
-        
-        if not rules.deprecated:
-            continue
-            
-        if not include_disabled and not rules.enabled:
-            continue
-        
-        deprecated.append({
-            "name": method_name,
-            "service": method_def.metadata.service_name,
-            "domain": method_def.metadata.domain,
-            "deprecated_since": rules.deprecated_since,
-            "removal_version": rules.removal_version,
-            "replacement": rules.replacement_method,
-            "message": rules.deprecation_message
-        })
-    
-    return deprecated
+    logger.warning("get_deprecated_methods() called but deprecation tracking removed")
+    return []
 
 
 def validate_yaml_compatibility(yaml_path: str) -> Dict[str, Any]:

@@ -19,13 +19,15 @@
 # tags:           list[string] (default [])
 # metadata:       map (optional) - arbitrary key/value annotations
 #
-# classification: # ✅ systematic tool organization and discovery
+# classification: # ✅ systematic tool organization and discovery (optional when method_name specified)
 #   domain:             enum [communication, workspace, automation, utilities] (required)
 #   subdomain:          string (required) - specific area within domain
 #   capability:         enum [create, read, update, delete, process, search] (required)
 #   complexity:         enum [atomic, composite, pipeline] (required)
 #   maturity:           enum [experimental, beta, stable, deprecated] (required)
 #   integration_tier:   enum [internal, external, hybrid] (required)
+#   # Note: When implementation.method_name is specified, classification is inherited from method
+#   #       and these fields become optional overrides
 #
 # business_rules:
 #   enabled:                  bool (default true)
@@ -50,7 +52,7 @@
 #   enforce_access_control:   bool (default true)
 #   audit_casefile_changes:   bool (default true)
 #
-# parameters:   # list of parameter definitions (at least one item)
+# parameters:   # list of parameter definitions (optional when method_name specified)
 #   - name:        string (required)
 #     type:        enum [string, integer, float, boolean, array, object] (required)
 #     description: string (required)
@@ -69,9 +71,20 @@
 #     items:       map    (optional, for nested schemas)
 #     properties:  map    (optional, for object parameters)
 #     examples:    list   (optional, sample values)
+#   # Note: When implementation.method_name is specified, parameters are inherited from method
+#   #       and this section becomes optional. Use parameter_overrides to customize.
+#
+# parameter_overrides: # (optional) customize inherited parameters when using method_name
+#   - name:        string (required) - must match inherited parameter name
+#     description: string (optional) - override parameter description
+#     required:    bool (optional) - override required flag
+#     default:     any (optional) - override default value
+#     # Can override any constraint field from parameters schema
 #
 # implementation:   # descriptive definition of how the tool executes
-#   type: enum [simple, api_call, data_transform, composite]
+#   type: enum [simple, api_call, data_transform, composite, method_wrapper]
+#   method_name: string (optional) - references method in MANAGED_METHODS registry
+#                                     When specified, tool inherits parameters/classification from method
 #
 #   simple:  # used when type == simple
 #     logic: |
@@ -99,6 +112,11 @@
 #         inputs: map   # maps current context to sub-tool parameters
 #         on_success: map (optional)
 #         on_failure: map (optional)
+#
+#   method_wrapper:  # wraps a method from MANAGED_METHODS registry
+#     method_name: string  # name of method in registry (e.g., "create_casefile")
+#     # Tool inherits parameters from method's request_model_class
+#     # Tool can override specific parameters via parameter_overrides
 #
 # returns:  # description of tool output aligned with audit records
 #   type: string  # JSON schema type (object, array, string, etc.)
