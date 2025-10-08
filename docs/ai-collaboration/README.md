@@ -1,6 +1,6 @@
 # AI Collaboration Documentation
 
-*Last updated: October 7, 2025*
+*Last updated: October 8, 2025*
 
 This directory contains comprehensive documentation for effective AI-assisted development practices, prompt engineering, and conversation standards used in this repository.
 
@@ -27,12 +27,12 @@ This documentation serves to:
 
 ### For New Contributors
 1. Read [AI Conversation Practices](./practices/conversation-practices.md)
-2. Review [Prompt Templates](./prompts/templates.md)
-3. Check [Development Workflows](./workflows/ai-assisted-development.md)
+2. Review [Prompt Templates](./prompts/README.md)
+3. Check [Develop Branch Guide](./workflows/develop-branch-guide.md)
 
 ### For AI Assistants
-1. Review [Assistant Guidelines](./practices/assistant-guidelines.md)
-2. Understand [Code Standards](./practices/code-standards.md)
+1. Review [GitHub Copilot Instructions](../../.github/copilot-instructions.md)
+2. Check [AI Worksession Quickstart](../../AI_WORKSESSION_QUICKSTART.md)
 3. Follow [Quality Assurance](./workflows/quality-assurance.md)
 
 ## 📋 Key Principles
@@ -102,7 +102,7 @@ Each branch should include:
 
 ## 📚 Related Documentation
 
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - General contribution guidelines
-- [TOOL_GENERATION_WORKFLOW.md](../TOOL_GENERATION_WORKFLOW.md) - Tool development practices
-- [docs/methods/](../methods/) - API documentation
-- [docs/registry/](../registry/) - System architecture documentation
+- [AI Assistant Knowledge Base](../../AI_ASSISTANT_KNOWLEDGE_BASE.md) - Comprehensive repository guide
+- [Tool Generation Workflow](../../TOOL_GENERATION_WORKFLOW.md) - Tool development practices
+- [Methods Documentation](../methods/) - API documentation
+- [Registry Documentation](../registry/) - System architecture documentation

@@ -1,6 +1,6 @@
 # Documentation Index
 
-*Last updated: October 7, 2025*
+*Last updated: October 8, 2025*
 
 Welcome to the my-tiny-data-collider documentation. This repository contains comprehensive documentation for the Python-based data processing and AI integration platform.
 
@@ -24,12 +24,12 @@ Welcome to the my-tiny-data-collider documentation. This repository contains com
 ### Developers
 1. Review [Service Methods](./methods/README.md) for API reference
 2. Check [Tool Generation Workflow](../TOOL_GENERATION_WORKFLOW.md)
-3. Read [Contributing Guidelines](../CONTRIBUTING.md)
+3. Read [AI Assistant Knowledge Base](../AI_ASSISTANT_KNOWLEDGE_BASE.md)
 4. Explore [System Architecture](./registry/README.md)
 
 ### AI Assistants
-1. Review [Assistant Guidelines](./ai-collaboration/practices/assistant-guidelines.md)
-2. Understand [Code Standards](./ai-collaboration/practices/code-standards.md)
+1. Review [AI Worksession Quickstart](../AI_WORKSESSION_QUICKSTART.md)
+2. Check [GitHub Copilot Instructions](../.github/copilot-instructions.md)
 3. Follow [Quality Assurance](./ai-collaboration/workflows/quality-assurance.md)
 
 ## 🎯 Key Topics
