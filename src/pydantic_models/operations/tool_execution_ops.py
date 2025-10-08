@@ -71,7 +71,7 @@ class ToolResponse(BaseResponse[ToolResponsePayload]):
 # ============================================================================
 
 class ChatMessagePayload(BaseModel):
-    """Payload for a chat message."""
+    """Canonical chat message structure (data entity, not request payload)."""
     content: str = Field(..., description="Message content")
     message_type: MessageType = Field(..., description="Type of message")
     tool_calls: List[Dict[str, Any]] = Field(default_factory=list, description="Tool calls in this message")
@@ -79,18 +79,26 @@ class ChatMessagePayload(BaseModel):
     casefile_id: Optional[str] = Field(None, description="Associated casefile ID")
 
 
-class ChatResponsePayload(BaseModel):
-    """Payload for a chat response."""
-    message: ChatMessagePayload
-    related_messages: List[ChatMessagePayload] = Field(default_factory=list, description="Related messages")
+class ChatRequestPayload(BaseModel):
+    """Payload for chat message request (operation parameters)."""
+    message: str = Field(..., description="User message content")
+    session_id: str = Field(..., description="Chat session ID")
+    casefile_id: Optional[str] = Field(None, description="Optional casefile context")
+    session_request_id: Optional[str] = Field(None, description="Client-provided session request ID for tracking")
+
+
+class ChatResultPayload(BaseModel):
+    """Payload for chat message response (operation result)."""
+    message: ChatMessagePayload = Field(..., description="Assistant's response message")
+    related_messages: List[ChatMessagePayload] = Field(default_factory=list, description="Related messages in conversation")
     events: List[Dict[str, Any]] = Field(default_factory=list, description="Events generated during processing")
 
 
-class ChatRequest(BaseRequest[ChatMessagePayload]):
+class ChatRequest(BaseRequest[ChatRequestPayload]):
     """Request to send a chat message."""
-    operation: Literal["chat_message"] = "chat_message"
+    operation: Literal["chat"] = "chat"
 
 
-class ChatResponse(BaseResponse[ChatResponsePayload]):
+class ChatResponse(BaseResponse[ChatResultPayload]):
     """Response to a chat message."""
-    session_request_id: Optional[str] = Field(None, description="Session request ID")
+    pass
