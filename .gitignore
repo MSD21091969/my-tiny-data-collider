@@ -41,6 +41,10 @@ ENV/
 logs/
 *.log
 
+# AppMap files
+tmp/appmap/
+appmap.log
+
 # Coverage reports
 htmlcov/
 .tox/

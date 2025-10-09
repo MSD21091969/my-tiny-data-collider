@@ -1,6 +1,0 @@
-[
-  {
-    "caller": "secrets.token_hex",
-    "callee": "secrets.token_bytes"
-  }
-]
