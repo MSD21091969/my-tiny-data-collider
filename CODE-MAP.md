@@ -1,92 +1,63 @@
-﻿# CODE MAP - my-tiny-data-collider
+﻿# CODE MAP
 
-**Purpose:** Hierarchical navigation reflecting folder structure  
-**Last Updated:** October 9, 2025 at 18:00  
-**Tags:** #documentation #navigation
+**Updated:** October 9, 2025 at 18:20
 
 ---
 
 ## Root Structure
 
-### [[src/.foam-note.md|src/]] - Source Code Root
-Navigate into:
-- [[src/authservice/.foam-note.md|authservice/]] - Authentication and token management
-- [[src/casefileservice/.foam-note.md|casefileservice/]] - Casefile CRUD operations
-- [[src/communicationservice/.foam-note.md|communicationservice/]] - External communication (Gmail)
-- [[src/coreservice/.foam-note.md|coreservice/]] - Request orchestration (RequestHub)
-- [[src/tool_sessionservice/.foam-note.md|tool_sessionservice/]] - Tool session lifecycle
+### [[src/.foam-note.md|src/]]
+- [[src/authservice/.foam-note.md|authservice/]] - Authentication, JWT tokens
+- [[src/casefileservice/.foam-note.md|casefileservice/]] - Casefile CRUD
+- [[src/communicationservice/.foam-note.md|communicationservice/]] - Gmail integration
+- [[src/coreservice/.foam-note.md|coreservice/]] - RequestHub orchestrator
+- [[src/tool_sessionservice/.foam-note.md|tool_sessionservice/]] - Session lifecycle
 - [[src/persistence/.foam-note.md|persistence/]] - Database adapters
-- [[src/pydantic_ai_integration/.foam-note.md|pydantic_ai_integration/]] - Tool generation pipeline
-  - [[src/pydantic_ai_integration/tools/.foam-note.md|tools/]] - Generated tool code
-- [[src/pydantic_api/.foam-note.md|pydantic_api/]] - FastAPI application
+- [[src/pydantic_ai_integration/.foam-note.md|pydantic_ai_integration/]] - Tool generation
+  - [[src/pydantic_ai_integration/tools/.foam-note.md|tools/]] - Generated code
+- [[src/pydantic_api/.foam-note.md|pydantic_api/]] - FastAPI app
   - [[src/pydantic_api/routers/.foam-note.md|routers/]] - HTTP endpoints
-- [[src/pydantic_models/.foam-note.md|pydantic_models/]] - Data model hierarchy
-  - [[src/pydantic_models/base/.foam-note.md|base/]] - L0: Base infrastructure
+- [[src/pydantic_models/.foam-note.md|pydantic_models/]] - 6-layer models
+  - [[src/pydantic_models/base/.foam-note.md|base/]] - L0: BaseRequest/BaseResponse
   - [[src/pydantic_models/workspace/.foam-note.md|workspace/]] - L1: Business payloads
   - [[src/pydantic_models/operations/.foam-note.md|operations/]] - L2: Request/Response DTOs
   - [[src/pydantic_models/canonical/.foam-note.md|canonical/]] - External API models
-  - [[src/pydantic_models/views/.foam-note.md|views/]] - UI/API views
+  - [[src/pydantic_models/views/.foam-note.md|views/]] - UI views
 
-### [[config/.foam-note.md|config/]] - Configuration Root
-Navigate into:
+### [[config/.foam-note.md|config/]]
+- `methods_inventory_v1.yaml` - 26 methods
+- `models_inventory_v1.yaml` - 124 models
+- `tool_schema_v2.yaml` - Tool schema
 - [[config/toolsets/.foam-note.md|toolsets/]] - YAML tool definitions
-  - `core/` - Core tools
-  - `workflows/` - Workflow tools
-  - `helpers/` - Utility tools
-  - `prototypes/` - Experimental tools
 
 ---
 
-## Service Color Legend (md-graph)
-
-**Services in src/:**
-- #authservice - Authentication
-- #casefileservice - Casefile management
-- #communicationservice - External communication
-- #coreservice - Request orchestration
-- #tool_sessionservice - Session management
-
-**Integration Layers:**
-- #pydantic_api - HTTP/FastAPI
-- #pydantic_ai_integration - Tool generation
-- #pydantic_models - Data models
-
-**Subdirectories:**
-- #base - Base models (L0)
-- #workspace - Business models (L1)
-- #operations - DTOs (L2)
-- #canonical - External models
-- #views - View models
-- #routers - API routes
-- #tools - Generated tools
-- #toolsets - YAML definitions
-
-**Storage:**
-- #persistence - Database adapters
-- #config - Configuration files
-
----
-
-## Key Integration Points
+## Flow Diagrams
 
 ### Request Flow
-HTTP → [[src/pydantic_api/.foam-note.md|pydantic_api/]] → [[src/coreservice/.foam-note.md|coreservice/]] (RequestHub) → Services
+```
+HTTP → pydantic_api/ → coreservice/ (RequestHub) → Services
+```
 
-### Tool Generation Pipeline
-[[config/toolsets/.foam-note.md|toolsets/]] → generate_tools.py → [[src/pydantic_ai_integration/tools/.foam-note.md|tools/]]
+### Tool Generation
+```
+toolsets/*.yaml → generate_tools.py → tools/generated/*.py
+```
 
 ### Model Layers
-[[src/pydantic_models/base/.foam-note.md|base/]] → [[src/pydantic_models/workspace/.foam-note.md|workspace/]] → [[src/pydantic_models/operations/.foam-note.md|operations/]]
+```
+base/ → workspace/ → operations/
+```
 
 ---
 
-## Navigation Instructions
+## Key Files
 
-1. **Start at root**: [[src/.foam-note.md|src/]] or [[config/.foam-note.md|config/]]
-2. **Navigate down**: Click folder links (e.g., [[src/coreservice/.foam-note.md|coreservice/]])
-3. **Navigate up**: Use "Up:" links in each foam note
-4. **Related items**: Use "Related:" links for cross-references
-5. **Dependencies**: Check "Dependencies:" for integration points
+- `src/coreservice/request_hub.py` - Central orchestrator
+- `config/methods_inventory_v1.yaml` - 26 methods
+- `config/models_inventory_v1.yaml` - 124 models
+- `tests/integration/test_request_hub_fastapi.py` - 8/8 tests passing
+
 
 ---
 
