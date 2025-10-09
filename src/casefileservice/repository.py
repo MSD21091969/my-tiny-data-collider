@@ -2,7 +2,7 @@
 Repository for casefile data persistence (Firestore only).
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 import os
 import logging
 
@@ -16,7 +16,30 @@ class CasefileRepository:
     
     def __init__(self):
         """Initialize the repository."""
-        self._init_firestore()
+        self.mode = os.environ.get("CASEFILE_REPOSITORY_MODE", "firestore").lower()
+        self._store: Dict[str, CasefileModel] = {}
+
+        if self.mode == "memory":
+            logger.info("CasefileRepository running in in-memory mode")
+            return
+
+        try:
+            self._init_firestore()
+        except ModuleNotFoundError as exc:
+            logger.warning(
+                "Firebase Admin SDK not available (%s); falling back to in-memory repository",
+                exc,
+            )
+            self.mode = "memory"
+        except Exception as exc:  # pragma: no cover - defensive logging for environments without Firestore
+            logger.warning(
+                "Failed to initialize Firestore repository (%s); falling back to in-memory repository",
+                exc,
+            )
+            self.mode = "memory"
+
+        if self.mode == "memory":
+            logger.info("CasefileRepository initialized with in-memory backend after Firestore failure")
     
     def _init_firestore(self):
         """Initialize Firestore client."""
@@ -65,6 +88,11 @@ class CasefileRepository:
         Returns:
             ID of the created casefile
         """
+        if self.mode == "memory":
+            stored = casefile.model_copy(deep=True)
+            self._store[stored.id] = stored
+            return stored.id
+
         casefile_id = casefile.id  # Now it's already a string
 
         # Convert to dict for Firestore
@@ -84,6 +112,11 @@ class CasefileRepository:
         Returns:
             The casefile, or None if not found
         """
+        if self.mode == "memory":
+            if casefile_id not in self._store:
+                return None
+            return self._store[casefile_id].model_copy(deep=True)
+
         doc = self.casefiles_collection.document(casefile_id).get()
         if doc.exists:
             # Convert back to CasefileModel
@@ -101,6 +134,10 @@ class CasefileRepository:
         Args:
             casefile: The casefile to update
         """
+        if self.mode == "memory":
+            self._store[casefile.id] = casefile.model_copy(deep=True)
+            return
+
         # Convert to dict for Firestore
         casefile_dict = casefile.model_dump(exclude_none=True)
         casefile_dict["session_ids"] = list(casefile.session_ids)
@@ -116,6 +153,24 @@ class CasefileRepository:
         Returns:
             List of casefile summaries
         """
+        if self.mode == "memory":
+            summaries: List[CasefileSummary] = []
+            for stored in self._store.values():
+                if user_id and stored.metadata.created_by != user_id:
+                    continue
+                summaries.append(
+                    CasefileSummary(
+                        casefile_id=stored.id,
+                        title=stored.metadata.title,
+                        description=stored.metadata.description,
+                        tags=stored.metadata.tags,
+                        created_at=stored.metadata.created_at,
+                        resource_count=stored.resource_count,
+                        session_count=len(stored.session_ids),
+                    )
+                )
+            return summaries
+
         # Build query
         query = self.casefiles_collection
         if user_id:
@@ -159,6 +214,9 @@ class CasefileRepository:
         Returns:
             Whether deletion was successful
         """
+        if self.mode == "memory":
+            return self._store.pop(casefile_id, None) is not None
+
         try:
             self.casefiles_collection.document(casefile_id).delete()
             return True

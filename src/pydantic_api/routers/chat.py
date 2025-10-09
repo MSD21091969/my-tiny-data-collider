@@ -5,8 +5,8 @@ Router for chat API endpoints.
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, Any, Optional
 
-from ...communicationservice.service import CommunicationService
-from ...pydantic_models.operations.chat_session_ops import (
+from communicationservice.service import CommunicationService
+from pydantic_models.operations.chat_session_ops import (
     CloseChatSessionRequest,
     CloseChatSessionResponse,
     CreateChatSessionRequest,
@@ -16,8 +16,8 @@ from ...pydantic_models.operations.chat_session_ops import (
     ListChatSessionsRequest,
     ListChatSessionsResponse,
 )
-from ...pydantic_models.base.envelopes import RequestEnvelope
-from ...authservice import get_current_user
+from pydantic_models.base.envelopes import RequestEnvelope
+from authservice import get_current_user
 
 router = APIRouter(
     prefix="/api/chat",
@@ -94,11 +94,11 @@ async def send_message(
     message_data = request.request
     message_data["session_id"] = session_id
     
+    from pydantic_models.operations.tool_execution_ops import ChatRequest, ChatMessagePayload
+    from pydantic_models.canonical.chat_session import MessageType
+    
     try:
         # Construct the chat request
-        from ...pydantic_models.operations.tool_execution_ops import ChatRequest, ChatMessagePayload
-        from ...pydantic_models.canonical.chat_session import MessageType
-        
         # The user message comes in the request payload
         content = message_data.get("content", "")
         message_type = message_data.get("message_type", MessageType.USER)

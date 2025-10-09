@@ -126,21 +126,21 @@ async def {{ tool.name }}(
     {% set api = tool.implementation.api_call %}
     {% set method_meta = api._method_metadata %}
     {% if method_meta %}
-    # Import method's request/response models
-    from {{ method_meta.module_path }} import {{ method_meta.service_class or method_meta.service_name }}
-    {% if method_meta.request_model %}
-    from {{ api.models_module or method_meta.module_path.replace('.service', '.models') }} import {{ method_meta.request_model }}
+    # Import method's service class
+    from {{ method_meta['module_path'] }} import {{ method_meta['implementation_class'] }}
+    {% if method_meta['request_model'] and method_meta.get('models_module') %}
+    from {{ method_meta['models_module'] }} import {{ method_meta['request_model'] }}
     {% endif %}
-    {% if method_meta.response_model %}
-    from {{ api.models_module or method_meta.module_path.replace('.service', '.models') }} import {{ method_meta.response_model }}
+    {% if method_meta['response_model'] and method_meta.get('models_module') %}
+    from {{ method_meta['models_module'] }} import {{ method_meta['response_model'] }}
     {% endif %}
     
     # Initialize service (dependency injection will provide actual instance)
-    service = {{ method_meta.service_class or method_meta.service_name }}()
+    service = {{ method_meta['implementation_class'] }}()
     
     # Build request using method's DTO
-    {% if method_meta.request_model %}
-    request = {{ method_meta.request_model }}(
+    {% if method_meta['request_model'] %}
+    request = {{ method_meta['request_model'] }}(
         user_id=ctx.user_id,
         session_id=ctx.session_id,
         context=ctx.model_dump(),
@@ -160,8 +160,8 @@ async def {{ tool.name }}(
     )
     {% endif %}
     
-    # Extract result from response using method's DTO
-    {% if method_meta.response_model %}
+    #Extract result from response using method's DTO
+    {% if method_meta.get('response_model') %}
     result = response.payload.model_dump() if hasattr(response.payload, 'model_dump') else response.payload
     {% else %}
     result = response.model_dump() if hasattr(response, 'model_dump') else response
@@ -169,12 +169,14 @@ async def {{ tool.name }}(
     
     {% else %}
     # Fallback: manual API call implementation (for tools without method inheritance)
-    {% set service_class = api.service_class or api.client_class %}
-    {% set module_path = api.module_path or api.client_module %}
-    {% set request_model = api.request_model or api.request_type %}
+    {% set service_class = api.get('service_class') or api.get('client_class') or api.get('service') %}
+    {% set module_path = api.get('module_path') or api.get('client_module') or 'coreservice.request_hub' %}
+    {% set request_model = api.get('request_model') or api.get('request_type') %}
+    {% if service_class and module_path %}
     from {{ module_path }} import {{ service_class }}
     {% if request_model %}
-    from {{ api.models_module or module_path.replace('.service', '.models') }} import {{ request_model }}
+    {% set models_mod = api.get('models_module') or module_path.replace('.service', '.models') %}
+    from {{ models_mod }} import {{ request_model }}
     {% endif %}
     
     # Initialize service/client (no parameters - services use dependency injection)
@@ -192,17 +194,22 @@ async def {{ tool.name }}(
             {% endfor %}
         }
     )
-    response = await service.{{ api.method_name }}(request=request)
+    response = await service.{{ api.get('method_name', 'execute') }}(request=request)
     {% else %}
-    response = await service.{{ api.method_name }}(
+    # No request model - call method directly with parameters
+    response = await service.{{ api.get('method_name', 'execute') }}(**{
         {% for param in tool.parameters %}
-        {{ param.name }}={{ param.name }}{% if not loop.last %},{% endif %}
+        "{{ param.name }}": {{ param.name }}{% if not loop.last %},{% endif %}
         {% endfor %}
-    )
+    })
     {% endif %}
     
-    # Extract payload from BaseResponse envelope
-    result = response.payload.model_dump() if hasattr(response.payload, 'model_dump') else response.payload
+    # Extract result
+    result = response.model_dump() if hasattr(response, 'model_dump') else response
+    {% else %}
+    # ERROR: Missing required service/module information in api_call
+    raise ValueError("API call configuration missing service_class and module_path")
+    {% endif %}
     {% endif %}
     
     {% else %}

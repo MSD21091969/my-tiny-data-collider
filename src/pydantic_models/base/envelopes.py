@@ -8,7 +8,7 @@ These generic envelope models provide consistent structure for all operations:
 """
 
 from pydantic import BaseModel, Field, computed_field
-from typing import Dict, Any, Generic, TypeVar, Optional
+from typing import Dict, Any, Generic, TypeVar, Optional, List
 from uuid import UUID, uuid4
 from datetime import datetime
 
@@ -28,6 +28,22 @@ class BaseRequest(BaseModel, Generic[RequestPayloadT]):
     payload: RequestPayloadT = Field(..., description="Request payload")
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Request timestamp")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata for the request")
+    context_requirements: List[str] = Field(
+        default_factory=list,
+        description="Optional context requirements for RequestHub (e.g., ['mds_context', 'casefile']).",
+    )
+    hooks: List[str] = Field(
+        default_factory=list,
+        description="Optional list of hook identifiers RequestHub should execute for this request.",
+    )
+    policy_hints: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional policy hints that pattern loaders can use to customize orchestration.",
+    )
+    route_directives: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional route-level directives (e.g., {'emit_metrics': True}).",
+    )
     
     @computed_field
     def operation_key(self) -> str:

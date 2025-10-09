@@ -28,6 +28,23 @@ import re
 logger = logging.getLogger(__name__)
 
 
+# Service class to module path mapping
+SERVICE_MODULE_MAP = {
+    "CasefileService": "casefileservice.service",
+    "ToolSessionService": "tool_sessionservice.service",
+    "CommunicationService": "communicationservice.service",
+    "RequestHub": "coreservice.request_hub",
+}
+
+# Service class to models module mapping
+SERVICE_MODELS_MAP = {
+    "CasefileService": "pydantic_models.operations.casefile_ops",
+    "ToolSessionService": "pydantic_models.operations.tool_session_ops",
+    "CommunicationService": "pydantic_models.operations.communication_ops",
+    "RequestHub": "pydantic_models.operations.casefile_ops",  # RequestHub uses casefile ops
+}
+
+
 # Type mapping from YAML types to Python types
 TYPE_MAPPING = {
     "string": "str",
@@ -162,21 +179,32 @@ class ToolFactory:
                 if validate_method_exists(method_name):
                     # Enrich with method metadata
                     method_def = get_method_definition(method_name)
+                    
+                    # Get module paths from service class
+                    service_class = method_def.implementation_class
+                    module_path = SERVICE_MODULE_MAP.get(service_class, f"src.{service_class.lower()}")
+                    models_module = SERVICE_MODELS_MAP.get(service_class)
+                    
                     api_call["_method_metadata"] = {
-                        "service_name": method_def.metadata.service_name,
-                        "module_path": method_def.metadata.module_path,
-                        "request_model": method_def.models.request_model_name,
-                        "response_model": method_def.models.response_model_name,
-                        "required_permissions": method_def.business_rules.required_permissions,
-                        "requires_casefile": method_def.business_rules.requires_casefile,
+                        "implementation_class": method_def.implementation_class,
+                        "implementation_method": method_def.implementation_method,
+                        "module_path": module_path,  # Added for template compatibility
+                        "models_module": models_module,  # Added for imports
+                        "request_model": method_def.request_model_class.__name__ if method_def.request_model_class else None,
+                        "response_model": method_def.response_model_class.__name__ if method_def.response_model_class else None,
+                        "domain": method_def.domain,
+                        "subdomain": method_def.subdomain,
                     }
                     
                     # INHERIT PARAMETERS FROM METHOD DEFINITION
                     # This eliminates duplicate parameter definitions in tool YAML
                     if not config.get('parameters'):
-                        # Auto-populate parameters from method definition
+                        # Auto-populate parameters from method definition using registry API
+                        from ...method_registry import get_method_parameters
                         config['parameters'] = []
-                        for param_def in method_def.parameters:
+                        method_params = get_method_parameters(method_name)
+                        
+                        for param_def in method_params:
                             param_config = {
                                 'name': param_def.name,
                                 'type': _map_param_type_to_yaml(param_def.param_type),
@@ -200,31 +228,12 @@ class ToolFactory:
                             
                             config['parameters'].append(param_config)
                         
-                        logger.info(f"  ✓ Inherited {len(config['parameters'])} parameters from method '{method_name}'")
+                        logger.info(f"  Inherited {len(config['parameters'])} parameters from method '{method_name}'")
                     
-                    # INHERIT BUSINESS RULES FROM METHOD DEFINITION
-                    # This ensures tool-method synchronization
-                    if not config.get('business_rules'):
-                        config['business_rules'] = {}
+                    # Note: Business rules now live in Request DTOs (R-A-R pattern)
+                    # No need to inherit them here - they're enforced at RequestHub level
                     
-                    business_rules = config['business_rules']
-                    method_rules = method_def.business_rules
-                    
-                    # Inherit permissions if not specified
-                    if not business_rules.get('required_permissions'):
-                        business_rules['required_permissions'] = method_rules.required_permissions
-                    
-                    # Inherit casefile requirements if not specified
-                    if 'requires_casefile' not in business_rules:
-                        business_rules['requires_casefile'] = method_rules.requires_casefile
-                    
-                    # Inherit timeout if not specified
-                    if 'timeout_seconds' not in business_rules:
-                        business_rules['timeout_seconds'] = method_rules.timeout_seconds
-                    
-                    logger.info(f"  ✓ Inherited business rules from method '{method_name}'")
-                    
-                    logger.info(f"  ✓ Method '{method_name}' found in MANAGED_METHODS registry")
+                    logger.info(f"  Method '{method_name}' found in MANAGED_METHODS registry")
                 else:
                     logger.warning(f"  ⚠ Method '{method_name}' not found in MANAGED_METHODS registry (will validate at generation)")
 
@@ -549,7 +558,7 @@ class ToolFactory:
         # Write tool file
         output_file = output_subdir / f"{config['name']}.py"
         
-        with open(output_file, 'w') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write(output)
         
         logger.info(f"Generated tool: {output_file.relative_to(self.project_root)}")
@@ -714,9 +723,9 @@ def generate_tools_cli():
     
     factory = ToolFactory()
     
-    print(f"\n🏭 Tool Factory Starting...")
-    print(f"📁 Config directory: {factory.config_dir}")
-    print(f"📁 Output directory: {factory.output_dir}")
+    print(f"\nTool Factory Starting...")
+    print(f"Config directory: {factory.config_dir}")
+    print(f"Output directory: {factory.output_dir}")
     print()
     
     if args.tool_name:
@@ -740,7 +749,7 @@ def generate_tools_cli():
         success = factory.process_tool(yaml_file, args.validate_only)
         print()
         print("=" * 60)
-        print(f"{'✅' if success else '❌'} {'Validated' if args.validate_only else 'Generated'}: {args.tool_name}")
+        print(f"{'SUCCESS' if success else 'FAILED'} {'Validated' if args.validate_only else 'Generated'}: {args.tool_name}")
         print("=" * 60)
         sys.exit(0 if success else 1)
     else:
@@ -749,9 +758,9 @@ def generate_tools_cli():
         print()
         print("=" * 60)
         success_count = sum(1 for v in results.values() if v)
-        print(f"✅ Successfully processed: {success_count}/{len(results)} tools")
+        print(f"SUCCESS: Successfully processed: {success_count}/{len(results)} tools")
         if success_count < len(results):
-            print(f"❌ Failed: {len(results) - success_count} tools")
+            print(f"FAILED: {len(results) - success_count} tools")
         print("=" * 60)
         sys.exit(0 if success_count == len(results) else 1)
 

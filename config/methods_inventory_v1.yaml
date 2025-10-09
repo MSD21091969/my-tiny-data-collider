@@ -425,7 +425,7 @@ services:
           requires_casefile: false
           timeout_seconds: 30
         signature: "async def create_session(self, request: CreateSessionRequest) -> CreateSessionResponse"
-      
+
       - name: get_session
         description: "Retrieve tool session by ID"
         classification:
@@ -511,6 +511,58 @@ services:
           timeout_seconds: 60
         dependencies: ["MANAGED_TOOLS registry"]
         signature: "async def process_tool_request(self, request: ToolRequest) -> ToolResponse"
+
+  # ============================================================================
+  # REQUEST HUB SERVICE (2 methods)
+  # ============================================================================
+  
+  - name: RequestHubService
+    module: src.coreservice.request_hub
+    description: "RequestHub orchestration bridging R-A-R and Tool Engineering"
+    method_count: 2
+    
+    methods:
+      - name: execute_casefile
+        description: "Create casefile through RequestHub with hook support"
+        classification:
+          domain: workspace
+          subdomain: casefile
+          capability: create
+          complexity: atomic
+          maturity: experimental
+          integration_tier: internal
+        models:
+          request: CreateCasefileRequest
+          response: CreateCasefileResponse
+          module: src.pydantic_models.operations.casefile_ops
+        business_rules:
+          enabled: true
+          requires_auth: true
+          required_permissions: ["casefiles:write"]
+          requires_casefile: false
+          timeout_seconds: 30
+        signature: "async def execute_casefile(request: CreateCasefileRequest) -> CreateCasefileResponse"
+      
+      - name: execute_casefile_with_session
+        description: "Composite workflow creating a casefile and tool session"
+        classification:
+          domain: workspace
+          subdomain: casefile
+          capability: create
+          complexity: composite
+          maturity: experimental
+          integration_tier: internal
+        models:
+          request: CreateCasefileWithSessionRequest
+          response: CreateCasefileWithSessionResponse
+          module: src.pydantic_models.operations.request_hub_ops
+        business_rules:
+          enabled: true
+          requires_auth: true
+          required_permissions: ["casefiles:write", "tool_sessions:write"]
+          requires_casefile: false
+          timeout_seconds: 60
+        signature: "async def execute_casefile_with_session(request: CreateCasefileWithSessionRequest) -> CreateCasefileWithSessionResponse"
 
   # ============================================================================
   # COMMUNICATION SERVICE (6 methods)

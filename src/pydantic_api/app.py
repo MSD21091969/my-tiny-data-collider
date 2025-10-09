@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 
 from .routers import tool_session, casefile
-from ..coreservice.config import get_environment
-from ..authservice.routes import router as auth_router
+from coreservice.config import get_environment
+from authservice.routes import router as auth_router
 
 # Import the chat router conditionally to handle potential missing module
 try:

@@ -5,10 +5,12 @@ Casefile API router.
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 
-from ...casefileservice import CasefileService
-from ...pydantic_models.operations.casefile_ops import (
+from casefileservice import CasefileService
+from coreservice.request_hub import RequestHub
+from pydantic_models.operations.casefile_ops import (
     CreateCasefileRequest,
     CreateCasefileResponse,
+    CreateCasefilePayload,
     DeleteCasefileRequest,
     DeleteCasefileResponse,
     GetCasefileRequest,
@@ -24,7 +26,7 @@ from ...pydantic_models.operations.casefile_ops import (
     RevokePermissionRequest,
     CheckPermissionRequest,
 )
-from ...authservice import get_current_user
+from authservice import get_current_user
 
 router = APIRouter(
     prefix="/casefiles",
@@ -35,6 +37,10 @@ router = APIRouter(
 def get_casefile_service() -> CasefileService:
     """Get an instance of the CasefileService."""
     return CasefileService()
+
+def get_request_hub() -> RequestHub:
+    """Get an instance of RequestHub for orchestrated workflows."""
+    return RequestHub()
 
 @router.post("/", response_model=CreateCasefileResponse)
 async def create_casefile(
@@ -58,6 +64,67 @@ async def create_casefile(
     )
     
     return await service.create_casefile(request)
+
+@router.post("/hub", response_model=CreateCasefileResponse)
+async def create_casefile_via_hub(
+    title: str,
+    description: str = "",
+    tags: Optional[List[str]] = None,
+    enable_hooks: bool = True,
+    hub: RequestHub = Depends(get_request_hub),
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> CreateCasefileResponse:
+    """Create a new casefile via RequestHub with hook execution and context enrichment.
+    
+    This endpoint demonstrates the RequestHub pattern:
+    - Automatic hook execution (metrics, audit)
+    - Context enrichment (session data)
+    - Policy-driven orchestration
+    - Hook metadata in response
+    
+    Args:
+        title: Casefile title
+        description: Optional description
+        tags: Optional tags list
+        enable_hooks: Enable hook execution (metrics, audit)
+        hub: RequestHub instance (injected)
+        current_user: Current authenticated user (injected)
+        
+    Returns:
+        CreateCasefileResponse with hook metadata in response.metadata
+    """
+    user_id = current_user["user_id"]
+    session_id = current_user.get("session_id")
+    
+    # Build request with RequestHub features
+    request = CreateCasefileRequest(
+        user_id=user_id,
+        session_id=session_id,
+        operation="create_casefile",
+        payload=CreateCasefilePayload(
+            title=title,
+            description=description,
+            tags=tags or []
+        ),
+        # RequestHub orchestration options
+        hooks=['metrics', 'audit'] if enable_hooks else [],
+        context_requirements=['session'] if session_id else [],
+        policy_hints={'pattern': 'default'},
+        metadata={
+            'source': 'fastapi',
+            'endpoint': '/casefiles/hub',
+            'hooks_enabled': enable_hooks
+        }
+    )
+    
+    # RequestHub orchestrates: validate, enrich context, execute, trigger hooks
+    response = await hub.dispatch(request)
+    
+    # Response includes hook metadata:
+    # - response.metadata['hook_events'] = list of hook executions
+    # - response.metadata['audit_log'] = audit trail entries
+    
+    return response
 
 @router.get("/{casefile_id}", response_model=GetCasefileResponse)
 async def get_casefile(

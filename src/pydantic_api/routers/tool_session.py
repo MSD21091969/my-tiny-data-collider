@@ -5,10 +5,10 @@ Tool session API router.
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List, Optional
 
-from ...tool_sessionservice import ToolSessionService
-from ...pydantic_models.operations.casefile_ops import GetCasefileRequest
-from ...pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
-from ...pydantic_models.operations.tool_session_ops import (
+from tool_sessionservice import ToolSessionService
+from pydantic_models.operations.casefile_ops import GetCasefileRequest
+from pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
+from pydantic_models.operations.tool_session_ops import (
     CloseSessionRequest,
     CloseSessionResponse,
     CreateSessionRequest,
@@ -18,14 +18,14 @@ from ...pydantic_models.operations.tool_session_ops import (
     ListSessionsRequest,
     ListSessionsResponse,
 )
-from ...pydantic_ai_integration.tool_decorator import (
+from pydantic_ai_integration.tool_decorator import (
     get_registered_tools,
     get_tool_definition,
     list_tools_by_category,
 )
 from ..dependencies import get_tool_session_service, verify_casefile_access
-from ...authservice import get_current_user
-from ...casefileservice import CasefileService
+from authservice import get_current_user
+from casefileservice import CasefileService
 
 router = APIRouter(
     prefix="/tool-sessions",
