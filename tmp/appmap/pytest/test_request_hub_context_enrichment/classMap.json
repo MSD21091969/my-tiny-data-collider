@@ -1,0 +1,26 @@
+[
+  {
+    "name": "secrets",
+    "type": "class",
+    "children": [
+      {
+        "name": "token_hex",
+        "type": "function",
+        "labels": [
+          "random.secure"
+        ],
+        "static": true,
+        "location": "C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\secrets.py:47"
+      },
+      {
+        "name": "token_bytes",
+        "type": "function",
+        "labels": [
+          "random.secure"
+        ],
+        "static": true,
+        "location": "C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\secrets.py:33"
+      }
+    ]
+  }
+]

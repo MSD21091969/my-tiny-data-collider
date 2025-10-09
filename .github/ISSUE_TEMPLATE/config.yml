@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Architecture Discussion
+    url: https://github.com/MSD21091969/my-tiny-data-collider/discussions
+    about: Discuss architectural decisions and design patterns
+  - name: Documentation
+    url: https://github.com/MSD21091969/my-tiny-data-collider/blob/develop/HANDOVER.md
+    about: Read current architecture and development state

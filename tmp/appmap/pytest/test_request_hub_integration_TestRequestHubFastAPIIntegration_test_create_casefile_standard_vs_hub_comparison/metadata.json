@@ -1,0 +1,36 @@
+{
+  "language": {
+    "name": "python",
+    "engine": "CPython",
+    "version": "3.13.5"
+  },
+  "client": {
+    "name": "appmap",
+    "url": "https://github.com/applandinc/appmap-python"
+  },
+  "git": {
+    "repository": "https://github.com/MSD21091969/my-tiny-data-collider.git",
+    "branch": "develop",
+    "commit": "5bda550d450b295ed9074344fd422357708044f1"
+  },
+  "frameworks": [
+    {
+      "name": "pytest",
+      "version": "8.2.0"
+    }
+  ],
+  "feature_group": "Request hub fast api integration",
+  "recording": {
+    "defined_class": "test_request_hub_integration.TestRequestHubFastAPIIntegration",
+    "method_id": "test_create_casefile_standard_vs_hub_comparison"
+  },
+  "source_location": "tests\\integration\\test_request_hub_integration.py:100",
+  "name": "Request hub fast api integration create casefile standard vs hub comparison",
+  "feature": "Create casefile standard vs hub comparison",
+  "app": "my-tiny-data-collider",
+  "recorder": {
+    "name": "pytest",
+    "type": "tests"
+  },
+  "test_status": "succeeded"
+}

@@ -1,0 +1,31 @@
+{
+  "language": {
+    "name": "python",
+    "engine": "CPython",
+    "version": "3.13.5"
+  },
+  "client": {
+    "name": "appmap",
+    "url": "https://github.com/applandinc/appmap-python"
+  },
+  "git": {
+    "repository": "https://github.com/MSD21091969/my-tiny-data-collider.git",
+    "branch": "develop",
+    "commit": "5bda550d450b295ed9074344fd422357708044f1"
+  },
+  "frameworks": [
+    {
+      "name": "pytest",
+      "version": "8.2.0"
+    }
+  ],
+  "source_location": "tests\\integration\\test_request_hub_fastapi.py:127",
+  "name": "request hub context enrichment",
+  "feature": "Request hub context enrichment",
+  "app": "my-tiny-data-collider",
+  "recorder": {
+    "name": "pytest",
+    "type": "tests"
+  },
+  "test_status": "succeeded"
+}
