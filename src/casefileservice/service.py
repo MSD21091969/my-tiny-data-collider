@@ -63,9 +63,9 @@ logger = logging.getLogger(__name__)
 class CasefileService:
     """Service for managing casefiles (Firestore only)."""
     
-    def __init__(self):
+    def __init__(self, repository: CasefileRepository | None = None):
         """Initialize the service."""
-        self.repository = CasefileRepository()
+        self.repository = repository or CasefileRepository()
         
     async def create_casefile(self, request: CreateCasefileRequest) -> CreateCasefileResponse:
         """Create a new casefile.

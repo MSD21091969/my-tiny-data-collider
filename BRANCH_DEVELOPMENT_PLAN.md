@@ -1,165 +1,143 @@
-# Branch Development Plan: feature/ai-method-integration
+# Branch Development Plan: feature/src-services-integration
 
-**Status:** Phase 1 Complete (October 10, 2025)
+**Status:** Milestone 1 Complete (October 11, 2025)
 
 ## Overview
 
-The `feature/ai-method-integration` branch implements comprehensive method calling integration and parameter handling to connect tool definitions with actual service methods.
+The `feature/src-services-integration` branch implements comprehensive DRY/DI (Don't Repeat Yourself / Dependency Injection) refactoring to establish a solid foundation for maintainable, testable service architecture.
 
 ## Background
 
-Tools defined in YAML previously returned execution plans but didn't call methods. Phase 1 implementation replaced placeholder responses with actual service method execution.
+The codebase had hardcoded service instantiation violations throughout, making testing difficult and maintainability poor. Milestone 1 established the core dependency injection framework with ServiceContainer and ServiceManager patterns.
 
 ## Key Files
 
-- `src/pydantic_ai_integration/tool_decorator.py`: Primary implementation file
-- `src/pydantic_ai_integration/tool_definition.py`: Tool definition structures
-- `src/pydantic_ai_integration/method_registry.py`: Method registration and lookup
+- `src/coreservice/service_container.py`: ServiceContainer and ServiceManager implementation
+- `src/casefileservice/service.py`: CasefileService with dependency injection
+- `src/tool_sessionservice/service.py`: ToolSessionService with dependency injection
+- `src/communicationservice/service.py`: CommunicationService with dependency injection
+- `src/coreservice/request_hub.py`: RequestHub refactored to use ServiceManager
+- `tests/coreservice/test_request_hub.py`: Updated tests for new architecture
 
-## Phase Status
+## Milestone Status
 
-### Phase 1: Core Implementation - COMPLETE
+### ✅ Milestone 1: Services Architecture Restructure - COMPLETE
 
-**Completed:**
-- YAML schema enhancement (simplified list-based approach)
-- Parameter mapping (method_params vs tool_params separation)
-- Service instantiation (simple pattern, DI-ready)
-- Request DTO building
-- Method execution (actual service calls)
-- Error handling (5 error types)
-- Dry run mode
-- Timeout handling
-- Comprehensive logging
-- Integration tests (13 tests, 7 modes)
+**Completed October 11, 2025:**
 
-**Location:** See IMPLEMENTATION.md for details
+- ServiceContainer with lazy instantiation and factory registration
+- ServiceManager for high-level service grouping and access
+- Dependency injection in all service classes (CasefileService, ToolSessionService, CommunicationService)
+- RequestHub refactoring to eliminate hardcoded service instantiation
+- Test updates to use ServiceManager-based constructor with fake services
+- Comprehensive integration testing (9/9 tests passing)
 
-### Phase 2: Enhancement - PLANNED
+**Benefits Achieved:**
 
-**Remaining:**
-- Service caching
-- Retry logic
-- Transform field in YAML (for complex mappings)
-- Test remaining 59 tools
-- Session-auth integration
+- DRY principles: Eliminated service instantiation violations
+- Testability: Services accept mock dependencies
+- Maintainability: Centralized service management
+- Modern Python: Updated to Python 3.9+ union syntax (`| None`)
 
-## Detailed Tasks
+### 🎯 Milestone 2: Dependency Injection Framework - READY TO IMPLEMENT
 
-### Task 1: Enhance Parameter Mapping in YAML Schema
+**Objectives:**
 
-**Objective:** Update the YAML schema to support detailed parameter mapping
+- Create centralized configuration management
+- Implement environment-specific service registration
+- Add service health checks and monitoring
+- Establish configuration-driven service instantiation
 
-**Steps:**
-1. Define schema for input parameter mapping
-2. Define schema for output parameter mapping
-3. Define schema for orchestration parameters
-4. Update schema validation
+**Key Components:**
 
-### Task 2: Implement Parameter Mapping Logic
+- Configuration loader for environment-specific settings
+- Service health check endpoints (`/health/services`)
+- Environment-aware service registration
+- Configuration validation and schema
 
-**Objective:** Create utilities to map between tool parameters and method parameters
+### 📋 Milestone 3: Service Discovery & Registry - PLANNED
 
-**Steps:**
-1. Implement `map_parameters` function
-2. Add transformation utilities
-3. Handle nested parameter structures
-4. Implement validation
+**Objectives:**
 
-### Task 3: Implement Service Instantiation
+- Implement dynamic service discovery
+- Create service registry with metadata
+- Add service versioning and compatibility
+- Establish service dependency resolution
 
-**Objective:** Add logic to dynamically instantiate service objects
+### 📋 Milestone 4: Context-Aware Services - PLANNED
 
-**Steps:**
-1. Implement dynamic service import
-2. Add service instantiation logic
-3. Implement service caching
-4. Add error handling
+**Objectives:**
 
-### Task 4: Implement Method Calling
+- Implement ContextAwareService base class
+- Add context propagation across service calls
+- Create context providers and enrichers
+- Establish cross-cutting concerns (logging, metrics, tracing)
 
-**Objective:** Update tool function to call actual methods
+### 📋 Milestone 5: Advanced Features & Optimization - PLANNED
 
-**Steps:**
-1. Update `tool_function` implementation
-2. Add method execution logic
-3. Implement result handling
-4. Add error handling
+**Objectives:**
 
-### Task 5: Implement Bidirectional Mapping
+- Implement service caching and pooling
+- Add circuit breaker patterns
+- Create service metrics and monitoring
+- Establish performance optimization
 
-**Objective:** Add support for mapping method outputs back to tool response format
+## Implementation Priority
 
-**Steps:**
-1. Implement output mapping function
-2. Add result transformation
-3. Handle errors in result mapping
-4. Integrate with tool response format
+**Immediate (Milestone 2):**
 
-### Task 6: Implement Orchestration Parameter Handling
+1. Configuration management system
+2. Environment-specific service registration
+3. Service health checks
+4. Configuration validation
 
-**Objective:** Add logic to handle orchestration parameters
+**Short-term (Milestones 3-4):**
 
-**Steps:**
-1. Identify orchestration parameters
-2. Implement handling logic
-3. Integrate with execution flow
-4. Add validation
+1. Service discovery implementation
+2. Context-aware service base class
+3. Cross-cutting concerns
+4. Service instrumentation
 
-### Task 7: Testing
+**Long-term (Milestone 5):**
 
-**Objective:** Create comprehensive tests for all new functionality
-
-**Steps:**
-1. Create unit tests for each component
-2. Add integration tests for full flow
-3. Test error handling
-4. Test with real service methods
-
-### Task 8: Documentation
-
-**Objective:** Update documentation with examples and guides
-
-**Steps:**
-1. Update tool engineering documentation
-2. Create examples of parameter mapping
-3. Document orchestration parameters
-4. Create migration guide
+1. Performance optimization
+2. Advanced monitoring
+3. Service resilience patterns
+4. Production readiness
 
 ## Success Criteria
 
-**Phase 1 (Complete):**
-- [x] Tools execute actual methods (not placeholders)
-- [x] Parameter mapping works for simple cases
-- [x] Bidirectional mapping handles inputs and outputs
-- [x] Orchestration parameters (dry_run, timeout_seconds) functional
-- [x] Tests pass (13 integration tests)
-- [x] Documentation updated (IMPLEMENTATION.md, tests/integration/README.md)
+- **Milestone 1:** ✅ Service instantiation violations eliminated, all tests passing
+- **Milestone 2:** Configuration-driven service instantiation working in all environments
+- **Milestone 3:** Dynamic service discovery with automatic registration
+- **Milestone 4:** All services inherit from ContextAwareService with full context propagation
+- **Milestone 5:** Production-ready with comprehensive monitoring and optimization
 
-**Phase 2 (Remaining):**
-- [ ] All 64 tools tested
-- [ ] Service caching implemented
-- [ ] Retry logic added
-- [ ] Transform field for complex mappings
-- [ ] Session-auth integration
+## Files Created/Modified
 
-## References
+**Milestone 1:**
 
-- [Implementation Status](IMPLEMENTATION.md) - Current implementation details
-- [Integration Tests](tests/integration/README.md) - Test documentation
-- [Parameter Mapping Analysis](PARAMETER_MAPPING_ANALYSIS.md)
-- [Method Parameter Integration](METHOD_PARAMETER_INTEGRATION.md)
+- ✅ `src/coreservice/service_container.py` - New ServiceContainer and ServiceManager
+- ✅ `src/casefileservice/service.py` - Updated with CasefileRepository injection
+- ✅ `src/tool_sessionservice/service.py` - Updated with ToolSessionRepository and id_service injection
+- ✅ `src/communicationservice/service.py` - Updated with ChatSessionRepository, ToolSessionService, and id_service injection
+- ✅ `src/coreservice/request_hub.py` - Refactored to use ServiceManager
+- ✅ `tests/coreservice/test_request_hub.py` - Updated for ServiceManager constructor
 
 ## Dependencies
 
-- None - this branch can be implemented independently
+- None - this branch establishes the foundation for future development
 
 ## Risks and Mitigation
 
-**Risk:** Service instantiation may be complex with dependencies
-**Mitigation:** Start with simple instantiation and refine with dependency injection
+**Risk:** Configuration complexity in Milestone 2
+**Mitigation:** Start with simple YAML configs, add validation early
 
-**Risk:** Parameter mapping might not cover all edge cases
-**Mitigation:** Create a robust test suite with edge case coverage
+**Risk:** Service discovery overhead in Milestone 3
+**Mitigation:** Implement lazy discovery with caching
 
-**Risk:** Performance might degrade with dynamic method calling
-**Mitigation:** Implement service and method caching
+**Risk:** Context propagation performance impact in Milestone 4
+**Mitigation:** Use efficient context passing patterns, measure performance
+
+**Risk:** Over-engineering advanced features in Milestone 5
+**Mitigation:** Focus on production requirements, implement incrementally

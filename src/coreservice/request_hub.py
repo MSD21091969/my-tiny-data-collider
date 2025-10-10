@@ -7,8 +7,7 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
-from casefileservice.service import CasefileService
-from communicationservice.service import CommunicationService
+from coreservice.service_container import ServiceManager
 from pydantic_models.base.envelopes import BaseRequest, BaseResponse
 from pydantic_models.base.types import RequestStatus
 
@@ -84,7 +83,6 @@ from pydantic_models.operations.tool_session_ops import (
     ListSessionsRequest,
     ListSessionsResponse,
 )
-from tool_sessionservice.service import ToolSessionService
 
 from .policy_patterns import PolicyPatternLoader
 
@@ -100,15 +98,11 @@ class RequestHub:
 
     def __init__(
         self,
-        casefile_service: CasefileService | None = None,
-        tool_session_service: ToolSessionService | None = None,
-        communication_service: CommunicationService | None = None,
+        service_manager: ServiceManager | None = None,
         policy_loader: PolicyPatternLoader | None = None,
         hook_handlers: dict[str, HookHandler] | None = None,
     ) -> None:
-        self.casefile_service = casefile_service or CasefileService()
-        self.tool_session_service = tool_session_service or ToolSessionService()
-        self.communication_service = communication_service or CommunicationService()
+        self.service_manager = service_manager or ServiceManager()
         self.policy_loader = policy_loader or PolicyPatternLoader()
         self.hook_handlers = hook_handlers or {
             "metrics": self._metrics_hook,
@@ -176,7 +170,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.create_casefile(request)
+        response = await self.service_manager.casefile_service.create_casefile(request)
 
         context["casefile_id"] = response.payload.casefile_id
         context["status"] = response.status.value
@@ -193,7 +187,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.get_casefile(request)
+        response = await self.service_manager.casefile_service.get_casefile(request)
 
         context["status"] = response.status.value
 
@@ -209,7 +203,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.update_casefile(request)
+        response = await self.service_manager.casefile_service.update_casefile(request)
 
         context["status"] = response.status.value
 
@@ -225,7 +219,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.list_casefiles(request)
+        response = await self.service_manager.casefile_service.list_casefiles(request)
 
         context["status"] = response.status.value
         context["count"] = len(response.payload.casefiles)
@@ -242,7 +236,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.delete_casefile(request)
+        response = await self.service_manager.casefile_service.delete_casefile(request)
 
         context["status"] = response.status.value
 
@@ -258,7 +252,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.add_session_to_casefile(request)
+        response = await self.service_manager.casefile_service.add_session_to_casefile(request)
 
         context["status"] = response.status.value
 
@@ -274,7 +268,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.grant_permission(request)
+        response = await self.service_manager.casefile_service.grant_permission(request)
 
         context["status"] = response.status.value
 
@@ -290,7 +284,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.revoke_permission(request)
+        response = await self.service_manager.casefile_service.revoke_permission(request)
 
         context["status"] = response.status.value
 
@@ -306,7 +300,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.list_permissions(request)
+        response = await self.service_manager.casefile_service.list_permissions(request)
 
         context["status"] = response.status.value
         context["permission_count"] = len(response.payload.permissions)
@@ -323,7 +317,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.check_permission(request)
+        response = await self.service_manager.casefile_service.check_permission(request)
 
         context["status"] = response.status.value
         context["has_permission"] = response.payload.has_permission
@@ -340,7 +334,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.store_gmail_messages(request)
+        response = await self.service_manager.casefile_service.store_gmail_messages(request)
 
         context["status"] = response.status.value
         context["messages_stored"] = response.payload.messages_stored
@@ -357,7 +351,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.store_drive_files(request)
+        response = await self.service_manager.casefile_service.store_drive_files(request)
 
         context["status"] = response.status.value
         context["files_stored"] = response.payload.files_stored
@@ -374,7 +368,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.casefile_service.store_sheet_data(request)
+        response = await self.service_manager.casefile_service.store_sheet_data(request)
 
         context["status"] = response.status.value
         context["rows_stored"] = response.payload.rows_stored
@@ -391,7 +385,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.tool_session_service.create_session(request)
+        response = await self.service_manager.tool_session_service.create_session(request)
 
         context["session_id"] = response.payload.session_id
         context["status"] = response.status.value
@@ -408,7 +402,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.tool_session_service.get_session(request)
+        response = await self.service_manager.tool_session_service.get_session(request)
 
         context["status"] = response.status.value
 
@@ -424,7 +418,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.tool_session_service.list_sessions(request)
+        response = await self.service_manager.tool_session_service.list_sessions(request)
 
         context["status"] = response.status.value
         context["count"] = len(response.payload.sessions)
@@ -441,7 +435,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.tool_session_service.close_session(request)
+        response = await self.service_manager.tool_session_service.close_session(request)
 
         context["status"] = response.status.value
 
@@ -457,7 +451,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.communication_service.create_session(request)
+        response = await self.service_manager.communication_service.create_session(request)
 
         context["chat_session_id"] = response.payload.session_id
         context["status"] = response.status.value
@@ -474,7 +468,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.communication_service.get_session(request)
+        response = await self.service_manager.communication_service.get_session(request)
 
         context["status"] = response.status.value
 
@@ -490,7 +484,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.communication_service.list_sessions(request)
+        response = await self.service_manager.communication_service.list_sessions(request)
 
         context["status"] = response.status.value
         context["count"] = len(response.payload.sessions)
@@ -507,7 +501,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.communication_service.close_session(request)
+        response = await self.service_manager.communication_service.close_session(request)
 
         context["status"] = response.status.value
 
@@ -523,7 +517,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.tool_session_service.process_tool_request(request)
+        response = await self.service_manager.tool_session_service.process_tool_request(request)
 
         context["status"] = response.status.value
         if request.session_id:
@@ -541,7 +535,7 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.communication_service.process_chat_request(request)
+        response = await self.service_manager.communication_service.process_chat_request(request)
 
         context["status"] = response.status.value
         context["chat_session_id"] = request.payload.session_id
@@ -580,7 +574,7 @@ class RequestHub:
             route_directives=request.route_directives,
         )
 
-        casefile_response = await self.casefile_service.create_casefile(create_request)
+        casefile_response = await self.service_manager.casefile_service.create_casefile(create_request)
         casefile_id = casefile_response.payload.casefile_id
         context["casefile_id"] = casefile_id
 
@@ -602,7 +596,7 @@ class RequestHub:
                 policy_hints=request.policy_hints,
                 route_directives=request.route_directives,
             )
-            session_response = await self.tool_session_service.create_session(session_request)
+            session_response = await self.service_manager.tool_session_service.create_session(session_request)
             session_id = session_response.payload.session_id
             context["session_id"] = session_id
 
@@ -622,7 +616,7 @@ class RequestHub:
                 policy_hints=request.policy_hints,
                 route_directives=request.route_directives,
             )
-            await self.casefile_service.add_session_to_casefile(add_request)
+            await self.service_manager.casefile_service.add_session_to_casefile(add_request)
 
         composite_response = CreateCasefileWithSessionResponse(
             request_id=request.request_id,
@@ -670,7 +664,7 @@ class RequestHub:
             route_directives=request.route_directives,
         )
 
-        session_response = await self.tool_session_service.create_session(session_request)
+        session_response = await self.service_manager.tool_session_service.create_session(session_request)
         session_id = session_response.payload.session_id
         context["session_id"] = session_id
 
@@ -693,7 +687,7 @@ class RequestHub:
             route_directives=request.route_directives,
         )
 
-        add_response = await self.casefile_service.add_session_to_casefile(add_request)
+        add_response = await self.service_manager.casefile_service.add_session_to_casefile(add_request)
         context["total_sessions"] = add_response.payload.total_sessions
 
         # Step 3: Create composite response
@@ -749,7 +743,7 @@ class RequestHub:
         }
 
         if "session" in combined_requirements and request.session_id:
-            session = await self.tool_session_service.repository.get_session(request.session_id)  # type: ignore[attr-defined]
+            session = await self.service_manager.tool_session_service.repository.get_session(request.session_id)  # type: ignore[attr-defined]
             context["session"] = session.model_dump() if session else None
 
         if "casefile" in combined_requirements:
@@ -757,7 +751,7 @@ class RequestHub:
             if not casefile_id and hasattr(request.payload, "casefile_id"):
                 casefile_id = request.payload.casefile_id  # type: ignore[attr-defined]
             if casefile_id:
-                casefile = await self.casefile_service.repository.get_casefile(casefile_id)  # type: ignore[attr-defined]
+                casefile = await self.service_manager.casefile_service.repository.get_casefile(casefile_id)  # type: ignore[attr-defined]
                 context["casefile"] = casefile.model_dump() if casefile else None
 
         return context
@@ -854,7 +848,7 @@ class RequestHub:
             if session and session.get("active") and request.session_id:
                 # Update last_activity in the repository
                 try:
-                    await self.tool_session_service.repository.update_activity(request.session_id)  # type: ignore[attr-defined]
+                    await self.service_manager.tool_session_service.repository.update_activity(request.session_id)  # type: ignore[attr-defined]
 
                     # Record hook event
                     context.setdefault("hook_events", []).append(

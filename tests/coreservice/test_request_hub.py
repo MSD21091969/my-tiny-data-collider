@@ -6,6 +6,7 @@ import pytest
 
 from coreservice.policy_patterns import PolicyPatternLoader
 from coreservice.request_hub import RequestHub
+from coreservice.service_container import ServiceContainer, ServiceManager
 from pydantic_models.base.types import RequestStatus
 from pydantic_models.operations.casefile_ops import (
     AddSessionToCasefileRequest,
@@ -167,15 +168,27 @@ class _FakeToolSessionService:
         )
 
 
+class _FakeCommunicationService:
+    def __init__(self) -> None:
+        pass
+
+
 @pytest.mark.asyncio
 async def test_request_hub_executes_casefile_workflow_with_hooks() -> None:
     casefile_service = _FakeCasefileService()
     tool_session_service = _FakeToolSessionService()
     tool_session_service.repository.save(_FakeSessionRecord("ts_existing", user_id="user-1"))
 
+    # Create service container with fake services
+    container = ServiceContainer()
+    container.register_service('casefile_service', lambda: casefile_service)
+    container.register_service('tool_session_service', lambda: tool_session_service)
+    container.register_service('communication_service', lambda: _FakeCommunicationService())
+    
+    service_manager = ServiceManager(container)
+
     hub = RequestHub(
-        casefile_service=casefile_service,
-        tool_session_service=tool_session_service,
+        service_manager=service_manager,
         policy_loader=PolicyPatternLoader(),
     )
 
@@ -205,9 +218,16 @@ async def test_request_hub_composite_creates_casefile_and_session() -> None:
     tool_session_service = _FakeToolSessionService()
     tool_session_service.repository.save(_FakeSessionRecord("ts_parent", user_id="user-2"))
 
+    # Create service container with fake services
+    container = ServiceContainer()
+    container.register_service('casefile_service', lambda: casefile_service)
+    container.register_service('tool_session_service', lambda: tool_session_service)
+    container.register_service('communication_service', lambda: _FakeCommunicationService())
+    
+    service_manager = ServiceManager(container)
+
     hub = RequestHub(
-        casefile_service=casefile_service,
-        tool_session_service=tool_session_service,
+        service_manager=service_manager,
         policy_loader=PolicyPatternLoader(),
     )
 

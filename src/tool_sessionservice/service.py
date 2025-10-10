@@ -46,9 +46,9 @@ logger = logging.getLogger(__name__)
 class ToolSessionService:
     """Service for handling tool sessions and tool execution (Firestore only)."""
 
-    def __init__(self):
-        self.repository = ToolSessionRepository()
-        self.id_service = get_id_service()
+    def __init__(self, repository: ToolSessionRepository | None = None, id_service=None):
+        self.repository = repository or ToolSessionRepository()
+        self.id_service = id_service or get_id_service()
         
     async def create_session(self, request: CreateSessionRequest) -> CreateSessionResponse:
         """Create a new tool session.

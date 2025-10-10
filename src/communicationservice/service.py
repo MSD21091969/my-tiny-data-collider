@@ -50,11 +50,11 @@ logger = logging.getLogger(__name__)
 class CommunicationService:
     """Service for handling chat sessions and message processing (Firestore only)."""
 
-    def __init__(self) -> None:
+    def __init__(self, repository: ChatSessionRepository | None = None, tool_service: ToolSessionService | None = None, id_service=None) -> None:
         """Initialize the communication and tool session services."""
-        self.repository = ChatSessionRepository()
-        self.tool_service = ToolSessionService()
-        self.id_service = get_id_service()
+        self.repository = repository or ChatSessionRepository()
+        self.tool_service = tool_service or ToolSessionService()
+        self.id_service = id_service or get_id_service()
 
     async def create_session(self, request: CreateChatSessionRequest) -> CreateChatSessionResponse:
         """Create a new chat session and its linked tool session."""
