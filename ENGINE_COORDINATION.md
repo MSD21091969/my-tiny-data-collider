@@ -144,32 +144,52 @@
 - Quality and engineering tests
 - Model-method-tool analysis for orchestration matrices/graphs
 
-## Safe First Goals
+## 5 Core Milestones
 
-### Phase 1: Core Merge & Foundation
-1. **Merge Coordination:** Complete engine branch merge with our tool decorator preserved
-2. **Service Integration:** Unify service instantiation patterns
-3. **RAR Pattern:** Ensure Request-Action-Response flows work end-to-end
-4. **Basic Testing:** Verify all existing tests pass post-merge
+### Milestone 1: Services Architecture Restructure
+**Goal:** Establish clean separation of concerns with clear service boundaries
 
-### Phase 2: Essential Services
-1. **Persistence Services:** Core Firestore integration and context management
-2. **Session Management:** Basic session tracking and state management
-3. **API Contracts:** HTTP-to-tool direct flow where possible
+- **Manager Classes:** Group all manager classes into dedicated service modules
+- **Inheritance vs Composition:** Evaluate merge into services vs inheritance patterns
+- **Route Clarity:** Leverage clear application routes to define service boundaries
+- **DRY Principle:** Eliminate service instantiation duplication across codebase
+- **Deliverable:** `src/services/` restructured with clear manager/service separation
 
-### Phase 3: Observability & Quality
-1. **Observability:** Logging, metrics, basic tracing
-2. **Auditing:** Operation tracking and access patterns
-3. **Quality Tests:** Engineering tests and validation
+### Milestone 2: Dependency Injection Framework
+**Goal:** Implement proper DI container replacing all hardcoded service instantiation
 
-### Phase 4: Analysis & Enhancement
-1. **Model Analysis:** Maps of models/methods/tools with field analysis
-2. **Orchestration Engineering:** Matrices and graphs for synthetic orchestration
-3. **Performance Testing:** Benchmarking and load testing
+- **Service Registry:** Centralized service registration and resolution
+- **Configuration-Driven:** Services configured via YAML with environment overrides
+- **Lifecycle Management:** Proper service initialization, cleanup, and dependency chains
+- **Testing Support:** DI container enables easy mocking and test isolation
+- **Deliverable:** `src/core/di/` with container, registry, and service factories
 
-### Phase 5: Documentation & Polish
-1. **API Documentation:** Complete usage guides and examples
-2. **Configuration Guides:** Setup and troubleshooting documentation
+### Milestone 3: Tool Engineering Workflow
+**Goal:** Complete YAML-driven tool creation and management system
+
+- **Tool Schema:** Standardized tool definition schema with validation
+- **Parameter Mapping:** Automated parameter extraction and mapping from models
+- **Method Binding:** Dynamic service method binding with type safety
+- **Tool Registry:** Centralized tool discovery and metadata management
+- **Deliverable:** Complete tool engineering pipeline from YAML → registered tool
+
+### Milestone 4: Data Flow Architecture
+**Goal:** Establish clear data flow patterns from HTTP to persistence
+
+- **Request Pipeline:** HTTP → Validation → Tool → Service → Response flow
+- **Context Propagation:** Session, user, and request context through entire pipeline
+- **Error Handling:** Consistent error transformation and user feedback
+- **Audit Trail:** Complete operation tracking from entry to persistence
+- **Deliverable:** Documented data flow architecture with implementation examples
+
+### Milestone 5: Testing Infrastructure
+**Goal:** Comprehensive testing framework with quality gates
+
+- **Integration Tests:** End-to-end service and tool testing
+- **Performance Tests:** Benchmarking and load testing infrastructure
+- **Quality Gates:** Automated testing in CI/CD with coverage requirements
+- **Test Data Management:** Realistic test data generation and management
+- **Deliverable:** Complete testing suite with CI/CD integration and quality metrics
 
 ## New Risk Assessment
 
