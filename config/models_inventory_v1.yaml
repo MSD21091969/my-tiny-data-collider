@@ -82,7 +82,8 @@ layers:
           fields: [casefile_id, target_user_id, permission, expires_at, notes]
         - name: PermissionGrantedPayload
           file: operations\casefile_ops.py
-          fields: [casefile_id, target_user_id, permission, granted_by, granted_at]
+          fields:
+            [casefile_id, target_user_id, permission, granted_by, granted_at]
         - name: RevokePermissionPayload
           file: operations\casefile_ops.py
           fields: [casefile_id, target_user_id]
@@ -94,31 +95,54 @@ layers:
           fields: [casefile_id]
         - name: PermissionListPayload
           file: operations\casefile_ops.py
-          fields: [casefile_id, owner_id, public_access, permissions, total_users]
+          fields:
+            [casefile_id, owner_id, public_access, permissions, total_users]
         - name: CheckPermissionPayload
           file: operations\casefile_ops.py
           fields: [casefile_id, user_id, required_permission]
         - name: PermissionCheckPayload
           file: operations\casefile_ops.py
-          fields: [casefile_id, user_id, permission, can_read, can_write, can_share, can_delete, has_required_permission]
+          fields:
+            [
+              casefile_id,
+              user_id,
+              permission,
+              can_read,
+              can_write,
+              can_share,
+              can_delete,
+              has_required_permission,
+            ]
         - name: StoreGmailMessagesPayload
           file: operations\casefile_ops.py
-          fields: [casefile_id, messages, sync_token, overwrite, threads, labels]
+          fields:
+            [casefile_id, messages, sync_token, overwrite, threads, labels]
         - name: GmailStorageResultPayload
           file: operations\casefile_ops.py
-          fields: [casefile_id, messages_stored, threads_stored, labels_stored, sync_status, sync_token, synced_at]
+          fields:
+            [
+              casefile_id,
+              messages_stored,
+              threads_stored,
+              labels_stored,
+              sync_status,
+              sync_token,
+              synced_at,
+            ]
         - name: StoreDriveFilesPayload
           file: operations\casefile_ops.py
           fields: [casefile_id, files, sync_token, overwrite]
         - name: DriveStorageResultPayload
           file: operations\casefile_ops.py
-          fields: [casefile_id, files_stored, sync_status, sync_token, synced_at]
+          fields:
+            [casefile_id, files_stored, sync_status, sync_token, synced_at]
         - name: StoreSheetDataPayload
           file: operations\casefile_ops.py
           fields: [casefile_id, sheet_payloads, sync_token]
         - name: SheetStorageResultPayload
           file: operations\casefile_ops.py
-          fields: [casefile_id, sheets_stored, sync_status, sync_token, synced_at]
+          fields:
+            [casefile_id, sheets_stored, sync_status, sync_token, synced_at]
 
     chat_session_domain:
       models:
@@ -133,7 +157,19 @@ layers:
           fields: [session_id, include_messages]
         - name: ChatSessionDataPayload
           file: operations\chat_session_ops.py
-          fields: [session_id, user_id, casefile_id, created_at, updated_at, active, message_count, event_count, messages, metadata]
+          fields:
+            [
+              session_id,
+              user_id,
+              casefile_id,
+              created_at,
+              updated_at,
+              active,
+              message_count,
+              event_count,
+              messages,
+              metadata,
+            ]
         - name: ListChatSessionsPayload
           file: operations\chat_session_ops.py
           fields: [user_id, casefile_id, active_only, limit, offset]
@@ -145,19 +181,28 @@ layers:
           fields: [session_id]
         - name: ChatSessionClosedPayload
           file: operations\chat_session_ops.py
-          fields: [session_id, closed_at, total_messages, total_events, duration_seconds]
+          fields:
+            [
+              session_id,
+              closed_at,
+              total_messages,
+              total_events,
+              duration_seconds,
+            ]
 
     tool_execution_domain:
       models:
         - name: ToolRequestPayload
           file: operations\tool_execution_ops.py
-          fields: [tool_name, parameters, prompt, casefile_id, session_request_id]
+          fields:
+            [tool_name, parameters, prompt, casefile_id, session_request_id]
         - name: ToolResponsePayload
           file: operations\tool_execution_ops.py
           fields: [result, events, session_request_id]
         - name: ChatMessagePayload
           file: operations\tool_execution_ops.py
-          fields: [content, message_type, tool_calls, session_request_id, casefile_id]
+          fields:
+            [content, message_type, tool_calls, session_request_id, casefile_id]
         - name: ChatRequestPayload
           file: operations\tool_execution_ops.py
           fields: [message, session_id, casefile_id, session_request_id]
@@ -165,32 +210,22 @@ layers:
           file: operations\tool_execution_ops.py
           fields: [message, related_messages, events]
 
-    tool_session_domain:
+    request_hub_domain:
       models:
-        - name: CreateSessionPayload
-          file: operations\tool_session_ops.py
-          fields: [casefile_id, title]
-        - name: SessionCreatedPayload
-          file: operations\tool_session_ops.py
-          fields: [session_id, casefile_id, created_at]
-        - name: GetSessionPayload
-          file: operations\tool_session_ops.py
-          fields: [session_id]
-        - name: SessionDataPayload
-          file: operations\tool_session_ops.py
-          fields: [session_id, user_id, casefile_id, created_at, updated_at, active, title, request_count, event_count, metadata]
-        - name: ListSessionsPayload
-          file: operations\tool_session_ops.py
-          fields: [user_id, casefile_id, active_only, limit, offset]
-        - name: SessionListPayload
-          file: operations\tool_session_ops.py
-          fields: [sessions, total_count, offset, limit]
-        - name: CloseSessionPayload
-          file: operations\tool_session_ops.py
-          fields: [session_id]
-        - name: SessionClosedPayload
-          file: operations\tool_session_ops.py
-          fields: [session_id, closed_at, total_requests, total_events, duration_seconds]
+        - name: CreateCasefileWithSessionPayload
+          file: operations\request_hub_ops.py
+          fields:
+            [
+              title,
+              description,
+              tags,
+              auto_start_session,
+              session_title,
+              hook_channels,
+            ]
+        - name: CasefileWithSessionResultPayload
+          file: operations\request_hub_ops.py
+          fields: [casefile_id, session_id, hooks_executed]
 
   # Layer 2: Request/Response DTOs (Execution Envelopes)
   layer_2_dtos:
@@ -240,15 +275,9 @@ layers:
       - ChatRequest
       - ChatResponse
 
-    tool_session_operations:
-      - CreateSessionRequest
-      - CreateSessionResponse
-      - GetSessionRequest
-      - GetSessionResponse
-      - ListSessionsRequest
-      - ListSessionsResponse
-      - CloseSessionRequest
-      - CloseSessionResponse
+    request_hub_operations:
+      - CreateCasefileWithSessionRequest
+      - CreateCasefileWithSessionResponse
 
   # Layer 3: Canonical Models (Entities)
   layer_3_canonical:
@@ -347,11 +376,11 @@ layers:
         description: "Summary of a chat session."
 
 statistics:
-  total_models: 124
+  total_models: 126
   by_layer:
     layer_0: 4
-    layer_1: 47
-    layer_2: 46
+    layer_1: 49
+    layer_2: 48
     layer_3: 11
     layer_4: 13
     layer_5: 3

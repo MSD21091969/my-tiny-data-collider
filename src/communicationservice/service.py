@@ -7,19 +7,13 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from ..coreservice.id_service import get_id_service
-from ..pydantic_ai_integration.agents.base import import_tools
-from ..pydantic_ai_integration.dependencies import MDSContext
-from ..pydantic_models.operations.tool_execution_ops import (
-    ChatMessagePayload,
-    ChatRequest,
-    ChatResponse,
-    ChatResponsePayload,
-    ToolRequest,
-    ToolRequestPayload,
-)
-from ..pydantic_models.canonical.chat_session import ChatSession, MessageType
-from ..pydantic_models.operations.chat_session_ops import (
+# TODO: Re-enable when agents module is implemented
+# from pydantic_ai_integration.agents.base import import_tools
+from coreservice.id_service import get_id_service
+from pydantic_ai_integration.dependencies import MDSContext
+from pydantic_models.base.types import RequestStatus
+from pydantic_models.canonical.chat_session import ChatSession, MessageType
+from pydantic_models.operations.chat_session_ops import (
     ChatSessionClosedPayload,
     ChatSessionCreatedPayload,
     ChatSessionDataPayload,
@@ -33,29 +27,39 @@ from ..pydantic_models.operations.chat_session_ops import (
     ListChatSessionsRequest,
     ListChatSessionsResponse,
 )
-from ..pydantic_models.views.session_views import ChatSessionSummary
-from ..pydantic_models.base.types import RequestStatus
-from ..pydantic_models.operations.tool_session_ops import CreateSessionRequest
-from ..tool_sessionservice.service import ToolSessionService
+from pydantic_models.operations.tool_execution_ops import (
+    ChatMessagePayload,
+    ChatRequest,
+    ChatResponse,
+    ChatResultPayload,
+    ToolRequest,
+    ToolRequestPayload,
+)
+from pydantic_models.operations.tool_session_ops import CreateSessionRequest
+from pydantic_models.views.session_views import ChatSessionSummary
+from tool_sessionservice.service import ToolSessionService
+
 from .repository import ChatSessionRepository
 
-import_tools()
+# TODO: Re-enable when agents module is implemented
+# import_tools()
 
 logger = logging.getLogger(__name__)
 
+
 class CommunicationService:
     """Service for handling chat sessions and message processing (Firestore only)."""
-    
+
     def __init__(self) -> None:
         """Initialize the communication and tool session services."""
         self.repository = ChatSessionRepository()
         self.tool_service = ToolSessionService()
         self.id_service = get_id_service()
-        
+
     async def create_session(self, request: CreateChatSessionRequest) -> CreateChatSessionResponse:
         """Create a new chat session and its linked tool session."""
         start_time = datetime.now()
-        
+
         user_id = request.user_id
         casefile_id = request.payload.casefile_id
 
@@ -70,9 +74,7 @@ class CommunicationService:
 
         # Create tool session using new Request/Response pattern
         tool_request = CreateSessionRequest(
-            user_id=user_id,
-            operation="create_tool_session",
-            payload={"casefile_id": casefile_id}
+            user_id=user_id, operation="create_tool_session", payload={"casefile_id": casefile_id}
         )
         tool_response = await self.tool_service.create_session(tool_request)
         tool_session_id = tool_response.payload.session_id
@@ -85,7 +87,7 @@ class CommunicationService:
         logger.info("Created chat session %s with tool session %s", session_id, tool_session_id)
 
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return CreateChatSessionResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -93,15 +95,15 @@ class CommunicationService:
                 session_id=session_id,
                 tool_session_id=tool_session_id,
                 casefile_id=casefile_id,
-                created_at=session.created_at
+                created_at=session.created_at,
             ),
             metadata={
                 "execution_time_ms": execution_time_ms,
                 "user_id": user_id,
-                "operation": "create_chat_session"
-            }
+                "operation": "create_chat_session",
+            },
         )
-    
+
     async def process_chat_request(self, request: ChatRequest) -> ChatResponse:
         """Process a chat request and run any associated tool calls."""
 
@@ -218,7 +220,9 @@ class CommunicationService:
             )
             session.messages.append(assistant_message_data)
             session.message_index[assistant_message_id] = len(session.messages) - 1
-            session.request_index.setdefault(client_session_request_id, []).append(assistant_message_id)
+            session.request_index.setdefault(client_session_request_id, []).append(
+                assistant_message_id
+            )
             session.events.append(
                 {
                     "type": "message",
@@ -289,11 +293,11 @@ class CommunicationService:
         await self.repository.update_session(session)
 
         return response
-    
+
     async def get_session(self, request: GetChatSessionRequest) -> GetChatSessionResponse:
         """Return a chat session by ID."""
         start_time = datetime.now()
-        
+
         session_id = request.payload.session_id
         include_messages = request.payload.include_messages
 
@@ -308,8 +312,8 @@ class CommunicationService:
                 metadata={
                     "execution_time_ms": execution_time_ms,
                     "session_id": session_id,
-                    "operation": "get_chat_session"
-                }
+                    "operation": "get_chat_session",
+                },
             )
 
         # SECURITY: Verify session belongs to requesting user
@@ -324,18 +328,18 @@ class CommunicationService:
                     "execution_time_ms": execution_time_ms,
                     "session_id": session_id,
                     "operation": "get_chat_session",
-                    "security_check": "ownership_verification_failed"
-                }
+                    "security_check": "ownership_verification_failed",
+                },
             )
 
         # Calculate message count
         message_count = len(session.messages)
-        
+
         # Get messages if requested
         messages = session.messages if include_messages else None
 
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return GetChatSessionResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -348,19 +352,19 @@ class CommunicationService:
                 active=session.active,
                 message_count=message_count,
                 messages=messages,
-                metadata=session.metadata
+                metadata=session.metadata,
             ),
             metadata={
                 "execution_time_ms": execution_time_ms,
                 "include_messages": include_messages,
-                "operation": "get_chat_session"
-            }
+                "operation": "get_chat_session",
+            },
         )
 
     async def list_sessions(self, request: ListChatSessionsRequest) -> ListChatSessionsResponse:
         """List chat sessions, optionally filtered by user or casefile."""
         start_time = datetime.now()
-        
+
         user_id = request.payload.user_id
         casefile_id = request.payload.casefile_id
         active_only = request.payload.active_only
@@ -368,15 +372,15 @@ class CommunicationService:
         offset = request.payload.offset
 
         sessions = await self.repository.list_sessions(user_id=user_id, casefile_id=casefile_id)
-        
+
         # Filter by active status if requested
         if active_only:
             sessions = [s for s in sessions if s.active]
-        
+
         # Apply pagination
         total_count = len(sessions)
-        paginated_sessions = sessions[offset:offset + limit]
-        
+        paginated_sessions = sessions[offset : offset + limit]
+
         # Build summaries
         summaries = [
             ChatSessionSummary(
@@ -392,31 +396,28 @@ class CommunicationService:
         ]
 
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return ListChatSessionsResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
             payload=ChatSessionListPayload(
-                sessions=summaries,
-                total_count=total_count,
-                offset=offset,
-                limit=limit
+                sessions=summaries, total_count=total_count, offset=offset, limit=limit
             ),
             metadata={
                 "execution_time_ms": execution_time_ms,
                 "filters_applied": {
                     "user_id": user_id,
                     "casefile_id": casefile_id,
-                    "active_only": active_only
+                    "active_only": active_only,
                 },
-                "operation": "list_chat_sessions"
-            }
+                "operation": "list_chat_sessions",
+            },
         )
 
     async def close_session(self, request: CloseChatSessionRequest) -> CloseChatSessionResponse:
         """Close a chat session and any linked tool session."""
         start_time = datetime.now()
-        
+
         session_id = request.payload.session_id
 
         session = await self.repository.get_session(session_id)
@@ -430,8 +431,8 @@ class CommunicationService:
                 metadata={
                     "execution_time_ms": execution_time_ms,
                     "session_id": session_id,
-                    "operation": "close_chat_session"
-                }
+                    "operation": "close_chat_session",
+                },
             )
 
         # SECURITY: Verify session belongs to requesting user
@@ -446,14 +447,18 @@ class CommunicationService:
                     "execution_time_ms": execution_time_ms,
                     "session_id": session_id,
                     "operation": "close_chat_session",
-                    "security_check": "ownership_verification_failed"
-                }
+                    "security_check": "ownership_verification_failed",
+                },
             )
 
         # Calculate statistics before closing
         message_count = len(session.messages)
         event_count = len(session.events)
-        created_at_dt = datetime.fromisoformat(session.created_at) if isinstance(session.created_at, str) else session.created_at
+        created_at_dt = (
+            datetime.fromisoformat(session.created_at)
+            if isinstance(session.created_at, str)
+            else session.created_at
+        )
         duration_seconds = int((datetime.now() - created_at_dt).total_seconds())
 
         session.active = False
@@ -463,15 +468,16 @@ class CommunicationService:
         tool_session_id = (session.metadata or {}).get("tool_session_id")
         tool_session_closed = False
         tool_session_error = None
-        
+
         if tool_session_id:
             try:
                 logger.info("Closing tool session %s", tool_session_id)
                 from ..pydantic_models.operations.tool_session_ops import CloseSessionRequest
+
                 close_tool_request = CloseSessionRequest(
                     user_id=request.user_id,
                     operation="close_session",
-                    payload={"session_id": tool_session_id}
+                    payload={"session_id": tool_session_id},
                 )
                 await self.tool_service.close_session(close_tool_request)
                 tool_session_closed = True
@@ -480,7 +486,7 @@ class CommunicationService:
                 tool_session_error = str(exc)
 
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return CloseChatSessionResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -491,13 +497,13 @@ class CommunicationService:
                 event_count=event_count,
                 duration_seconds=duration_seconds,
                 tool_session_id=tool_session_id,
-                tool_session_closed=tool_session_closed
+                tool_session_closed=tool_session_closed,
             ),
             metadata={
                 "execution_time_ms": execution_time_ms,
                 "tool_session_error": tool_session_error,
-                "operation": "close_chat_session"
-            }
+                "operation": "close_chat_session",
+            },
         )
 
     async def _ensure_tool_session(self, session: ChatSession) -> str:
@@ -510,7 +516,7 @@ class CommunicationService:
             tool_request = CreateSessionRequest(
                 user_id=session.user_id,
                 operation="create_tool_session",
-                payload={"casefile_id": session.casefile_id}
+                payload={"casefile_id": session.casefile_id},
             )
             tool_response = await self.tool_service.create_session(tool_request)
             tool_session_id = tool_response.payload.session_id
@@ -518,5 +524,3 @@ class CommunicationService:
             session.metadata = metadata
 
         return tool_session_id
-
-

@@ -19,15 +19,12 @@ class CreatecasefileinheritedParams(BaseModel):
     
     Create a new casefile using automatic DTO inheritance from method definition
     """
-    title: str = Field(..., description="Casefile title", min_length=1, max_length=200)
-    description: Optional[str] = Field('', description="Casefile description", max_length=2000)
-    tags: Optional[str] = Field(None, description="Tags for categorization")
 
     class Config:
         json_schema_extra = {
             "examples": [
                 {
-                    "title": 'Inherited Casefile Test',                    "description": '',                    "tags": 'example'                }
+                }
             ]
         }
 
@@ -43,14 +40,11 @@ class CreatecasefileinheritedParams(BaseModel):
 )
 async def create_casefile_inherited(
     ctx: MDSContext,
-    title: str,    description: str = '',    tags: str = None) -> Dict[str, Any]:
+) -> Dict[str, Any]:
     """Create a new casefile using automatic DTO inheritance from method definition
     
     Args:
         ctx: MDSContext with user_id, session_id, etc.
-        title: Casefile title
-        description: Casefile description
-        tags: Tags for categorization
     
     Returns:
         Dict containing execution results
@@ -59,30 +53,23 @@ async def create_casefile_inherited(
     event_id = ctx.register_event(
         "create_casefile_inherited",
         {
-            "title": title,            "description": description,            "tags": tags        }
+        }
     )
     
     # API call implementation - inherit DTOs from method definition
     # Import method's service class
     from casefileservice.service import CasefileService
-    from pydantic_models.operations.casefile_ops import CreateCasefileRequest
-    from pydantic_models.operations.casefile_ops import CreateCasefileResponse
     
     # Initialize service (dependency injection will provide actual instance)
     service = CasefileService()
     
     # Build request using method's DTO
-    request = CreateCasefileRequest(
-        user_id=ctx.user_id,
-        session_id=ctx.session_id,
-        context=ctx.model_dump(),
-        payload={
-            "title": title,            "description": description,            "tags": tags        }
+    # Direct method call without request envelope
+    response = await service.create_casefile(
     )
-    response = await service.create_casefile(request=request)
     
     #Extract result from response using method's DTO
-    result = response.payload.model_dump() if hasattr(response.payload, 'model_dump') else response.payload
+    result = response.model_dump() if hasattr(response, 'model_dump') else response
     
     
     

@@ -72,17 +72,12 @@ async def request_hub_create_casefile(
     service = RequestHubService()
     
     # Build request using method's DTO
-    request = CreateCasefileRequest(
-        user_id=ctx.user_id,
-        session_id=ctx.session_id,
-        context=ctx.model_dump(),
-        payload={
-            "title": title,            "description": description,            "tags": tags,            "hook_channels": hook_channels        }
-    )
-    response = await service.execute_casefile(request=request)
+    # Direct method call without request envelope
+    response = await service.execute_casefile(
+        title=title,        description=description,        tags=tags,        hook_channels=hook_channels    )
     
     #Extract result from response using method's DTO
-    result = response.payload.model_dump() if hasattr(response.payload, 'model_dump') else response.payload
+    result = response.model_dump() if hasattr(response, 'model_dump') else response
     
     
     
