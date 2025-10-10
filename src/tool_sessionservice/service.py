@@ -2,31 +2,44 @@
 Service for handling tool sessions and tool execution.
 """
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from pydantic import ValidationError
 
-from pydantic_models.operations.tool_execution_ops import (
-    ToolRequest, ToolResponse, ToolResponsePayload, ToolRequestPayload
-)
-from pydantic_models.canonical.tool_session import ToolSession, ToolEvent
-from pydantic_models.operations.tool_session_ops import (
-    CreateSessionRequest, CreateSessionResponse, SessionCreatedPayload,
-    GetSessionRequest, GetSessionResponse, SessionDataPayload,
-    ListSessionsRequest, ListSessionsResponse, SessionListPayload,
-    CloseSessionRequest, CloseSessionResponse, SessionClosedPayload,
-)
-from pydantic_models.views.session_views import SessionSummary
+from coreservice.id_service import get_id_service
 from pydantic_ai_integration.dependencies import MDSContext
 from pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
+    get_tool_names,
     validate_tool_exists,
-    get_tool_names
 )
 from pydantic_models.base.types import RequestStatus
+from pydantic_models.canonical.tool_session import ToolEvent, ToolSession
+from pydantic_models.operations.tool_execution_ops import (
+    ToolRequest,
+    ToolRequestPayload,
+    ToolResponse,
+    ToolResponsePayload,
+)
+from pydantic_models.operations.tool_session_ops import (
+    CloseSessionRequest,
+    CloseSessionResponse,
+    CreateSessionRequest,
+    CreateSessionResponse,
+    GetSessionRequest,
+    GetSessionResponse,
+    ListSessionsRequest,
+    ListSessionsResponse,
+    SessionClosedPayload,
+    SessionCreatedPayload,
+    SessionDataPayload,
+    SessionListPayload,
+)
+from pydantic_models.views.session_views import SessionSummary
+
 from .repository import ToolSessionRepository
-from coreservice.id_service import get_id_service
 
 logger = logging.getLogger(__name__)
 

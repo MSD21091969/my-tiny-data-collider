@@ -10,11 +10,13 @@ For casefile operations (CRUD), see pydantic_models.operations.casefile_ops
 For casefile summaries/views, see pydantic_models.views.casefile_views
 """
 
-from pydantic import BaseModel, Field, computed_field
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field, computed_field
 
 from coreservice.id_service import get_id_service
+
 from ..workspace import (
     CasefileDriveData,
     CasefileGmailData,

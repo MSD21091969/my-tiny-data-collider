@@ -3,15 +3,15 @@ Firestore implementation of context persistence.
 """
 
 import logging
-import traceback
 import os
-from typing import Dict, Any, Optional, List
+import traceback
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from google.cloud.firestore_v1.base_query import FieldFilter
 
-from ..firestore import get_firestore_client, DEFAULT_DATABASE
 from ...pydantic_ai_integration.persistence import ContextPersistenceProvider
+from ..firestore import DEFAULT_DATABASE, get_firestore_client
 
 logger = logging.getLogger(__name__)
 

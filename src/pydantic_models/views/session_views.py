@@ -8,8 +8,9 @@ This module contains lightweight projections and summaries of session entities:
 These are used in API responses where full session data is not needed.
 """
 
-from pydantic import BaseModel, Field
 from typing import Optional
+
+from pydantic import BaseModel, Field
 
 
 class SessionSummary(BaseModel):

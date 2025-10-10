@@ -14,6 +14,7 @@ from . import tools  # noqa: F401
 # Load methods from YAML inventory to populate MANAGED_METHODS registry
 # This enables ToolFactory to inherit method DTOs for tool generation
 from .method_decorator import register_methods_from_yaml  # noqa: F401
+
 try:
     register_methods_from_yaml()
 except Exception as e:

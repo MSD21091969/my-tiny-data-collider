@@ -13,10 +13,11 @@ NOTE: ToolDefinition, ToolsetDefinition, and ToolParameter have been DEPRECATED.
 Use ManagedToolDefinition from pydantic_ai_integration.tool_definition instead.
 """
 
-from pydantic import BaseModel, Field, model_validator
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
+
+from pydantic import BaseModel, Field, model_validator
 
 
 class AuthToken(BaseModel):

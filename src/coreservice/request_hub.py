@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any, Awaitable, Callable, Dict, List, Optional
+from typing import Any
 
 from casefileservice.service import CasefileService
 from communicationservice.service import CommunicationService
@@ -63,6 +64,12 @@ from pydantic_models.operations.request_hub_ops import (
 )
 
 # Tool session operations
+from pydantic_models.operations.tool_execution_ops import (
+    ChatRequest,
+    ChatResponse,
+    ToolRequest,
+    ToolResponse,
+)
 from pydantic_models.operations.tool_session_ops import (
     CloseSessionRequest,
     CloseSessionResponse,
@@ -81,7 +88,7 @@ from .policy_patterns import PolicyPatternLoader
 logger = logging.getLogger(__name__)
 
 HookHandler = Callable[
-    [str, BaseRequest[Any], Dict[str, Any], Optional[BaseResponse[Any]]], Awaitable[None]
+    [str, BaseRequest[Any], dict[str, Any], BaseResponse[Any] | None], Awaitable[None]
 ]
 
 
@@ -90,11 +97,11 @@ class RequestHub:
 
     def __init__(
         self,
-        casefile_service: Optional[CasefileService] = None,
-        tool_session_service: Optional[ToolSessionService] = None,
-        communication_service: Optional[CommunicationService] = None,
-        policy_loader: Optional[PolicyPatternLoader] = None,
-        hook_handlers: Optional[Dict[str, HookHandler]] = None,
+        casefile_service: CasefileService | None = None,
+        tool_session_service: ToolSessionService | None = None,
+        communication_service: CommunicationService | None = None,
+        policy_loader: PolicyPatternLoader | None = None,
+        hook_handlers: dict[str, HookHandler] | None = None,
     ) -> None:
         self.casefile_service = casefile_service or CasefileService()
         self.tool_session_service = tool_session_service or ToolSessionService()
@@ -134,11 +141,17 @@ class RequestHub:
             "get_session": self._execute_session_get,
             "list_sessions": self._execute_session_list,
             "close_session": self._execute_session_close,
+            # Tool execution (1)
+            "tool_execution": self._execute_tool_request,
+            "process_tool_request": self._execute_tool_request,
             # Chat session lifecycle (4)
             "create_chat_session": self._execute_chat_create,
             "get_chat_session": self._execute_chat_get,
             "list_chat_sessions": self._execute_chat_list,
             "close_chat_session": self._execute_chat_close,
+            # Chat message processing (1)
+            "chat": self._execute_chat_process,
+            "process_chat_request": self._execute_chat_process,
             # Composite workflows (1)
             "workspace.casefile.create_casefile_with_session": self._execute_casefile_with_session,
         }
@@ -498,6 +511,41 @@ class RequestHub:
         self._attach_hook_metadata(response, context)
         return response
 
+    async def _execute_tool_request(
+        self,
+        request: ToolRequest,
+    ) -> ToolResponse:
+        """Handler for tool_execution and process_tool_request operations."""
+        context = await self._prepare_context(request)
+        await self._run_hooks("pre", request, context)
+
+        response = await self.tool_session_service.process_tool_request(request)
+
+        context["status"] = response.status.value
+        if request.session_id:
+            context["session_id"] = request.session_id
+
+        await self._run_hooks("post", request, context, response)
+        self._attach_hook_metadata(response, context)
+        return response
+
+    async def _execute_chat_process(
+        self,
+        request: ChatRequest,
+    ) -> ChatResponse:
+        """Handler for chat and process_chat_request operations."""
+        context = await self._prepare_context(request)
+        await self._run_hooks("pre", request, context)
+
+        response = await self.communication_service.process_chat_request(request)
+
+        context["status"] = response.status.value
+        context["chat_session_id"] = request.payload.session_id
+
+        await self._run_hooks("post", request, context, response)
+        self._attach_hook_metadata(response, context)
+        return response
+
     async def _execute_casefile_with_session(
         self,
         request: CreateCasefileWithSessionRequest,
@@ -532,8 +580,8 @@ class RequestHub:
         casefile_id = casefile_response.payload.casefile_id
         context["casefile_id"] = casefile_id
 
-        session_id: Optional[str] = None
-        session_response: Optional[CreateSessionResponse] = None
+        session_id: str | None = None
+        session_response: CreateSessionResponse | None = None
         if request.payload.auto_start_session:
             session_payload = CreateSessionPayload(
                 casefile_id=casefile_id,
@@ -592,7 +640,7 @@ class RequestHub:
         self._attach_hook_metadata(composite_response, context)
         return composite_response
 
-    async def _prepare_context(self, request: BaseRequest[Any]) -> Dict[str, Any]:
+    async def _prepare_context(self, request: BaseRequest[Any]) -> dict[str, Any]:
         policy_defaults = (
             self.policy_loader.load(request.policy_hints.get("pattern"))
             if request.policy_hints
@@ -616,7 +664,7 @@ class RequestHub:
             )
         )
 
-        context: Dict[str, Any] = {
+        context: dict[str, Any] = {
             "policy": policy_defaults,
             "requirements": combined_requirements,
             "hooks": combined_hooks,
@@ -630,7 +678,7 @@ class RequestHub:
         if "casefile" in combined_requirements:
             casefile_id = request.metadata.get("casefile_id")
             if not casefile_id and hasattr(request.payload, "casefile_id"):
-                casefile_id = getattr(request.payload, "casefile_id")
+                casefile_id = request.payload.casefile_id  # type: ignore[attr-defined]
             if casefile_id:
                 casefile = await self.casefile_service.repository.get_casefile(casefile_id)  # type: ignore[attr-defined]
                 context["casefile"] = casefile.model_dump() if casefile else None
@@ -641,8 +689,8 @@ class RequestHub:
         self,
         stage: str,
         request: BaseRequest[Any],
-        context: Dict[str, Any],
-        response: Optional[BaseResponse[Any]] = None,
+        context: dict[str, Any],
+        response: BaseResponse[Any] | None = None,
     ) -> None:
         for hook_name in context.get("hooks", []):
             handler = self.hook_handlers.get(hook_name)
@@ -654,8 +702,8 @@ class RequestHub:
         self,
         stage: str,
         request: BaseRequest[Any],
-        context: Dict[str, Any],
-        response: Optional[BaseResponse[Any]],
+        context: dict[str, Any],
+        response: BaseResponse[Any] | None,
     ) -> None:
         event = {
             "hook": "metrics",
@@ -671,8 +719,8 @@ class RequestHub:
         self,
         stage: str,
         request: BaseRequest[Any],
-        context: Dict[str, Any],
-        response: Optional[BaseResponse[Any]],
+        context: dict[str, Any],
+        response: BaseResponse[Any] | None,
     ) -> None:
         entry = {
             "hook": "audit",
@@ -701,8 +749,8 @@ class RequestHub:
         self,
         stage: str,
         request: BaseRequest[Any],
-        context: Dict[str, Any],
-        response: Optional[BaseResponse[Any]],
+        context: dict[str, Any],
+        response: BaseResponse[Any] | None,
     ) -> None:
         """Manage session lifecycle automatically (expiration, activity tracking)."""
         if stage == "pre":
@@ -744,7 +792,7 @@ class RequestHub:
                 except Exception as e:
                     logger.warning(f"Failed to update session activity: {e}")
 
-    def _attach_hook_metadata(self, response: BaseResponse[Any], context: Dict[str, Any]) -> None:
+    def _attach_hook_metadata(self, response: BaseResponse[Any], context: dict[str, Any]) -> None:
         if context.get("hook_events"):
             response.metadata.setdefault("hook_events", context["hook_events"])
         if context.get("audit_log"):
@@ -754,7 +802,10 @@ class RequestHub:
 async def execute_casefile(request: CreateCasefileRequest) -> CreateCasefileResponse:
     """Module-level helper to execute simple casefile creation via RequestHub."""
     hub = RequestHub()
-    return await hub.dispatch(request)
+    response = await hub.dispatch(request)
+    if not isinstance(response, CreateCasefileResponse):
+        raise TypeError("Unexpected response type from RequestHub for casefile workflow")
+    return response
 
 
 async def execute_casefile_with_session(

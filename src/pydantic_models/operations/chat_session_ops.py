@@ -8,12 +8,12 @@ For canonical chat session entity, see pydantic_models.canonical.chat_session
 For chat message operations, see pydantic_models.operations.tool_execution_ops
 """
 
+from typing import List, Literal, Optional
+
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
 
 from ..base.envelopes import BaseRequest, BaseResponse
 from ..views.session_views import ChatSessionSummary
-
 
 # ============================================================================
 # CREATE CHAT SESSION

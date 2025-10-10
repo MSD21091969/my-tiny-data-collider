@@ -2,12 +2,12 @@
 Tool utilities for session management and chaining.
 """
 
-from typing import Dict, Any, Optional, Callable, Awaitable
-from functools import wraps
 import logging
+from functools import wraps
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from pydantic_ai_integration.dependencies import MDSContext
-from pydantic_ai_integration.session_manager import ensure_session_for_tool, chain_tool_execution
+from pydantic_ai_integration.session_manager import chain_tool_execution, ensure_session_for_tool
 
 logger = logging.getLogger(__name__)
 

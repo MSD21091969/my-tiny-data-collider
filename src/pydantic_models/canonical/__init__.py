@@ -12,16 +12,15 @@ see pydantic_models.operations.
 """
 
 # Casefile entities
-from .casefile import CasefileModel, CasefileMetadata, ResourceReference
-
 # ACL entities
 from .acl import CasefileACL, PermissionEntry, PermissionLevel
+from .casefile import CasefileMetadata, CasefileModel, ResourceReference
+
+# Chat session entities
+from .chat_session import ChatSession, MessageType
 
 # Tool session entities
 from .tool_session import AuthToken, ToolEvent, ToolSession
-
-# Chat session entities
-from .chat_session import MessageType, ChatSession
 
 __all__ = [
     # Casefile

@@ -7,8 +7,9 @@ This module contains lightweight projections and summaries of casefile entities:
 These are used in API responses where full casefile data is not needed.
 """
 
-from pydantic import BaseModel, Field
 from typing import List
+
+from pydantic import BaseModel, Field
 
 
 class CasefileSummary(BaseModel):

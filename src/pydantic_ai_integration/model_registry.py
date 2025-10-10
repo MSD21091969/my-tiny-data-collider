@@ -4,10 +4,11 @@ Created: 2025-10-08
 Purpose: Load models_inventory_v1.yaml and provide lookup APIs
 """
 
-import yaml
-from pathlib import Path
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 
 @dataclass

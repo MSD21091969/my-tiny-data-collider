@@ -3,7 +3,8 @@ Core configuration functions and settings.
 """
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict
+
 
 def get_environment() -> str:
     """Get the current environment name."""

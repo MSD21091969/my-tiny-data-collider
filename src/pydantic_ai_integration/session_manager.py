@@ -6,14 +6,14 @@ allowing tools to automatically create sessions when needed or resume existing
 valid sessions based on tokens.
 """
 
-from typing import Optional, Dict, Any, Tuple
 import logging
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional, Tuple
 
 from pydantic_ai_integration.dependencies import MDSContext
-from tool_sessionservice.service import ToolSessionService
-from pydantic_models.operations.tool_session_ops import CreateSessionRequest, GetSessionRequest
 from pydantic_models.base.types import RequestStatus
+from pydantic_models.operations.tool_session_ops import CreateSessionRequest, GetSessionRequest
+from tool_sessionservice.service import ToolSessionService
 
 logger = logging.getLogger(__name__)
 

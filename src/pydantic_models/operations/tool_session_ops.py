@@ -8,12 +8,12 @@ For canonical tool session entity, see pydantic_models.canonical.tool_session
 For tool execution operations, see pydantic_models.operations.tool_execution_ops
 """
 
+from typing import List, Literal, Optional
+
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
 
 from ..base.envelopes import BaseRequest, BaseResponse
 from ..views.session_views import SessionSummary
-
 
 # ============================================================================
 # CREATE SESSION

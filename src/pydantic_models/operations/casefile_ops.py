@@ -8,14 +8,14 @@ This module consolidates all casefile operation request/response models:
 For canonical casefile entities, see pydantic_models.canonical.casefile and canonical.acl
 """
 
+from typing import List, Literal, Optional
+
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
 
 from ..base.envelopes import BaseRequest, BaseResponse
-from ..canonical.casefile import CasefileModel
 from ..canonical.acl import CasefileACL, PermissionEntry, PermissionLevel
+from ..canonical.casefile import CasefileModel
 from ..views.casefile_views import CasefileSummary
-
 
 # ============================================================================
 # CREATE CASEFILE

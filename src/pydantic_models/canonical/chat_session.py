@@ -9,10 +9,11 @@ For chat session operations (create, get, list, close), see pydantic_models.oper
 For chat message operations (ChatRequest, ChatResponse), see pydantic_models.operations.tool_execution_ops
 """
 
-from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class MessageType(str, Enum):

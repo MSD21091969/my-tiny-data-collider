@@ -1,9 +1,9 @@
 """Repository for tool session data persistence."""
 
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-import os
 import logging
+import os
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 # Firestore imports (required – no mock fallback retained)
 try:  # Import eagerly; failure is a hard error for this repository now.
@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover
     from pydantic_ai_integration.execution import firebase_stub as firebase_admin  # type: ignore
     firestore = firebase_admin.firestore
 
-from pydantic_models.canonical.tool_session import ToolSession, ToolEvent
+from pydantic_models.canonical.tool_session import ToolEvent, ToolSession
 from pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
 
 logger = logging.getLogger(__name__)

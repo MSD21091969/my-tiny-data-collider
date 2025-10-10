@@ -6,6 +6,6 @@ When the real agent subsystem is reintroduced, replace this package
 with the actual implementation.
 """
 
-from .base import default_agent, AgentRuntime
+from .base import AgentRuntime, default_agent
 
 __all__ = ["default_agent", "AgentRuntime"]

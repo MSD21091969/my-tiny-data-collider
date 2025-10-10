@@ -8,12 +8,12 @@ This module contains request/response models for tool and chat message execution
 For canonical session entities, see pydantic_models.canonical.tool_session and canonical.chat_session
 """
 
+from typing import Any, Dict, List, Literal, Optional
+
 from pydantic import BaseModel, Field, computed_field, field_validator
-from typing import Dict, Any, List, Optional, Literal
 
 from ..base.envelopes import BaseRequest, BaseResponse
 from ..canonical.chat_session import MessageType
-
 
 # ============================================================================
 # TOOL EXECUTION OPERATIONS
@@ -32,7 +32,7 @@ class ToolRequestPayload(BaseModel):
     def validate_tool_exists(cls, v: str) -> str:
         """Validate tool is registered in MANAGED_TOOLS."""
         # Import here to avoid circular dependency
-        from pydantic_ai_integration.tool_decorator import validate_tool_exists, get_tool_names
+        from pydantic_ai_integration.tool_decorator import get_tool_names, validate_tool_exists
         
         if not validate_tool_exists(v):
             available = ', '.join(get_tool_names())

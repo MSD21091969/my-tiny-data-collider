@@ -2,11 +2,13 @@
 Authentication service routes and logic.
 """
 
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from typing import Dict, Any
 
-from .token import validate_credentials, create_token, get_current_user
+from .token import create_token, get_current_user, validate_credentials
+
 
 # Models for API requests/responses
 class LoginRequest(BaseModel):

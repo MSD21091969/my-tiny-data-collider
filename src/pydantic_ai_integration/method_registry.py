@@ -12,9 +12,10 @@ ARCHITECTURE:
 - Future: @register_service_method decorator (Phase 10)
 """
 
-from typing import Dict, List, Optional, Any, Type, get_type_hints, get_origin, get_args
-from collections import defaultdict
 import logging
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Type, get_args, get_origin, get_type_hints
+
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
@@ -528,8 +529,9 @@ def validate_yaml_compatibility(yaml_path: str) -> Dict[str, Any]:
         >>> if not result["compatible"]:
         ...     print(f"Compatibility issues: {result['issues']}")
     """
-    import yaml
     from pathlib import Path
+
+    import yaml
     
     issues = []
     

@@ -2,13 +2,14 @@
 FastAPI dependency injection module.
 """
 
-from typing import Dict, Any
 from functools import lru_cache
+from typing import Any, Dict
 
 from fastapi import Depends
 
-from tool_sessionservice import ToolSessionService
 from authservice import get_current_user
+from tool_sessionservice import ToolSessionService
+
 
 @lru_cache()
 def get_tool_session_service() -> ToolSessionService:

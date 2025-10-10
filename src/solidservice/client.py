@@ -3,8 +3,9 @@ Solid Pod Client for authenticated read/write operations.
 Handles CSS client credentials authentication flow.
 """
 
-from typing import Optional, Dict, Any
 import logging
+from typing import Any, Dict, Optional
+
 from authlib.integrations.requests_client import OAuth2Session
 
 logger = logging.getLogger(__name__)

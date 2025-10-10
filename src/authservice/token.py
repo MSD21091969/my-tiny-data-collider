@@ -2,13 +2,14 @@
 JWT token handling and authentication logic.
 """
 
-import jwt
 import logging
 import os
-from typing import Dict, Any, Optional
 from datetime import UTC, datetime, timedelta
-from fastapi import HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Any, Dict, Optional
+
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 # Configure logging
 logger = logging.getLogger(__name__)

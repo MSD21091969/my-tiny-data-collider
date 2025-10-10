@@ -9,9 +9,10 @@ This module contains the ACL entity and its components:
 For ACL operations (grant, revoke, list, check), see pydantic_models.operations.casefile_ops
 """
 
+from datetime import datetime
 from enum import Enum
 from typing import List, Optional
-from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 

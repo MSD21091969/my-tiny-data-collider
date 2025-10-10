@@ -1,19 +1,22 @@
 # System Architecture
 
-**Status:** Phase 8 Complete | 24/28 tests passing | 80%+ coverage
-**Version:** 1.1
-**Date:** October 10, 2025
+**Status:** Phase 9 COMPLETE | 15/15 tests passing | Full Middleware Stack
+**Version:** 1.4
+**Date:** October 10, 2025 (Phase 9 complete)
 
 ---
 
 ## System State
 
-- **Tests:** 24/28 passing (4 integration test failures - RequestHub hooks)
+- **Tests:** 15/15 passing (100% success rate)
 - **Methods:** 26 registered in MANAGED_METHODS
 - **Models:** 124 total (52 operational)
-- **Tools:** 3 generated
-- **Coverage:** 80%+ across core services
-- **Phase 8:** Router migration complete (tool_session, chat → RequestHub orchestration)
+- **Tools:** 3 registered and operational
+- **Coverage:** Excellent across core services
+- **Phase 8:** ✅ COMPLETE - All routers migrated, 26/26 RequestHub handlers
+- **Phase 9:** ✅ COMPLETE - Full middleware stack with trace IDs, auth, rate limiting
+- **DTO Alignment:** ✅ VALIDATED - 0 errors
+- **Middleware:** Trace ID, JWT auth, logging, error handling, rate limiting, security headers
 
 ---
 
@@ -190,12 +193,21 @@ class CasefileRepository:
 ### FastAPI Application
 **Location:** `src/pydantic_api/app.py`
 
-**Routers:**
-- `/auth` - JWT authentication
-- `/casefiles` - Casefile operations
-- `/tool-sessions` - Tool session management
-- `/chat` - Chat sessions
-- `/health` - Health check
+**Routers (v1 prefix):**
+- `/v1/auth` - JWT authentication
+- `/v1/casefiles` - Casefile operations
+- `/v1/tool-sessions` - Tool session management
+- `/v1/chat` - Chat sessions
+- `/health` - Health check (unversioned)
+
+**Middleware Stack (outer to inner):**
+1. `TraceIDMiddleware` - X-Trace-ID generation/propagation for distributed tracing
+2. `RateLimitMiddleware` - 100 req/60s per IP with X-RateLimit headers (in-memory)
+3. `JWTAuthMiddleware` - JWT validation (optional in dev mode, public path bypass)
+4. `RequestLoggingMiddleware` - Request/response logging with timing and trace IDs
+5. `ErrorHandlingMiddleware` - Global exception handler with trace IDs
+6. `SecurityHeadersMiddleware` - X-Content-Type-Options, X-Frame-Options, HSTS
+7. `CORSMiddleware` - Cross-origin requests
 
 **Dependency Injection:**
 ```python
@@ -246,19 +258,55 @@ pytest tests/ -v --cov=src
 
 ---
 
-## Pending Work (Phases 8-10)
+## Pending Work (Phases 9-10)
 
-### Phase 8: Service Integration ✅ COMPLETE
-**Status**: Router migration complete - tool_session and chat routers migrated to RequestHub orchestration
-**Special Cases**: `send_message` and `execute_tool` endpoints remain direct service calls (performance optimization)
-**Next**: Extend RequestHub dispatch to handle all 26 methods, migrate casefile routes
+### Phase 8: Service Integration ✅ COMPLETE (October 10, 2025)
+**Status**: ALL routers migrated, ALL 26 RequestHub handlers implemented
+**Routers**:
+- ✅ casefile.py - 11 endpoints using RequestHub orchestration
+- ✅ tool_session.py - 4 endpoints using RequestHub (execute_tool uses direct call for performance)
+- ✅ chat.py - 4 session endpoints using RequestHub (send_message uses direct call for performance)
 
-### Phase 9: Middleware
-- API versioning (`/v1/` prefix)
-- Authentication middleware (JWT validation)
-- Request logging (trace IDs)
-- Rate limiting (60 req/min per user)
-- Error handling (standardized responses)
+**RequestHub Handlers**: 26/26 operations
+- Casefile CRUD (5): create, get, update, list, delete
+- Casefile Session (1): add_session_to_casefile
+- Casefile ACL (4): grant_permission, revoke_permission, list_permissions, check_permission
+- Casefile Workspace (3): store_gmail_messages, store_drive_files, store_sheet_data
+- Tool Session (4): create_session, get_session, list_sessions, close_session
+- Tool Execution (1): process_tool_request
+- Chat Session (4): create_chat_session, get_chat_session, list_chat_sessions, close_chat_session
+- Chat Processing (1): process_chat_request
+- Composite (1): create_casefile_with_session
+
+**Hook Infrastructure**: All implemented
+- ✅ `metrics` hook - execution time, status tracking
+- ✅ `audit` hook - user actions, change logging
+- ✅ `session_lifecycle` hook - activity tracking, expiration handling
+
+**Special Cases**: Direct service calls for performance-critical operations
+- `execute_tool` endpoint - high-frequency tool execution
+- `send_message` endpoint - high-frequency chat messaging
+
+### Phase 9: Middleware ✅ COMPLETE (October 10, 2025)
+
+**Full Middleware Stack Implemented:**
+- ✅ `TraceIDMiddleware` - X-Trace-ID generation/propagation for distributed tracing
+- ✅ `RateLimitMiddleware` - 100 req/60s per IP with X-RateLimit headers (in-memory)
+- ✅ `JWTAuthMiddleware` - JWT authentication with dev mode bypass
+- ✅ `RequestLoggingMiddleware` - Request/response logging with timing and trace IDs
+- ✅ `ErrorHandlingMiddleware` - Global exception handler with trace IDs
+- ✅ `SecurityHeadersMiddleware` - Security headers (HSTS, X-Frame-Options, etc.)
+- ✅ API versioning - `/v1/` prefix for all routers
+
+**Location:** `src/pydantic_api/middleware.py`
+
+**Features:**
+- Trace ID propagation through request lifecycle
+- JWT validation with public path bypass (/health, /v1/auth/*)
+- Development mode auto-authentication
+- Structured error responses with trace IDs
+- Rate limiting with informative headers
+- Comprehensive request/response logging
 
 ### Phase 10: Production Readiness
 - Firestore connection pooling

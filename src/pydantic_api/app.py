@@ -2,20 +2,38 @@
 Main FastAPI application.
 """
 
+import logging
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict, Any
 
-from .routers import tool_session, casefile
-from coreservice.config import get_environment
 from authservice.routes import router as auth_router
+from coreservice.config import get_environment
+from persistence.firestore_pool import FirestoreConnectionPool
+from persistence.redis_cache import RedisCacheService
+
+from .middleware import (
+    ErrorHandlingMiddleware,
+    JWTAuthMiddleware,
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
+    SecurityHeadersMiddleware,
+    TraceIDMiddleware,
+)
+from .prometheus_metrics import PrometheusMiddleware, get_metrics
+from .routers import casefile, tool_session
+
+logger = logging.getLogger(__name__)
 
 # Import the chat router conditionally to handle potential missing module
 try:
     from .routers import chat
+
     has_chat_router = True
 except ImportError:
     has_chat_router = False
+
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
@@ -24,7 +42,44 @@ def create_app() -> FastAPI:
         description="Data-centric AI Tooling Framework with Pydantic Integration",
         version="0.1.0",
     )
-    
+
+    # Initialize connection pool on startup
+    @app.on_event("startup")
+    async def startup_event() -> None:
+        """Initialize resources on application startup."""
+        # Initialize Firestore connection pool
+        pool = FirestoreConnectionPool(database="mds-objects", pool_size=10)
+        await pool.initialize()
+        app.state.firestore_pool = pool
+
+        # Initialize Redis cache
+        cache = RedisCacheService(redis_url="redis://localhost:6379/0", ttl=3600)
+        try:
+            await cache.initialize()
+            app.state.redis_cache = cache
+            logger.info("Redis cache initialized")
+        except Exception as e:
+            logger.warning(f"Redis cache initialization failed: {e}, continuing without cache")
+            app.state.redis_cache = None
+
+    # Cleanup connection pool on shutdown
+    @app.on_event("shutdown")
+    async def shutdown_event() -> None:
+        """Cleanup resources on application shutdown."""
+        if hasattr(app.state, "firestore_pool"):
+            await app.state.firestore_pool.close_all()
+        if hasattr(app.state, "redis_cache") and app.state.redis_cache:
+            await app.state.redis_cache.close()
+
+    # Add middleware stack (order matters: first added = outermost)
+    app.add_middleware(PrometheusMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(ErrorHandlingMiddleware)
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(JWTAuthMiddleware)
+    app.add_middleware(RateLimitMiddleware, max_requests=100, window_seconds=60)
+    app.add_middleware(TraceIDMiddleware)
+
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
@@ -33,26 +88,46 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
-    # Add routers
-    app.include_router(tool_session.router)
-    app.include_router(casefile.router)
-    app.include_router(auth_router)
-    
+
+    # Add routers with v1 prefix
+    app.include_router(tool_session.router, prefix="/v1")
+    app.include_router(casefile.router, prefix="/v1")
+    app.include_router(auth_router, prefix="/v1")
+
     # Add chat router if available
     if has_chat_router:
-        app.include_router(chat.router)
-    
+        app.include_router(chat.router, prefix="/v1")
+
     # Add health check endpoint
     @app.get("/health", tags=["health"])
-    async def health_check() -> Dict[str, Any]:
+    async def health_check() -> dict[str, Any]:
+        pool_health = {}
+        if hasattr(app.state, "firestore_pool"):
+            pool_health = await app.state.firestore_pool.health_check()
+
+        redis_health = {}
+        if hasattr(app.state, "redis_cache") and app.state.redis_cache:
+            redis_health = await app.state.redis_cache.health_check()
+
         return {
             "status": "ok",
             "version": "0.1.0",
-            "environment": get_environment()
+            "environment": get_environment(),
+            "firestore_pool": pool_health,
+            "redis_cache": redis_health,
         }
-    
+
+    # Add metrics endpoint
+    @app.get("/metrics", tags=["monitoring"])
+    async def metrics() -> Response:
+        """Expose Prometheus metrics."""
+        from fastapi import Response as FastAPIResponse
+
+        metrics_data = get_metrics()
+        return FastAPIResponse(content=metrics_data, media_type="text/plain")
+
     return app
+
 
 # Main application instance
 app = create_app()

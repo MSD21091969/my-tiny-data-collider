@@ -2,9 +2,9 @@
 Repository for casefile data persistence (Firestore only).
 """
 
-from typing import Dict, List, Optional
-import os
 import logging
+import os
+from typing import Dict, List, Optional
 
 from pydantic_models.canonical.casefile import CasefileModel
 from pydantic_models.views.casefile_views import CasefileSummary

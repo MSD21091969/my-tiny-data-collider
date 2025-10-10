@@ -2,10 +2,13 @@
 Service for managing casefiles.
 """
 
-from typing import Dict, Any, Iterable, List, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, Iterable, List, Optional
 
+from pydantic_models.base.types import RequestStatus
+from pydantic_models.canonical.acl import CasefileACL, PermissionEntry
+from pydantic_models.canonical.casefile import CasefileMetadata, CasefileModel
 from pydantic_models.operations.casefile_ops import (
     AddSessionToCasefileRequest,
     AddSessionToCasefileResponse,
@@ -13,38 +16,35 @@ from pydantic_models.operations.casefile_ops import (
     CasefileDataPayload,
     CasefileDeletedPayload,
     CasefileListPayload,
-    SessionAddedPayload,
     CasefileUpdatedPayload,
     CreateCasefileRequest,
     CreateCasefileResponse,
     DeleteCasefileRequest,
     DeleteCasefileResponse,
+    DriveStorageResultPayload,
     GetCasefileRequest,
     GetCasefileResponse,
-    ListCasefilesRequest,
-    ListCasefilesResponse,
-    UpdateCasefileRequest,
-    UpdateCasefileResponse,
-    PermissionLevel,
+    GmailStorageResultPayload,
     GrantPermissionRequest,
     GrantPermissionResponse,
+    ListCasefilesRequest,
+    ListCasefilesResponse,
     PermissionGrantedPayload,
+    PermissionLevel,
+    PermissionRevokedPayload,
     RevokePermissionRequest,
     RevokePermissionResponse,
-    PermissionRevokedPayload,
-    StoreGmailMessagesRequest,
-    StoreGmailMessagesResponse,
-    GmailStorageResultPayload,
+    SessionAddedPayload,
+    SheetStorageResultPayload,
     StoreDriveFilesRequest,
     StoreDriveFilesResponse,
-    DriveStorageResultPayload,
+    StoreGmailMessagesRequest,
+    StoreGmailMessagesResponse,
     StoreSheetDataRequest,
     StoreSheetDataResponse,
-    SheetStorageResultPayload,
+    UpdateCasefileRequest,
+    UpdateCasefileResponse,
 )
-from pydantic_models.canonical.casefile import CasefileModel, CasefileMetadata
-from pydantic_models.canonical.acl import CasefileACL, PermissionEntry
-from pydantic_models.base.types import RequestStatus
 from pydantic_models.workspace import (
     CasefileDriveData,
     CasefileGmailData,
@@ -55,6 +55,7 @@ from pydantic_models.workspace import (
     GmailThread,
     SheetData,
 )
+
 from .repository import CasefileRepository
 
 logger = logging.getLogger(__name__)

@@ -9,7 +9,7 @@ These are used in API responses where full entity data is not needed.
 """
 
 from .casefile_views import CasefileSummary
-from .session_views import SessionSummary, ChatSessionSummary
+from .session_views import ChatSessionSummary, SessionSummary
 
 __all__ = [
     "CasefileSummary",

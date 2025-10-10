@@ -18,12 +18,13 @@ Usage:
     factory = ToolFactory()
     factory.generate_all_tools()
 """
-import yaml
-from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
-from typing import Dict, Any, List, Optional
 import logging
 import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
+from jinja2 import Environment, FileSystemLoader
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +176,7 @@ class ToolFactory:
             method_name = api_call.get("method_name")
             
             if method_name:
-                from ...method_registry import validate_method_exists, get_method_definition
+                from ...method_registry import get_method_definition, validate_method_exists
                 if validate_method_exists(method_name):
                     # Enrich with method metadata
                     method_def = get_method_definition(method_name)
