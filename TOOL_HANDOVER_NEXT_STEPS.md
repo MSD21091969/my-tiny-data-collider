@@ -6,6 +6,26 @@
 - **Dry run functionality** working
 - **Dynamic parameter models** created successfully
 
+## Feature Branch Assignments
+
+### feature/ai-method-integration
+**Focus**: AI method integration and parameter handling
+- **Session 1**: Method Calling Integration (2-3 hours)
+- **Session 2**: Parameter Mapping Enhancement (2 hours)
+- **Code Location**: `src/pydantic_ai_integration/tool_decorator.py`
+
+### feature/tool-execution-engine
+**Focus**: Tool execution framework and resilience
+- **Session 3**: Additional Execution Types (3-4 hours)
+- **Session 4**: Error Handling & Resilience (2-3 hours)
+- **Code Location**: `src/pydantic_ai_integration/execution/`
+
+### feature/src-services
+**Focus**: Service architecture and testing
+- **Service Structure**: Classes, helpers, refactoring
+- **Session 5**: Testing & Validation (2 hours)
+- **Code Location**: `src/` services and overall architecture
+
 ## Next Steps Implementation Plan
 
 ### 1. Implement Actual Method Calling
@@ -28,7 +48,7 @@ return {
 - Call methods with mapped parameters
 - Return actual method results
 
-**Code Location**: `src/pydantic_ai_integration/tool_decorator.py` - `tool_function` in `register_tools_from_yaml()`
+**Code Location**: `src/pydantic_ai_integration/tool_decorator.py` *(feature/ai-method-integration)* - `tool_function` in `register_tools_from_yaml()`
 
 ### 2. Add Parameter Mapping Logic
 **Goal**: Properly route `method_params` vs `tool_params`
@@ -51,7 +71,7 @@ tool_params:
 - Type conversion between tool params and method params
 - Validation of parameter compatibility
 
-**Code Location**: `src/pydantic_ai_integration/tool_decorator.py` - parameter mapping logic in `tool_function`
+**Code Location**: `src/pydantic_ai_integration/tool_decorator.py` *(feature/ai-method-integration)* - parameter mapping logic in `tool_function`
 
 ### 3. Support Additional Execution Types
 **Goal**: Implement `api_call`, `composite`, `data_transform` execution types
@@ -88,7 +108,7 @@ elif execution_type == 'data_transform':
 - Validation and transformation rules
 - Streaming support for large datasets
 
-**Code Location**: `src/pydantic_ai_integration/tool_decorator.py` - execution type handling in `tool_function`
+**Code Location**: `src/pydantic_ai_integration/tool_decorator.py` *(feature/tool-execution-engine)* - execution type handling in `tool_function`
 
 ### 4. Add Error Handling
 **Goal**: Handle missing methods, timeouts, validation failures
@@ -120,7 +140,7 @@ except Exception as e:
 
 ## Next Session Topics
 
-### Session 1: Method Calling Integration
+### Session 1: Method Calling Integration *(feature/ai-method-integration)*
 **Focus**: Connect tools to actual service methods
 **Duration**: 2-3 hours
 **Deliverables**:
@@ -128,7 +148,7 @@ except Exception as e:
 - Method invocation with parameter mapping
 - Result transformation and return
 
-### Session 2: Parameter Mapping Enhancement
+### Session 2: Parameter Mapping Enhancement *(feature/ai-method-integration)*
 **Focus**: Advanced parameter routing and transformation
 **Duration**: 2 hours
 **Deliverables**:
@@ -136,7 +156,7 @@ except Exception as e:
 - Type conversion utilities
 - Nested parameter support
 
-### Session 3: Additional Execution Types
+### Session 3: Additional Execution Types *(feature/tool-execution-engine)*
 **Focus**: Implement `api_call` and `composite` types
 **Duration**: 3-4 hours
 **Deliverables**:
@@ -144,7 +164,7 @@ except Exception as e:
 - Workflow orchestration framework
 - Execution type registry
 
-### Session 4: Error Handling & Resilience
+### Session 4: Error Handling & Resilience *(feature/tool-execution-engine)*
 **Focus**: Comprehensive error handling and recovery
 **Duration**: 2-3 hours
 **Deliverables**:
@@ -152,7 +172,7 @@ except Exception as e:
 - Retry and circuit breaker patterns
 - Timeout management
 
-### Session 5: Testing & Validation
+### Session 5: Testing & Validation *(feature/src-services)*
 **Focus**: End-to-end testing and validation
 **Duration**: 2 hours
 **Deliverables**:
@@ -216,6 +236,6 @@ The workflow script provides automation for:
 ---
 
 **Handover Date**: October 10, 2025
-**Current Branch**: feature/fastapi-refactor
-**Next Session**: Method Calling Integration</content>
+**Branch Structure**: See Feature Branch Assignments above
+**Next Session**: Method Calling Integration (feature/ai-method-integration)</content>
 <parameter name="filePath">c:\Users\HP\Documents\Python\251008\TOOL_HANDOVER_NEXT_STEPS.md
