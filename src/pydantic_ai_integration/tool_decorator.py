@@ -806,6 +806,140 @@ def get_tool_parameters(tool_name: str) -> List[ToolParameterDef]:
     return []
 
 
+def _instantiate_service(service_name: str, method_name: str):
+    """
+    Instantiate a service by name with future-proof DI design.
+    
+    Current: Simple instantiation (no DI)
+    Future: Accept service_registry parameter for full DI support
+    
+    Args:
+        service_name: Service class name (e.g., "CasefileService")
+        method_name: Method name for logging context
+        
+    Returns:
+        Instantiated service object
+        
+    Raises:
+        ValueError: If service cannot be instantiated
+    """
+    import importlib
+    
+    logger.info(f"Instantiating service '{service_name}' for method '{method_name}'")
+    
+    try:
+        # Map service name to module path
+        # Convention: CasefileService → src.casefileservice.service
+        service_module_map = {
+            "CasefileService": "casefileservice.service",
+            "ToolSessionService": "tool_sessionservice.service",
+            "CommunicationService": "communicationservice.service",
+            "DriveClient": "pydantic_ai_integration.integrations.google_workspace.drive_client",
+            "GmailClient": "pydantic_ai_integration.integrations.google_workspace.gmail_client",
+            "SheetsClient": "pydantic_ai_integration.integrations.google_workspace.sheets_client",
+            "RequestHubService": "coreservice.request_hub_service",
+        }
+        
+        module_path = service_module_map.get(service_name)
+        if not module_path:
+            raise ValueError(f"Unknown service: {service_name}. Add to service_module_map.")
+        
+        # Import module
+        logger.debug(f"Importing module: {module_path}")
+        module = importlib.import_module(module_path)
+        
+        # Get service class
+        service_class = getattr(module, service_name)
+        logger.debug(f"Found service class: {service_class}")
+        
+        # Instantiate (simple - no DI for now)
+        service_instance = service_class()
+        logger.info(f"✓ Successfully instantiated {service_name}")
+        
+        return service_instance
+        
+    except ImportError as e:
+        logger.error(f"Failed to import service module '{service_name}': {e}", exc_info=True)
+        raise ValueError(f"Service '{service_name}' module not found: {e}")
+    except AttributeError as e:
+        logger.error(f"Service class '{service_name}' not found in module: {e}", exc_info=True)
+        raise ValueError(f"Service class '{service_name}' not found: {e}")
+    except Exception as e:
+        logger.error(f"Failed to instantiate service '{service_name}': {e}", exc_info=True)
+        raise ValueError(f"Failed to instantiate '{service_name}': {e}")
+
+
+def _build_request_dto(service_name: str, method_name: str, method_params: Dict[str, Any], ctx):
+    """
+    Build Request DTO from method parameters.
+    
+    Services expect Request objects (BaseRequest[PayloadT]), not raw params.
+    This function wraps params in the appropriate Request DTO.
+    
+    Args:
+        service_name: Service name for model lookup
+        method_name: Method name for model lookup
+        method_params: Raw parameters from tool invocation
+        ctx: MDSContext for user_id, session_id, casefile_id
+        
+    Returns:
+        Instantiated Request DTO object
+        
+    Raises:
+        ValueError: If Request model cannot be found or instantiated
+    """
+    from . import method_registry
+    import importlib
+    import json
+    
+    logger.info(f"┌─ BUILDING REQUEST DTO ──────────────────")
+    logger.info(f"│ Service: {service_name}")
+    logger.info(f"│ Method: {method_name}")
+    logger.info(f"│ Method params count: {len(method_params)}")
+    logger.info(f"└────────────────────────────────────────")
+    
+    try:
+        # Get method definition
+        compound_key = f"{service_name}.{method_name}"
+        method_def = method_registry.get_method_definition(compound_key)
+        
+        if not method_def:
+            raise ValueError(f"Method '{compound_key}' not found in MANAGED_METHODS registry")
+        
+        # Get Request model class
+        request_model_class = method_def.request_model_class
+        if not request_model_class:
+            raise ValueError(f"Method '{compound_key}' has no request_model_class")
+        
+        logger.info(f"✓ Request DTO class found: {request_model_class.__name__}")
+        
+        # Build Request DTO with context + payload
+        # Request DTOs follow pattern: BaseRequest[PayloadT]
+        # They expect: user_id, session_id, casefile_id, payload
+        
+        logger.info(f"┌─ INJECTING CONTEXT ─────────────────────")
+        logger.info(f"│ user_id: {ctx.user_id}")
+        logger.info(f"│ session_id: {ctx.session_id}")
+        logger.info(f"│ casefile_id: {ctx.casefile_id}")
+        logger.info(f"│ payload: {json.dumps(method_params, default=str)}")
+        logger.info(f"└────────────────────────────────────────")
+        
+        request_dto = request_model_class(
+            user_id=ctx.user_id,
+            session_id=ctx.session_id,
+            casefile_id=ctx.casefile_id,
+            payload=method_params  # Pydantic will validate and build PayloadT
+        )
+        
+        logger.info(f"✓ Successfully built {request_model_class.__name__}")
+        
+        return request_dto
+        
+    except Exception as e:
+        logger.error(f"Failed to build Request DTO for {compound_key}: {e}", exc_info=True)
+        raise ValueError(f"Failed to build Request DTO: {e}")
+
+
 def register_tools_from_yaml(yaml_path: Optional[str] = None) -> None:
     """
     Load and register tools from YAML method tool definitions.
@@ -941,17 +1075,45 @@ def register_tools_from_yaml(yaml_path: Optional[str] = None) -> None:
             )
 
             # Create the tool function that actually executes based on execution metadata
-            async def tool_function(ctx, tool_name=tool_name, method_name=method_name, **kwargs):
-                """Enhanced tool function that executes based on YAML configuration."""
-                from . import method_registry
+            async def tool_function(ctx, tool_name=tool_name, method_name=method_name, method_ref_copy=method_ref, **kwargs):
+                """
+                Enhanced tool function that executes based on YAML configuration.
+
+                This function now ACTUALLY CALLS SERVICE METHODS instead of returning placeholders.
+
+                Flow:
+                1. Extract execution metadata and parameters
+                2. Separate method_params from tool_params (orchestration)
+                3. Instantiate service
+                4. Build Request DTO
+                5. Call service method
+                6. Return result
+                """
+
+                logger.info(f"═══ Tool Execution Start: {tool_name} ═══")
+                logger.info(f"┌─ EXECUTION CONTEXT ─────────────────────")
+                logger.info(f"│ User ID: {ctx.user_id}")
+                logger.info(f"│ Session ID: {ctx.session_id}")
+                logger.info(f"│ Casefile ID: {ctx.casefile_id}")
+                logger.info(f"└────────────────────────────────────────")
+                logger.info(f"┌─ RAW INPUT PARAMETERS ──────────────────")
+                import json
+                for key, value in kwargs.items():
+                    logger.info(f"│ {key}: {json.dumps(value) if not isinstance(value, str) else value}")
+                logger.info(f"└────────────────────────────────────────")
 
                 # Extract execution metadata from parameters
                 execution_type = kwargs.get('execution_type', 'method_wrapper')
                 method_name_param = kwargs.get('method_name', method_name)
                 parameter_mapping = kwargs.get('parameter_mapping', {})
                 dry_run = kwargs.get('dry_run', False)
+                timeout_seconds = kwargs.get('timeout_seconds', 30)
 
+                # DRY RUN: Preview execution without calling services
                 if dry_run:
+                    logger.info(f"[DRY RUN] Would execute {tool_name} via {execution_type}")
+                    logger.debug(f"[DRY RUN] method_name: {method_name_param}")
+                    logger.debug(f"[DRY RUN] parameters: {kwargs}")
                     return {
                         "tool_name": tool_name,
                         "method_name": method_name_param,
@@ -963,41 +1125,202 @@ def register_tools_from_yaml(yaml_path: Optional[str] = None) -> None:
 
                 # Execute based on type
                 if execution_type == 'method_wrapper':
-                    # Get method definition
-                    method_def = method_registry.get_method(method_name_param)
-                    if not method_def:
-                        raise ValueError(f"Method '{method_name_param}' not found for tool '{tool_name}'")
+                    logger.info(f"Execution type: method_wrapper for {method_name_param}")
+                    
+                    try:
+                        # STEP 1: Map parameters according to YAML configuration
+                        method_params = {}
+                        tool_params = {}
 
-                    # Map parameters according to YAML configuration
-                    method_params = {}
-                    tool_params = {}
+                        # Separate parameters based on mapping
+                        method_param_names = parameter_mapping.get('method_params', [])
+                        tool_param_names = parameter_mapping.get('tool_params', [])
 
-                    # Separate parameters based on mapping
-                    method_param_names = parameter_mapping.get('method_params', [])
-                    tool_param_names = parameter_mapping.get('tool_params', [])
+                        logger.debug(f"Parameter mapping config:")
+                        logger.debug(f"  - method_params expected: {method_param_names}")
+                        logger.debug(f"  - tool_params expected: {tool_param_names}")
 
-                    for param_name, param_value in kwargs.items():
-                        if param_name in method_param_names:
-                            method_params[param_name] = param_value
-                        elif param_name in tool_param_names:
-                            tool_params[param_name] = param_value
+                        for param_name, param_value in kwargs.items():
+                            # Skip execution metadata params
+                            if param_name in ('execution_type', 'method_name', 'parameter_mapping', 
+                                            'implementation_config', 'dry_run', 'timeout_seconds'):
+                                tool_params[param_name] = param_value
+                                continue
+                            
+                            if param_name in method_param_names:
+                                method_params[param_name] = param_value
+                                logger.debug(f"  → method_param: {param_name} = {param_value}")
+                            elif param_name in tool_param_names:
+                                tool_params[param_name] = param_value
+                                logger.debug(f"  → tool_param: {param_name} = {param_value}")
+                            else:
+                                # Default: assume it's a method parameter if not in tool_params list
+                                method_params[param_name] = param_value
+                                logger.debug(f"  → method_param (default): {param_name} = {param_value}")
+
+                        logger.info(f"┌─ PARAMETER SEPARATION COMPLETE ─────────")
+                        logger.info(f"│ METHOD PARAMETERS (for service method):")
+                        for key, value in method_params.items():
+                            logger.info(f"│   {key}: {json.dumps(value) if not isinstance(value, str) else value}")
+                        logger.info(f"│")
+                        logger.info(f"│ TOOL PARAMETERS (orchestration metadata):")
+                        for key, value in tool_params.items():
+                            logger.info(f"│   {key}: {json.dumps(value) if not isinstance(value, str) else value}")
+                        logger.info(f"└────────────────────────────────────────")
+
+                        # STEP 2: Parse service and method name
+                        if '.' in method_name_param:
+                            service_name, method_part = method_name_param.split('.', 1)
                         else:
-                            # Default: assume it's a method parameter
-                            method_params[param_name] = param_value
+                            # Fallback: try to infer from YAML method_reference
+                            service_name = method_ref_copy.get('service', '')
+                            method_part = method_name_param
+                        
+                        logger.info(f"Service: {service_name}, Method: {method_part}")
 
-                    # For now, return execution plan (next step: actual method calling)
-                    return {
-                        "tool_name": tool_name,
-                        "method_name": method_name_param,
-                        "execution_type": execution_type,
-                        "method_params": method_params,
-                        "tool_params": tool_params,
-                        "status": "ready_for_execution",
-                        "message": f"Tool {tool_name} ready to execute method {method_name_param}"
-                    }
+                        # STEP 3: Instantiate service
+                        try:
+                            service_instance = _instantiate_service(service_name, method_part)
+                        except ValueError as e:
+                            logger.error(f"Service instantiation failed: {e}")
+                            return {
+                                "tool_name": tool_name,
+                                "status": "error",
+                                "error_type": "ServiceInstantiationError",
+                                "error_message": str(e),
+                                "method_name": method_name_param
+                            }
+
+                        # STEP 4: Build Request DTO
+                        try:
+                            request_dto = _build_request_dto(
+                                service_name=service_name,
+                                method_name=method_part,
+                                method_params=method_params,
+                                ctx=ctx
+                            )
+                            
+                            # Log Request DTO structure
+                            logger.info(f"┌─ REQUEST DTO STRUCTURE ─────────────────")
+                            if hasattr(request_dto, 'model_dump'):
+                                dto_dict = request_dto.model_dump()
+                                logger.info(f"│ DTO Type: {type(request_dto).__name__}")
+                                for key, value in dto_dict.items():
+                                    if key == 'payload' and isinstance(value, dict):
+                                        logger.info(f"│ {key}:")
+                                        for pk, pv in value.items():
+                                            logger.info(f"│   {pk}: {json.dumps(pv) if not isinstance(pv, str) else pv}")
+                                    else:
+                                        logger.info(f"│ {key}: {json.dumps(value) if not isinstance(value, str) else value}")
+                            logger.info(f"└────────────────────────────────────────")
+                        except ValueError as e:
+                            logger.error(f"Request DTO build failed: {e}")
+                            return {
+                                "tool_name": tool_name,
+                                "status": "error",
+                                "error_type": "RequestDTOBuildError",
+                                "error_message": str(e),
+                                "method_name": method_name_param,
+                                "method_params": method_params
+                            }
+
+                        # STEP 5: Call service method
+                        try:
+                            method_callable = getattr(service_instance, method_part)
+                            logger.info(f"Calling {service_name}.{method_part}...")
+                            
+                            import asyncio
+                            from datetime import datetime
+                            start_time = datetime.now()
+                            
+                            # Execute with timeout
+                            result = await asyncio.wait_for(
+                                method_callable(request_dto),
+                                timeout=timeout_seconds
+                            )
+                            
+                            duration_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+                            logger.info(f"✓ Method executed successfully in {duration_ms}ms")
+
+                            # STEP 6: Extract result payload
+                            # Services return BaseResponse[PayloadT] objects
+                            if hasattr(result, 'model_dump'):
+                                result_dict = result.model_dump()
+                            elif isinstance(result, dict):
+                                result_dict = result
+                            else:
+                                result_dict = {"value": str(result)}
+                            
+                            # Log service response structure
+                            logger.info(f"┌─ SERVICE RESPONSE ──────────────────────")
+                            logger.info(f"│ Response Type: {type(result).__name__}")
+                            for key, value in result_dict.items():
+                                if key == 'payload' and isinstance(value, dict):
+                                    logger.info(f"│ {key}:")
+                                    for pk, pv in value.items():
+                                        val_str = json.dumps(pv) if not isinstance(pv, (str, int, float, bool, type(None))) else str(pv)
+                                        logger.info(f"│   {pk}: {val_str}")
+                                elif key == 'audit' and isinstance(value, dict):
+                                    logger.info(f"│ {key}: [audit data - {len(value)} fields]")
+                                else:
+                                    val_str = json.dumps(value) if not isinstance(value, (str, int, float, bool, type(None))) else str(value)
+                                    logger.info(f"│ {key}: {val_str}")
+                            logger.info(f"└────────────────────────────────────────")
+                            
+                            logger.info(f"═══ Tool Execution Complete: {tool_name} ═══")
+                            
+                            return {
+                                "tool_name": tool_name,
+                                "method_name": method_name_param,
+                                "execution_type": execution_type,
+                                "status": "success",
+                                "result": result_dict,
+                                "duration_ms": duration_ms,
+                                "tool_params": tool_params,
+                                "message": f"Successfully executed {tool_name}"
+                            }
+
+                        except asyncio.TimeoutError:
+                            logger.error(f"Method execution timed out after {timeout_seconds}s")
+                            return {
+                                "tool_name": tool_name,
+                                "status": "error",
+                                "error_type": "TimeoutError",
+                                "error_message": f"Method execution exceeded timeout of {timeout_seconds}s",
+                                "method_name": method_name_param
+                            }
+                        except AttributeError as e:
+                            logger.error(f"Method '{method_part}' not found on {service_name}: {e}")
+                            return {
+                                "tool_name": tool_name,
+                                "status": "error",
+                                "error_type": "MethodNotFoundError",
+                                "error_message": f"Method '{method_part}' not found on service '{service_name}'",
+                                "method_name": method_name_param
+                            }
+                        except Exception as e:
+                            logger.error(f"Method execution failed: {e}", exc_info=True)
+                            return {
+                                "tool_name": tool_name,
+                                "status": "error",
+                                "error_type": type(e).__name__,
+                                "error_message": str(e),
+                                "method_name": method_name_param
+                            }
+
+                    except Exception as e:
+                        logger.error(f"Tool execution failed: {e}", exc_info=True)
+                        return {
+                            "tool_name": tool_name,
+                            "status": "error",
+                            "error_type": "ToolExecutionError",
+                            "error_message": str(e),
+                            "method_name": method_name_param
+                        }
 
                 else:
                     # Placeholder for other execution types
+                    logger.warning(f"Execution type '{execution_type}' not implemented")
                     return {
                         "tool_name": tool_name,
                         "execution_type": execution_type,
