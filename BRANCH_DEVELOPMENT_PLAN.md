@@ -21,7 +21,7 @@ The codebase had hardcoded service instantiation violations throughout, making t
 
 ## Milestone Status
 
-### ✅ Milestone 1: Services Architecture Restructure - COMPLETE
+### ✅ Milestone 1: Services Architecture Restructure - COMPLETE (Enhanced)
 
 **Completed October 11, 2025:**
 
@@ -30,6 +30,9 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - Dependency injection in all service classes (CasefileService, ToolSessionService, CommunicationService)
 - RequestHub refactoring to eliminate hardcoded service instantiation
 - Test updates to use ServiceManager-based constructor with fake services
+- **NEW: Model Transformation Layer** - BaseMapper class for bidirectional transformations
+- **NEW: Transformation Analysis Tools** - Scripts for analyzing and generating mappers
+- **NEW: 8 Core Operation Mappers** - Auto-generated mappers for casefile, session, and chat operations
 - Comprehensive integration testing (9/9 tests passing)
 
 **Benefits Achieved:**
@@ -37,6 +40,8 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - DRY principles: Eliminated service instantiation violations
 - Testability: Services accept mock dependencies
 - Maintainability: Centralized service management
+- **NEW: Model Transformation Patterns** - Explicit DTO ↔ Domain mapping
+- **NEW: Development Tools** - Analysis, generation, and visualization scripts
 - Modern Python: Updated to Python 3.9+ union syntax (`| None`)
 
 ### 🎯 Milestone 2: Dependency Injection Framework - READY TO IMPLEMENT
@@ -123,6 +128,11 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - ✅ `src/communicationservice/service.py` - Updated with ChatSessionRepository, ToolSessionService, and id_service injection
 - ✅ `src/coreservice/request_hub.py` - Refactored to use ServiceManager
 - ✅ `tests/coreservice/test_request_hub.py` - Updated for ServiceManager constructor
+- ✅ `src/pydantic_models/base/transformations.py` - **NEW** BaseMapper class and transformation utilities
+- ✅ `scripts/analyze_model_transformations.py` - **NEW** Model transformation analysis script
+- ✅ `scripts/generate_mapper.py` - **NEW** Automatic mapper code generator
+- ✅ `scripts/visualize_rar_flow.py` - **NEW** RAR flow visualization script
+- ✅ `src/pydantic_models/mappers/` - **NEW** Directory with 8 auto-generated mappers
 
 ## Dependencies
 
