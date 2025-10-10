@@ -3,10 +3,14 @@ Main FastAPI application.
 """
 
 import logging
+import os
 from typing import Any
 
-from fastapi import FastAPI
+from dotenv import load_dotenv
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+
+load_dotenv()
 
 from authservice.routes import router as auth_router
 from coreservice.config import get_environment
@@ -47,26 +51,34 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event() -> None:
         """Initialize resources on application startup."""
-        # Initialize Firestore connection pool
-        pool = FirestoreConnectionPool(database="mds-objects", pool_size=10)
-        await pool.initialize()
-        app.state.firestore_pool = pool
+        use_mocks = os.getenv("USE_MOCKS", "false").lower() == "true"
+        
+        if not use_mocks:
+            # Initialize Firestore connection pool
+            pool = FirestoreConnectionPool(database="mds-objects", pool_size=10)
+            await pool.initialize()
+            app.state.firestore_pool = pool
+        else:
+            app.state.firestore_pool = None
 
         # Initialize Redis cache
-        cache = RedisCacheService(redis_url="redis://localhost:6379/0", ttl=3600)
-        try:
-            await cache.initialize()
-            app.state.redis_cache = cache
-            logger.info("Redis cache initialized")
-        except Exception as e:
-            logger.warning(f"Redis cache initialization failed: {e}, continuing without cache")
+        if not use_mocks:
+            cache = RedisCacheService(redis_url="redis://localhost:6379/0", ttl=3600)
+            try:
+                await cache.initialize()
+                app.state.redis_cache = cache
+                logger.info("Redis cache initialized")
+            except Exception as e:
+                logger.warning(f"Redis cache initialization failed: {e}, continuing without cache")
+                app.state.redis_cache = None
+        else:
             app.state.redis_cache = None
 
     # Cleanup connection pool on shutdown
     @app.on_event("shutdown")
     async def shutdown_event() -> None:
         """Cleanup resources on application shutdown."""
-        if hasattr(app.state, "firestore_pool"):
+        if hasattr(app.state, "firestore_pool") and app.state.firestore_pool:
             await app.state.firestore_pool.close_all()
         if hasattr(app.state, "redis_cache") and app.state.redis_cache:
             await app.state.redis_cache.close()
@@ -102,8 +114,10 @@ def create_app() -> FastAPI:
     @app.get("/health", tags=["health"])
     async def health_check() -> dict[str, Any]:
         pool_health = {}
-        if hasattr(app.state, "firestore_pool"):
+        if hasattr(app.state, "firestore_pool") and app.state.firestore_pool:
             pool_health = await app.state.firestore_pool.health_check()
+        elif hasattr(app.state, "firestore_pool") and app.state.firestore_pool is None:
+            pool_health = {"status": "mock"}
 
         redis_health = {}
         if hasattr(app.state, "redis_cache") and app.state.redis_cache:
@@ -121,10 +135,9 @@ def create_app() -> FastAPI:
     @app.get("/metrics", tags=["monitoring"])
     async def metrics() -> Response:
         """Expose Prometheus metrics."""
-        from fastapi import Response as FastAPIResponse
 
         metrics_data = get_metrics()
-        return FastAPIResponse(content=metrics_data, media_type="text/plain")
+        return Response(content=metrics_data, media_type="text/plain")
 
     return app
 

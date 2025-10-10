@@ -471,10 +471,13 @@ def load_methods_from_yaml(yaml_path: str) -> Dict[str, ManagedMethodDefinition]
                 implementation_method=method_name,
             )
 
-            methods[method_name] = method_def
+            # FIX: Use compound key to avoid duplicates across services
+            # Format: "ServiceName.method_name"
+            compound_key = f"{service_name}.{method_name}"
+            methods[compound_key] = method_def
 
             logger.info(
-                f"Loaded method '{method_name}' from YAML "
+                f"Loaded method '{compound_key}' from YAML "
                 f"(service: {service_name}, domain: {classification.get('domain')})"
             )
 

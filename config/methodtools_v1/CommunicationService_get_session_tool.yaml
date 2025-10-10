@@ -1,0 +1,78 @@
+name: get_session_tool
+description: Tool wrapper for CommunicationService.get_session with validation and
+  execution control
+category: communication_management
+version: 1.0.0
+tags:
+- communication
+- read
+- get
+method_reference:
+  service: CommunicationService
+  method: get_session
+  classification:
+    domain: communication
+    subdomain: chat_session
+    capability: read
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+method_params:
+- name: request
+  type: object
+  required: true
+  description: Request object
+tool_params:
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: CommunicationService.get_session
+    parameter_mapping:
+      method_params:
+      - request
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions:
+  - chat:read
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic get_session operation
+  input:
+    request: sample_request
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: GetChatSessionRequest
+  response_model: GetChatSessionResponse
+  canonical_models: []
+  module: src.pydantic_models.operations.chat_session_ops
+dependencies:
+  methods:
+  - get_session
+  models:
+  - GetChatSessionRequest
+  - GetChatSessionResponse
+  services:
+  - CommunicationService
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

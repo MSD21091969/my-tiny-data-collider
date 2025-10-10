@@ -8,6 +8,7 @@ from typing import Any, Dict
 from fastapi import Depends
 
 from authservice import get_current_user
+from coreservice.request_hub import RequestHub
 from tool_sessionservice import ToolSessionService
 
 
@@ -15,6 +16,12 @@ from tool_sessionservice import ToolSessionService
 def get_tool_session_service() -> ToolSessionService:
     """Get an instance of the ToolSessionService."""
     return ToolSessionService()
+
+
+@lru_cache()
+def get_request_hub() -> RequestHub:
+    """Get an instance of RequestHub for orchestrated workflows."""
+    return RequestHub()
 
 def get_current_user_id(current_user: Dict[str, Any] = Depends(get_current_user)) -> str:
     """Get the current authenticated user ID.

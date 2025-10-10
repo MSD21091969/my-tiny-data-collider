@@ -41,16 +41,13 @@ from pydantic_models.operations.casefile_ops import (
     UpdateCasefileResponse,
 )
 
+from ..dependencies import get_request_hub
+
 router = APIRouter(
     prefix="/casefiles",
     tags=["casefiles"],
     responses={404: {"description": "Not found"}},
 )
-
-
-def get_request_hub() -> RequestHub:
-    """Get an instance of RequestHub for orchestrated workflows."""
-    return RequestHub()
 
 
 def _raise_for_failure(

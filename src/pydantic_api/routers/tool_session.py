@@ -2,6 +2,8 @@
 Tool session API router.
 """
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from authservice import get_current_user
@@ -12,7 +14,6 @@ from pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
     list_tools_by_category,
 )
-from pydantic_models.operations.casefile_ops import GetCasefileRequest
 from pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
 from pydantic_models.operations.tool_session_ops import (
     CloseSessionRequest,
@@ -76,7 +77,7 @@ async def create_session(
 async def execute_tool(
     request: ToolRequest,
     service: ToolSessionService = Depends(get_tool_session_service),
-    current_user: Dict[str, Any] = Depends(get_current_user),
+    current_user: dict[str, Any] = Depends(get_current_user),
 ) -> ToolResponse:
     """Execute a tool in a session."""
     try:
@@ -220,10 +221,10 @@ async def close_session(
 # ============================================================================
 
 
-@router.get("/tools", response_model=Dict[str, Any])
+@router.get("/tools", response_model=dict[str, Any])
 async def list_available_tools(
-    category: Optional[str] = None, enabled_only: bool = True
-) -> Dict[str, Any]:
+    category: str | None = None, enabled_only: bool = True
+) -> dict[str, Any]:
     """
     List available tools from MANAGED_TOOLS registry.
 
@@ -250,8 +251,8 @@ async def list_available_tools(
     }
 
 
-@router.get("/tools/{tool_name}", response_model=Dict[str, Any])
-async def get_tool_info(tool_name: str) -> Dict[str, Any]:
+@router.get("/tools/{tool_name}", response_model=dict[str, Any])
+async def get_tool_info(tool_name: str) -> dict[str, Any]:
     """
     Get detailed information about a specific tool.
 
@@ -276,8 +277,8 @@ async def get_tool_info(tool_name: str) -> Dict[str, Any]:
     return tool.to_discovery_format()
 
 
-@router.get("/tools/{tool_name}/schema", response_model=Dict[str, Any])
-async def get_tool_parameter_schema(tool_name: str) -> Dict[str, Any]:
+@router.get("/tools/{tool_name}/schema", response_model=dict[str, Any])
+async def get_tool_parameter_schema(tool_name: str) -> dict[str, Any]:
     """
     Get OpenAPI parameter schema for a tool.
 

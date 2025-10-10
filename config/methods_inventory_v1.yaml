@@ -4,9 +4,9 @@
 # Service methods registry with classification and metadata
 #
 # SYNCHRONIZATION STATUS: ✅ UP TO DATE
-# Last synchronized: October 8, 2025 - Foundation Sync
-# Registry status: 26 methods loaded into MANAGED_METHODS at startup
-# Sync reference: CONFIG_AUDIT_REPORT.md (October 8, 2025)
+# Last synchronized: October 10, 2025 - Parameter Separation Sync
+# Registry status: 34 methods loaded into MANAGED_METHODS at startup
+# Sync reference: CONFIG_AUDIT_REPORT.md (October 10, 2025)
 # 
 # IMPLEMENTATION:
 # - Methods loaded via register_methods_from_yaml() in src/__init__.py
@@ -14,7 +14,7 @@
 # - Tools inherit parameters from registered methods
 # 
 # VERSION HISTORY:
-# - v1.0.0 (2025-10-06): Initial baseline release with 26 methods
+# - v1.0.0 (2025-10-06): Initial baseline release with 34 methods
 #
 # VERSIONING RULES:
 # - MAJOR: Breaking changes (signature modifications, renamed methods)
@@ -49,7 +49,7 @@
 version: "1.0.0"
 schema_version: "1.0"
 created_at: "2025-10-06"
-updated_at: "2025-10-06"
+updated_at: "2025-10-10"
 changelog: "docs/registry/CHANGELOG.md"
 versioning_guide: "docs/registry/versioning-guide.md"
 
@@ -63,34 +63,34 @@ compatibility:
 deprecations: []
 
 metadata:
-  total_methods: 26
-  services: 6
+  total_methods: 34
+  services: 7
   model_coverage: 100%
   classification_schema: "tool_schema_v2.yaml"
 
 statistics:
   by_domain:
-    workspace: 15
-    communication: 11
-    automation: 4
+    workspace: 18
+    communication: 10
+    automation: 6
   by_capability:
-    read: 11
-    update: 9
-    create: 5
+    read: 9
+    update: 8
+    create: 7
     search: 4
-    process: 3
+    process: 4
     delete: 2
   by_complexity:
-    atomic: 24
-    composite: 5
+    atomic: 25
+    composite: 7
     pipeline: 2
   by_maturity:
-    stable: 23
-    beta: 7
+    stable: 22
+    beta: 12
   by_integration:
-    internal: 18
+    internal: 24
     external: 6
-    hybrid: 6
+    hybrid: 4
 
 # ============================================================================
 # CASEFILE SERVICE (13 methods)
@@ -401,7 +401,7 @@ services:
   - name: ToolSessionService
     module: src.tool_sessionservice.service
     description: "Tool session lifecycle and execution"
-    method_count: 5
+    method_count: 6
     
     methods:
       # Session Lifecycle (4)
@@ -489,7 +489,7 @@ services:
           timeout_seconds: 30
         signature: "async def close_session(self, request: CloseSessionRequest) -> CloseSessionResponse"
       
-      # Tool Execution (1)
+      # Tool Execution (2)
       - name: process_tool_request
         description: "Validate, execute, and log tool request"
         classification:
@@ -511,6 +511,28 @@ services:
           timeout_seconds: 60
         dependencies: ["MANAGED_TOOLS registry"]
         signature: "async def process_tool_request(self, request: ToolRequest) -> ToolResponse"
+      
+      - name: process_tool_request_with_session_management
+        description: "Process tool request with automatic session management"
+        classification:
+          domain: automation
+          subdomain: tool_execution
+          capability: process
+          complexity: composite
+          maturity: stable
+          integration_tier: hybrid
+        models:
+          request: null
+          response: ToolResponse
+          module: null
+        business_rules:
+          enabled: true
+          requires_auth: true
+          required_permissions: ["tools:execute"]
+          requires_casefile: false
+          timeout_seconds: 60
+        dependencies: ["MANAGED_TOOLS registry", "SessionManager"]
+        signature: "async def process_tool_request_with_session_management(self, user_id: str, tool_name: str, parameters: Dict[str, Any], casefile_id: Optional[str] = None, session_token: Optional[str] = None, client_request_id: Optional[str] = None, auto_create_session: bool = True) -> ToolResponse"
 
   # ============================================================================
   # REQUEST HUB SERVICE (2 methods)
@@ -519,7 +541,7 @@ services:
   - name: RequestHubService
     module: src.coreservice.request_hub
     description: "RequestHub orchestration bridging R-A-R and Tool Engineering"
-    method_count: 2
+    method_count: 3
     
     methods:
       - name: execute_casefile
@@ -529,7 +551,7 @@ services:
           subdomain: casefile
           capability: create
           complexity: atomic
-          maturity: experimental
+          maturity: beta
           integration_tier: internal
         models:
           request: CreateCasefileRequest
@@ -550,7 +572,7 @@ services:
           subdomain: casefile
           capability: create
           complexity: composite
-          maturity: experimental
+          maturity: beta
           integration_tier: internal
         models:
           request: CreateCasefileWithSessionRequest
@@ -563,6 +585,29 @@ services:
           requires_casefile: false
           timeout_seconds: 60
         signature: "async def execute_casefile_with_session(request: CreateCasefileWithSessionRequest) -> CreateCasefileWithSessionResponse"
+      
+      - name: create_session_with_casefile
+        description: "Create tool session and link to existing casefile"
+        classification:
+          domain: automation
+          subdomain: tool_session
+          capability: create
+          complexity: composite
+          maturity: beta
+          integration_tier: internal
+        models:
+          request: CreateSessionWithCasefileRequest
+          response: CreateSessionWithCasefileResponse
+          module: src.pydantic_models.operations.request_hub_ops
+        business_rules:
+          enabled: true
+          requires_auth: true
+          required_permissions: ["tools:execute", "casefiles:write"]
+          requires_casefile: true
+          casefile_permission_level: "write"
+          timeout_seconds: 60
+        dependencies: ["ToolSessionService.create_session", "CasefileService.add_session_to_casefile"]
+        signature: "async def create_session_with_casefile(request: CreateSessionWithCasefileRequest) -> CreateSessionWithCasefileResponse"
 
   # ============================================================================
   # COMMUNICATION SERVICE (6 methods)

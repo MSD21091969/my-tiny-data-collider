@@ -766,7 +766,20 @@ def get_tool_parameters(tool_name: str) -> List[ToolParameterDef]:
     if tool_def.method_name:
         from . import method_registry
         try:
-            method_params = method_registry.get_method_parameters(tool_def.method_name)
+            # Try compound key first (for tools that specify service.method_name)
+            if '.' in tool_def.method_name:
+                method_params = method_registry.get_method_parameters(tool_def.method_name)
+            else:
+                # For simple method names, find all matching methods and use the first one
+                # This handles the case where multiple services have the same method name
+                matching_methods = method_registry.find_methods_by_method_name(tool_def.method_name)
+                if matching_methods:
+                    # Use the first match (could be enhanced to be more specific later)
+                    method_def = matching_methods[0]
+                    method_params = method_registry.extract_parameters_from_request_model(method_def.request_model_class)
+                else:
+                    method_params = []
+            
             # Convert MethodParameterDef → ToolParameterDef
             tool_params = []
             for mp in method_params:
@@ -793,25 +806,235 @@ def get_tool_parameters(tool_name: str) -> List[ToolParameterDef]:
     return []
 
 
-# Notes for future development:
-#
-# PARAMETER INHERITANCE:
-# Tools inherit parameters from methods via method_name reference.
-# Use get_tool_parameters() to resolve actual parameters at runtime.
-#
-# RATE LIMITING:
-# Policies (rate limiting, permissions) belong in Request DTOs now.
-# Service layer validates ToolRequest before execution.
-#
-# PERMISSIONS:
-# Permission checks happen in ToolRequest validation (R-A-R pattern).
-# Tool definitions no longer store business rules.
-#
-# VERSIONING:
-# Multiple versions can coexist: MANAGED_TOOLS["tool_name:v1"], ["tool_name:v2"]
-# API accepts version in request, defaults to latest.
-#
-# TOOLSETS:
-# Group tools via category or create ToolsetDefinition model.
-# API can list/filter by toolset for easier discovery.
+def register_tools_from_yaml(yaml_path: Optional[str] = None) -> None:
+    """
+    Load and register tools from YAML method tool definitions.
+
+    This function reads YAML files from config/methodtools_v1/ and creates
+    actual tool registrations using @register_mds_tool decorator.
+
+    Args:
+        yaml_path: Optional path to YAML directory. Defaults to config/methodtools_v1/
+
+    Example:
+        >>> # In main.py or service initialization
+        >>> from src.pydantic_ai_integration.tool_decorator import register_tools_from_yaml
+        >>> register_tools_from_yaml()
+    """
+    from pathlib import Path
+    import yaml
+    from typing import Literal
+
+    from pydantic import BaseModel, Field
+
+    if yaml_path is None:
+        # Auto-detect from module location
+        module_dir = Path(__file__).parent.parent.parent
+        yaml_path = module_dir / "config" / "methodtools_v1"
+
+    yaml_dir = Path(yaml_path)
+    if not yaml_dir.exists():
+        logger.warning(f"Method tools directory not found: {yaml_dir}")
+        return
+
+    registered_count = 0
+
+    # Load all YAML files in the directory
+    for yaml_file in yaml_dir.glob("*.yaml"):
+        try:
+            with open(yaml_file, encoding='utf-8') as f:
+                tool_config = yaml.safe_load(f)
+
+            # Extract tool configuration
+            tool_name = tool_config['name']
+            description = tool_config['description']
+            category = tool_config.get('category', 'general')
+            version = tool_config.get('version', '1.0.0')
+            tags = tool_config.get('tags', [])
+
+            # Get method reference for routing
+            method_ref = tool_config.get('method_reference', {})
+            service_name = method_ref.get('service', '')
+            method_name_part = method_ref.get('method', '')
+            method_name = f"{service_name}.{method_name_part}".strip('.')
+            if not method_name or method_name == '.':
+                method_name = None
+
+            # Ensure tool name is unique by including service name if there are duplicates
+            # Check if this tool name already exists
+            if tool_name in MANAGED_TOOLS:
+                # Make it unique by prefixing with service name
+                unique_tool_name = f"{service_name.lower()}_{tool_name}"
+                logger.warning(f"Tool name '{tool_name}' already exists, using '{unique_tool_name}' instead")
+                tool_name = unique_tool_name
+
+            # Create enhanced parameter model with execution metadata
+            # This allows tools to actually execute instead of returning placeholders
+
+            # Build the class attributes
+            class_attrs = {
+                '__module__': __name__,
+                'model_config': {'extra': 'allow'}
+            }
+
+            # Build annotations dict
+            annotations = {}
+
+            # Add tool parameters from YAML
+            for param in tool_config.get('tool_params', []):
+                param_type = _yaml_type_to_python_type(param['type'])
+                field_kwargs = {'description': param.get('description', '')}
+
+                # Add constraints
+                if 'default' in param:
+                    field_kwargs['default'] = param['default']
+                elif param.get('required', False):
+                    pass  # No default for required fields
+                else:
+                    field_kwargs['default'] = None
+
+                if 'min_value' in param:
+                    field_kwargs['ge'] = param['min_value']
+                if 'max_value' in param:
+                    field_kwargs['le'] = param['max_value']
+                if 'min_length' in param:
+                    field_kwargs['min_length'] = param['min_length']
+                if 'max_length' in param:
+                    field_kwargs['max_length'] = param['max_length']
+
+                # Add to annotations and class attrs
+                annotations[param['name']] = param_type
+                class_attrs[param['name']] = Field(**field_kwargs)
+
+            # Add special execution fields
+            annotations.update({
+                'execution_type': str,
+                'method_name': str,
+                'parameter_mapping': dict,
+                'implementation_config': dict,
+                'dry_run': bool,
+                'timeout_seconds': int,
+            })
+
+            class_attrs.update({
+                'execution_type': Field(default="method_wrapper", description="How the tool should execute"),
+                'method_name': Field(default=method_name or "", description="Method to execute"),
+                'parameter_mapping': Field(default_factory=dict, description="How to map parameters to method calls"),
+                'implementation_config': Field(default_factory=dict, description="Additional implementation configuration"),
+                'dry_run': Field(default=False, description="Preview mode without actual execution"),
+                'timeout_seconds': Field(default=30, description="Maximum execution time in seconds"),
+            })
+
+            # Set default values for execution fields based on YAML
+            implementation = tool_config.get('implementation', {})
+            class_attrs['execution_type'] = Field(default=implementation.get('type', 'method_wrapper'), description="How the tool should execute")
+            class_attrs['method_name'] = Field(default=method_name, description="Method to execute")
+            class_attrs['parameter_mapping'] = Field(default=implementation.get('method_wrapper', {}).get('parameter_mapping', {}), description="How to map parameters to method calls")
+            class_attrs['implementation_config'] = Field(default=implementation, description="Additional implementation configuration")
+
+            # Create the class
+            class_attrs['__annotations__'] = annotations
+            EnhancedToolParams = type(
+                f"{tool_name.title().replace('_', '')}Params",
+                (BaseModel,),
+                class_attrs
+            )
+
+            # Create the tool function that actually executes based on execution metadata
+            async def tool_function(ctx, tool_name=tool_name, method_name=method_name, **kwargs):
+                """Enhanced tool function that executes based on YAML configuration."""
+                from . import method_registry
+
+                # Extract execution metadata from parameters
+                execution_type = kwargs.get('execution_type', 'method_wrapper')
+                method_name_param = kwargs.get('method_name', method_name)
+                parameter_mapping = kwargs.get('parameter_mapping', {})
+                dry_run = kwargs.get('dry_run', False)
+
+                if dry_run:
+                    return {
+                        "tool_name": tool_name,
+                        "method_name": method_name_param,
+                        "execution_type": execution_type,
+                        "status": "dry_run",
+                        "parameters": kwargs,
+                        "message": f"Dry run: would execute {tool_name} via {execution_type}"
+                    }
+
+                # Execute based on type
+                if execution_type == 'method_wrapper':
+                    # Get method definition
+                    method_def = method_registry.get_method(method_name_param)
+                    if not method_def:
+                        raise ValueError(f"Method '{method_name_param}' not found for tool '{tool_name}'")
+
+                    # Map parameters according to YAML configuration
+                    method_params = {}
+                    tool_params = {}
+
+                    # Separate parameters based on mapping
+                    method_param_names = parameter_mapping.get('method_params', [])
+                    tool_param_names = parameter_mapping.get('tool_params', [])
+
+                    for param_name, param_value in kwargs.items():
+                        if param_name in method_param_names:
+                            method_params[param_name] = param_value
+                        elif param_name in tool_param_names:
+                            tool_params[param_name] = param_value
+                        else:
+                            # Default: assume it's a method parameter
+                            method_params[param_name] = param_value
+
+                    # For now, return execution plan (next step: actual method calling)
+                    return {
+                        "tool_name": tool_name,
+                        "method_name": method_name_param,
+                        "execution_type": execution_type,
+                        "method_params": method_params,
+                        "tool_params": tool_params,
+                        "status": "ready_for_execution",
+                        "message": f"Tool {tool_name} ready to execute method {method_name_param}"
+                    }
+
+                else:
+                    # Placeholder for other execution types
+                    return {
+                        "tool_name": tool_name,
+                        "execution_type": execution_type,
+                        "status": "not_implemented",
+                        "message": f"Execution type '{execution_type}' not yet implemented"
+                    }
+
+            # Register the tool with enhanced parameter model
+            register_mds_tool(
+                name=tool_name,
+                params_model=EnhancedToolParams,
+                description=description,
+                category=category,
+                version=version,
+                tags=tags,
+                method_name=method_name
+            )(tool_function)
+
+            registered_count += 1
+            logger.info(f"Registered YAML tool: {tool_name} -> {method_name}")
+
+        except Exception as e:
+            logger.error(f"Failed to register tool from {yaml_file.name}: {e}")
+            continue
+
+    logger.info(f"Registered {registered_count} tools from YAML method tool definitions")
+
+
+def _yaml_type_to_python_type(yaml_type: str) -> type:
+    """Convert YAML type string to Python type."""
+    type_map = {
+        'string': str,
+        'integer': int,
+        'float': float,
+        'boolean': bool,
+        'array': list,
+        'object': dict
+    }
+    return type_map.get(yaml_type, str)
 

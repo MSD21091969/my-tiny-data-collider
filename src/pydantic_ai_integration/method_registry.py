@@ -257,31 +257,110 @@ def get_method_definition(method_name: str) -> Optional[ManagedMethodDefinition]
     return MANAGED_METHODS.get(method_name)
 
 
+# ==============================================================================
+# COMPOUND KEY HELPERS (for ServiceName.method_name format)
+# ==============================================================================
+
+def get_compound_key(service_name: str, method_name: str) -> str:
+    """
+    Generate compound key from service and method names.
+    
+    Args:
+        service_name: Service class name (e.g., "ToolSessionService")
+        method_name: Method name (e.g., "create_session")
+        
+    Returns:
+        Compound key (e.g., "ToolSessionService.create_session")
+    """
+    return f"{service_name}.{method_name}"
+
+
+def validate_method_exists_by_compound_key(service_name: str, method_name: str) -> bool:
+    """
+    Check if method exists using compound key format.
+    
+    Args:
+        service_name: Service class name
+        method_name: Method name
+        
+    Returns:
+        True if method exists with compound key
+    """
+    compound_key = get_compound_key(service_name, method_name)
+    return compound_key in MANAGED_METHODS
+
+
+def get_method_definition_by_compound_key(service_name: str, method_name: str) -> Optional[ManagedMethodDefinition]:
+    """
+    Get method definition using compound key format.
+    
+    Args:
+        service_name: Service class name
+        method_name: Method name
+        
+    Returns:
+        Method definition or None if not found
+    """
+    compound_key = get_compound_key(service_name, method_name)
+    return MANAGED_METHODS.get(compound_key)
+
+
+def find_methods_by_method_name(method_name: str) -> List[ManagedMethodDefinition]:
+    """
+    Find all methods with a given method name across all services.
+    Useful when method names are duplicated across services.
+    
+    Args:
+        method_name: Method name to search for
+        
+    Returns:
+        List of method definitions with matching method names
+    """
+    return [
+        method_def for key, method_def in MANAGED_METHODS.items()
+        if key.endswith(f".{method_name}")
+    ]
+
+
+def get_method_definition_by_method_name(method_name: str) -> Optional[ManagedMethodDefinition]:
+    """
+    Get method definition by method name only.
+    Returns the first match if multiple services have the same method name.
+    Use find_methods_by_method_name() if you need all matches.
+    
+    Args:
+        method_name: Method name (without service prefix)
+        
+    Returns:
+        First matching method definition or None
+    """
+    matches = find_methods_by_method_name(method_name)
+    return matches[0] if matches else None
+
+
 def get_method_parameters(method_name: str) -> List[MethodParameterDef]:
     """
     Get parameters for a method by extracting them on-demand from request model.
     
     Args:
-        method_name: Method name to look up
+        method_name: Method name to look up (can be compound key or simple name)
         
     Returns:
         List of MethodParameterDef extracted from the request model payload
         
     Example:
-        >>> params = get_method_parameters("create_casefile")
-        >>> # Returns parameters extracted fresh from CreateCasefileRequest
+        >>> params = get_method_parameters("ToolSessionService.create_session")
+        >>> # Returns parameters extracted fresh from CreateSessionRequest
     """
+    # Try compound key first, then fall back to method name lookup
     method_def = MANAGED_METHODS.get(method_name)
+    if not method_def:
+        method_def = get_method_definition_by_method_name(method_name)
+    
     if not method_def or not method_def.request_model_class:
         return []
     
     return extract_parameters_from_request_model(method_def.request_model_class)
-    """
-    Get method definition by name.
-    Returns None if not found.
-    Parallel to tool_decorator.get_tool_definition().
-    """
-    return MANAGED_METHODS.get(method_name)
 
 
 # ==============================================================================

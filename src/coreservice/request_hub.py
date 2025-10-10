@@ -61,6 +61,9 @@ from pydantic_models.operations.request_hub_ops import (
     CasefileWithSessionResultPayload,
     CreateCasefileWithSessionRequest,
     CreateCasefileWithSessionResponse,
+    CreateSessionWithCasefileRequest,
+    CreateSessionWithCasefileResponse,
+    SessionWithCasefileResultPayload,
 )
 
 # Tool session operations
@@ -154,6 +157,7 @@ class RequestHub:
             "process_chat_request": self._execute_chat_process,
             # Composite workflows (1)
             "workspace.casefile.create_casefile_with_session": self._execute_casefile_with_session,
+            "workspace.session.create_session_with_casefile": self._execute_session_with_casefile,
         }
 
         handler = handlers.get(request.operation)
@@ -640,6 +644,79 @@ class RequestHub:
         self._attach_hook_metadata(composite_response, context)
         return composite_response
 
+    async def _execute_session_with_casefile(
+        self,
+        request: CreateSessionWithCasefileRequest,
+    ) -> CreateSessionWithCasefileResponse:
+        """Handler for create_session_with_casefile composite operation."""
+        context = await self._prepare_context(request)
+        await self._run_hooks("pre", request, context)
+
+        # Step 1: Create the tool session
+        session_payload = CreateSessionPayload(
+            casefile_id=request.payload.casefile_id,
+            title=request.payload.title,
+        )
+        session_request = CreateSessionRequest(
+            request_id=request.request_id,
+            session_id=request.session_id,
+            user_id=request.user_id,
+            operation="create_session",
+            payload=session_payload,
+            metadata={**request.metadata, "parent_operation": request.operation},
+            context_requirements=request.context_requirements,
+            hooks=request.hooks,
+            policy_hints=request.policy_hints,
+            route_directives=request.route_directives,
+        )
+
+        session_response = await self.tool_session_service.create_session(session_request)
+        session_id = session_response.payload.session_id
+        context["session_id"] = session_id
+
+        # Step 2: Add session to casefile
+        add_payload = AddSessionToCasefilePayload(
+            casefile_id=request.payload.casefile_id,
+            session_id=session_id,
+            session_type=request.payload.session_type,
+        )
+        add_request = AddSessionToCasefileRequest(
+            request_id=request.request_id,
+            session_id=request.session_id,
+            user_id=request.user_id,
+            operation="add_session_to_casefile",
+            payload=add_payload,
+            metadata={**request.metadata, "parent_operation": request.operation},
+            context_requirements=request.context_requirements,
+            hooks=request.hooks,
+            policy_hints=request.policy_hints,
+            route_directives=request.route_directives,
+        )
+
+        add_response = await self.casefile_service.add_session_to_casefile(add_request)
+        context["total_sessions"] = add_response.payload.total_sessions
+
+        # Step 3: Create composite response
+        composite_response = CreateSessionWithCasefileResponse(
+            request_id=request.request_id,
+            status=RequestStatus.COMPLETED,
+            payload=SessionWithCasefileResultPayload(
+                session_id=session_id,
+                casefile_id=request.payload.casefile_id,
+                session_type=request.payload.session_type,
+                created_at=session_response.payload.created_at,
+                total_sessions=add_response.payload.total_sessions,
+            ),
+            metadata={
+                "session_request_id": str(session_response.request_id),
+                "add_request_id": str(add_response.request_id),
+            },
+        )
+
+        await self._run_hooks("post", request, context, composite_response)
+        self._attach_hook_metadata(composite_response, context)
+        return composite_response
+
     async def _prepare_context(self, request: BaseRequest[Any]) -> dict[str, Any]:
         policy_defaults = (
             self.policy_loader.load(request.policy_hints.get("pattern"))
@@ -816,4 +893,15 @@ async def execute_casefile_with_session(
     response = await hub.dispatch(request)
     if not isinstance(response, CreateCasefileWithSessionResponse):
         raise TypeError("Unexpected response type from RequestHub for composite workflow")
+    return response
+
+
+async def create_session_with_casefile(
+    request: CreateSessionWithCasefileRequest,
+) -> CreateSessionWithCasefileResponse:
+    """Module-level helper to execute the create session with casefile workflow via RequestHub."""
+    hub = RequestHub()
+    response = await hub.dispatch(request)
+    if not isinstance(response, CreateSessionWithCasefileResponse):
+        raise TypeError("Unexpected response type from RequestHub for session-casefile workflow")
     return response

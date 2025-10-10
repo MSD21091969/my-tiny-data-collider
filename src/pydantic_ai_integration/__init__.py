@@ -15,10 +15,15 @@ from . import tools  # noqa: F401
 # This enables ToolFactory to inherit method DTOs for tool generation
 from .method_decorator import register_methods_from_yaml  # noqa: F401
 
+# Load method tools from YAML to populate MANAGED_TOOLS registry
+# This creates actual tool decorators from YAML method tool definitions
+from .tool_decorator import register_tools_from_yaml  # noqa: F401
+
 try:
     register_methods_from_yaml()
+    register_tools_from_yaml()
 except Exception as e:
-    # Log but don't fail - methods can still be registered via decorators
+    # Log but don't fail - methods/tools can still be registered via decorators
     import logging
     logger = logging.getLogger(__name__)
-    logger.warning(f"Failed to load methods from YAML: {e}")
+    logger.warning(f"Failed to load methods/tools from YAML: {e}")

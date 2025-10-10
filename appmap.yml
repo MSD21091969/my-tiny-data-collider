@@ -1,6 +1,0 @@
-appmap_dir: tmp\appmap
-language: python
-name: my-tiny-data-collider
-packages:
-- path: src
-record_test_cases: false
