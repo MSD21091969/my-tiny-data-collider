@@ -388,26 +388,26 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - Validated request DTO structure and context preservation
 - Tested service token pattern for automation
 - Confirmed session context flow across operations
+- ✅ **Defined minimal toolset:** 10 essential tools across 5 user journeys (MVP_SPECIFICATION.md)
+- ✅ **Documented user journeys:** 5 essential flows with success criteria
+- ✅ **Captured release criteria:** Functional/non-functional requirements, go/no-go checklist
 
-**Current Status:** Journey tests validate structure/patterns, need service mocks for full integration (1/7 passing)
+**Current Status:** MVP scope defined, journey tests validate structure (1/7 passing), need completion work
 
 **Remaining Action Items:**
 
-- Define minimal toolset for MVP release (document which 5-10 tools are essential)
-- Document required user journeys in `docs/USER_FLOWS.md`
-- Capture release criteria and acceptance tests in `docs/MVP_SPECIFICATION.md`
-- Add service layer mocks to complete integration test coverage
+- Complete YAML validation for 5 remaining MVP tools (create_session, get_session, close_session, process_tool_request, grant_permission)
+- Add service layer mocks to complete integration test coverage (6 tests need mocks)
+- Generate API_REFERENCE.md from OpenAPI schema
+- Create load testing suite for performance baselines
+- Document deployment guide for production setup
 
 **Files Created:**
 
 - `tests/integration/test_mvp_user_journeys.py` - Structural validation tests
+- `docs/MVP_SPECIFICATION.md` - Complete MVP definition with toolset, journeys, acceptance criteria
 
-**Files to Create:**
-
-- `docs/MVP_SPECIFICATION.md` - Release criteria and acceptance tests
-- `docs/USER_FLOWS.md` - Required user journeys with examples
-
-**Commit:** 1ec5857
+**Commits:** 1ec5857 (journey tests), 0b22564 (MVP specification)
 
 ---
 
