@@ -1,12 +1,13 @@
 name: process_tool_request_tool
-description: Tool wrapper for ToolSessionService.process_tool_request with validation
+description:
+  Tool wrapper for ToolSessionService.process_tool_request with validation
   and execution control
 category: automation_management
 version: 1.0.0
 tags:
-- automation
-- process
-- process
+  - automation
+  - process
+  - process
 method_reference:
   service: ToolSessionService
   method: process_tool_request
@@ -18,47 +19,68 @@ method_reference:
     maturity: stable
     integration_tier: hybrid
 method_params:
-- name: request
-  type: object
-  required: true
-  description: Request object
+  - name: tool_name
+    type: string
+    required: true
+    description: Name of the tool to execute
+  - name: parameters
+    type: object
+    required: false
+    description: Parameters for the tool
+    default: {}
+  - name: prompt
+    type: string
+    required: false
+    description: Optional prompt for AI-assisted tool execution
+  - name: casefile_id
+    type: string
+    required: false
+    description: Optional casefile context
+  - name: session_request_id
+    type: string
+    required: false
+    description: Client-provided session request ID for tracking
 tool_params:
-- name: timeout_seconds
-  type: integer
-  required: false
-  description: Maximum execution time in seconds
-  default: 60
-  min_value: 5
-  max_value: 300
-- name: dry_run
-  type: boolean
-  required: false
-  description: Preview mode without actual execution
-  default: false
+  - name: timeout_seconds
+    type: integer
+    required: false
+    description: Maximum execution time in seconds
+    default: 60
+    min_value: 5
+    max_value: 300
+  - name: dry_run
+    type: boolean
+    required: false
+    description: Preview mode without actual execution
+    default: false
 implementation:
   type: method_wrapper
   method_wrapper:
     method_name: ToolSessionService.process_tool_request
     parameter_mapping:
       method_params:
-      - request
+        - tool_name
+        - parameters
+        - prompt
+        - casefile_id
+        - session_request_id
       tool_params:
-      - timeout_seconds
-      - dry_run
+        - timeout_seconds
+        - dry_run
 business_rules:
   enabled: true
   requires_auth: true
   required_permissions:
-  - tools:execute
+    - tools:execute
   requires_casefile: false
   timeout_seconds: 60
 examples:
-- description: Basic process_tool_request operation
-  input:
-    request: sample_request
-  expected_output:
-    result: success
-    data: {}
+  - description: Basic process_tool_request operation
+    input:
+      request: sample_request
+    expected_output:
+      result: success
+      data: {}
 data_contracts:
   request_model: ToolRequest
   response_model: ToolResponse
@@ -66,13 +88,13 @@ data_contracts:
   module: src.pydantic_models.operations.tool_execution_ops
 dependencies:
   methods:
-  - process_tool_request
+    - process_tool_request
   models:
-  - ToolRequest
-  - ToolResponse
+    - ToolRequest
+    - ToolResponse
   services:
-  - ToolSessionService
+    - ToolSessionService
 compatibility:
   method_version: 1.0.0
-  schema_version: '1.0'
+  schema_version: "1.0"
   requires_auth: true
