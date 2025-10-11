@@ -376,22 +376,38 @@ The codebase had hardcoded service instantiation violations throughout, making t
 
 ### **TIER 2 - HIGH (Production Readiness)**
 
-#### 4. **MVP Delivery Specs & UX** 📋
+#### 4. **MVP Delivery Specs & UX** - IN PROGRESS
 
+**Status:** IN PROGRESS (October 11, 2025)
 **Priority:** HIGH | **Risk:** MEDIUM | **Complexity:** MEDIUM
 
-**Action Items:**
+**Completed Action Items:**
 
-- Validate auth/session flows end-to-end with integration tests
-- Define minimal toolset for MVP release
-- Document required user journeys (create casefile → session → tool execution → results)
-- Capture release criteria and acceptance tests
+- Created MVP user journey validation tests (`tests/integration/test_mvp_user_journeys.py`)
+- Validated auth token structure with routing metadata
+- Validated request DTO structure and context preservation
+- Tested service token pattern for automation
+- Confirmed session context flow across operations
+
+**Current Status:** Journey tests validate structure/patterns, need service mocks for full integration (1/7 passing)
+
+**Remaining Action Items:**
+
+- Define minimal toolset for MVP release (document which 5-10 tools are essential)
+- Document required user journeys in `docs/USER_FLOWS.md`
+- Capture release criteria and acceptance tests in `docs/MVP_SPECIFICATION.md`
+- Add service layer mocks to complete integration test coverage
+
+**Files Created:**
+
+- `tests/integration/test_mvp_user_journeys.py` - Structural validation tests
 
 **Files to Create:**
 
-- `docs/MVP_SPECIFICATION.md`
-- `tests/integration/test_mvp_user_journeys.py`
-- `docs/USER_FLOWS.md`
+- `docs/MVP_SPECIFICATION.md` - Release criteria and acceptance tests
+- `docs/USER_FLOWS.md` - Required user journeys with examples
+
+**Commit:** 1ec5857
 
 ---
 
@@ -529,27 +545,29 @@ The codebase had hardcoded service instantiation violations throughout, making t
 
 ## 📈 Recommended Execution Sequence
 
-### **Sprint 1 (Immediate - Next 2 weeks)**
+### **TIER 1 - CRITICAL (MVP Blockers)** ✅ COMPLETE
 
-1. Auth Routing Hardening → Branch: `feature/auth-routing-v2`
-2. RequestHub Context Flow → Integrate with auth work
-3. YAML Toolchain Validation → Branch: `feature/yaml-validator`
+1. ✅ Auth Routing Hardening (commits cf6f592, 5a9c5e0)
+2. ✅ RequestHub Context Flow (commits 77c8969, b3a98c0)
+3. ✅ YAML Toolchain Validation (commits 264472d, cf3ea66, 88aea41)
 
-### **Sprint 2 (Production Prep - Weeks 3-4)**
+### **TIER 2 - HIGH (Production Readiness)** 🔄 IN PROGRESS
 
-4. MVP Delivery Specs & UX
-5. Toolset Inventory Coverage
-6. Persistence Formalization
+4. 🔄 MVP Delivery Specs & UX (commit 1ec5857 - journey tests created, specification pending)
+5. ⏳ Toolset Inventory Coverage (pending - inventory audit and load tests)
+6. ⏳ Persistence Formalization (pending - Firestore/Redis restructure)
 
-### **Sprint 3 (Enhancement - Weeks 5-6)**
+### **TIER 3 - MEDIUM (Architecture Enhancement)** ⏳ PLANNED
 
-7. Registry Consolidation → Branch: `feature/inventory-drift-guard`
-8. RAR Envelope Alignment
-9. MDSContext Alignment → Branch: `feature/mdscontext-audit`
+7. ⏳ Registry Consolidation → Branch: `feature/inventory-drift-guard`
+8. ⏳ RAR Envelope Alignment
+9. ⏳ MDSContext Alignment → Branch: `feature/mdscontext-audit`
 
-### **Future Backlog**
+### **TIER 4 - LOW (Future Extensions)** 📋 BACKLOG
 
-10-12. Service boundaries, infrastructure, classification system
+10. 📋 Communication Service Boundaries
+11. 📋 Infrastructure Specs & Cloud Migration
+12. 📋 Unified Classification & Mapping
 
 ---
 
