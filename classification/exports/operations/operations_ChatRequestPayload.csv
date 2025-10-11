@@ -1,0 +1,5 @@
+Field Name,Type,Required,Description,Default Value
+message,str,YES,,
+session_id,str,YES,,
+casefile_id,Optional[str],NO,,
+session_request_id,Optional[str],NO,,

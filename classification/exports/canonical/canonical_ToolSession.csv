@@ -1,0 +1,8 @@
+Field Name,Type,Required,Description,Default Value
+session_id,str,YES,,
+user_id,str,YES,,
+casefile_id,Optional[str],NO,,
+created_at,str,NO,,
+updated_at,str,NO,,
+request_ids,List[str],NO,,
+active,bool,NO,,True

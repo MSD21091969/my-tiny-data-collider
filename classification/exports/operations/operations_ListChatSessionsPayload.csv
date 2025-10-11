@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+user_id,Optional[str],NO,,
+casefile_id,Optional[str],NO,,
+active_only,bool,NO,,True
+limit,int,NO,,50
+offset,int,NO,,0

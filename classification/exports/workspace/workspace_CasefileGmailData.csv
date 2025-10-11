@@ -1,0 +1,8 @@
+Field Name,Type,Required,Description,Default Value
+messages,List[GmailMessage],NO,,
+threads,List[GmailThread],NO,,
+labels,List[GmailLabel],NO,,
+last_sync_token,Optional[str],NO,,
+synced_at,Optional[str],NO,,
+sync_status,str,NO,,'idle'
+error_message,Optional[str],NO,,

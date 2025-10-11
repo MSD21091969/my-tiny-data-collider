@@ -1,0 +1,5 @@
+Field Name,Type,Required,Description,Default Value
+filename,str,YES,,
+mime_type,str,YES,,
+size_bytes,int,YES,,
+attachment_id,str,YES,,

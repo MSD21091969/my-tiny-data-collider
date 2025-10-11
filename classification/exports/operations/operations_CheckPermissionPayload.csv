@@ -1,0 +1,4 @@
+Field Name,Type,Required,Description,Default Value
+casefile_id,str,YES,,
+user_id,str,YES,,
+required_permission,PermissionLevel,YES,,

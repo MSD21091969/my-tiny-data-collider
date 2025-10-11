@@ -1,0 +1,10 @@
+Field Name,Type,Required,Description,Default Value
+id,str,NO,,
+metadata,CasefileMetadata,YES,,
+acl,Optional[CasefileACL],NO,,
+resources,"Dict[str, List[ResourceReference]]",NO,,
+session_ids,List[str],NO,,
+notes,Optional[str],NO,,
+gmail_data,Optional[CasefileGmailData],NO,,
+drive_data,Optional[CasefileDriveData],NO,,
+sheets_data,Optional[CasefileSheetsData],NO,,

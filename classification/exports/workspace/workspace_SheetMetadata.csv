@@ -1,0 +1,5 @@
+Field Name,Type,Required,Description,Default Value
+sheet_id,int,YES,,
+title,str,YES,,
+index,Optional[int],NO,,
+grid_properties,"Dict[str, Any]",NO,,

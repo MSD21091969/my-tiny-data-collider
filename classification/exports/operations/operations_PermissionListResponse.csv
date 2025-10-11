@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+casefile_id,str,YES,,
+owner_id,str,YES,,
+public_access,PermissionLevel,YES,,
+permissions,List[PermissionEntry],YES,,
+total_users,int,YES,,

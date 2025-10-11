@@ -1,0 +1,4 @@
+Field Name,Type,Required,Description,Default Value
+user_id,str,YES,,
+exp,int,YES,,
+iat,int,YES,,
