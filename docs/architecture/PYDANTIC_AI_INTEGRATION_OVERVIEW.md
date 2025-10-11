@@ -138,6 +138,6 @@ For complete documentation, see [REGISTRY_CONSOLIDATION.md](./REGISTRY_CONSOLIDA
 ## Navigation
 
 - [[CORE_SERVICE_OVERVIEW.md|coreservice overview]]
-- [[CASEFILE_SERVICE_OVERVIEW.md|casefileservice overview]]
-- [[TOOL_SESSION_SERVICE_OVERVIEW.md|tool_sessionservice overview]]
+- [[CASEFILE_SERVICE_OVERVIEW|casefileservice overview]]
+- [[TOOL_SESSION_SERVICE_OVERVIEW|tool_sessionservice overview]]
 - [[BRANCH_DEVELOPMENT_PLAN.md|branch development plan]]
