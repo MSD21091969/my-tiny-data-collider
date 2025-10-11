@@ -23,7 +23,7 @@ def validate_method_tool_coverage() -> CoverageReport:
     Returns:
         CoverageReport with validation results
     """
-    from ..method_decorator import MANAGED_METHODS
+    from ..method_registry import MANAGED_METHODS
     from ..tool_decorator import MANAGED_TOOLS
 
     missing_tools = []
@@ -37,11 +37,24 @@ def validate_method_tool_coverage() -> CoverageReport:
         # Tools store method_name in different ways, try common patterns
         method_ref = None
 
+        # Try method_reference attribute (check it's a string, not a mock)
         if hasattr(tool_def, "method_reference"):
-            method_ref = tool_def.method_reference
-        elif hasattr(tool_def, "method_name"):
-            method_ref = tool_def.method_name
-        elif hasattr(tool_def, "metadata") and isinstance(tool_def.metadata, dict):
+            ref = tool_def.method_reference
+            if isinstance(ref, str):
+                method_ref = ref
+
+        # Try method_name attribute if method_reference didn't work
+        if method_ref is None and hasattr(tool_def, "method_name"):
+            ref = tool_def.method_name
+            if isinstance(ref, str):
+                method_ref = ref
+
+        # Try metadata dict as fallback
+        if (
+            method_ref is None
+            and hasattr(tool_def, "metadata")
+            and isinstance(tool_def.metadata, dict)
+        ):
             method_ref = tool_def.metadata.get("method_reference")
 
         tool_to_method[tool_name] = method_ref
@@ -90,7 +103,7 @@ def validate_registry_consistency() -> ConsistencyReport:
     Returns:
         ConsistencyReport with validation results
     """
-    from ..method_decorator import MANAGED_METHODS
+    from ..method_registry import MANAGED_METHODS
     from ..tool_decorator import MANAGED_TOOLS
 
     issues = []
@@ -124,8 +137,11 @@ def validate_registry_consistency() -> ConsistencyReport:
     if MANAGED_METHODS:
         versions = set()
         for method_def in MANAGED_METHODS.values():
-            if hasattr(method_def, "version") and method_def.version:
-                versions.add(method_def.version)
+            if hasattr(method_def, "version"):
+                ver = method_def.version
+                # Only count string versions, not MagicMock objects in tests
+                if isinstance(ver, str) and ver:
+                    versions.add(ver)
 
         if len(versions) > 1:
             issues.append(f"Multiple method versions found: {versions}")

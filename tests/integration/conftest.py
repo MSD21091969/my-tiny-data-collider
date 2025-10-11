@@ -214,7 +214,7 @@ def integration_test_ids():
 def decode_test_token(token: str) -> dict:
     """
     Decode a JWT token for testing without FastAPI dependency injection.
-    
+
     This bypasses the HTTPAuthorizationCredentials wrapper that get_current_user expects.
     """
     decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

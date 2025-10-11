@@ -29,7 +29,7 @@ T = TypeVar("T", bound=BaseModel)
 class BaseRepository(ABC, Generic[T]):
     """
     Abstract base repository providing consistent persistence interface.
-    
+
     All repositories should inherit from this class to ensure:
     - Consistent CRUD operations
     - Connection pooling
@@ -47,7 +47,7 @@ class BaseRepository(ABC, Generic[T]):
     ):
         """
         Initialize base repository.
-        
+
         Args:
             collection_name: Firestore collection name
             firestore_pool: Connection pool for Firestore
@@ -84,11 +84,11 @@ class BaseRepository(ABC, Generic[T]):
     async def get_by_id(self, doc_id: str, use_cache: bool = True) -> Optional[T]:
         """
         Get document by ID with caching.
-        
+
         Args:
             doc_id: Document ID
             use_cache: Whether to use cache (default: True)
-            
+
         Returns:
             Domain model or None if not found
         """
@@ -107,21 +107,21 @@ class BaseRepository(ABC, Generic[T]):
         try:
             doc_ref = client.collection(self.collection_name).document(doc_id)
             doc = await doc_ref.get()
-            
+
             if not doc.exists:
                 logger.debug(f"Document not found: {doc_id}")
                 return None
-            
+
             self._metrics["reads"] += 1
             data = doc.to_dict()
             model = self._from_dict(doc_id, data)
-            
+
             # Update cache
             if use_cache and self.redis_cache:
                 await self.redis_cache.set(cache_key, data, self.cache_ttl)
-            
+
             return model
-            
+
         except Exception as e:
             logger.error(f"Error fetching document {doc_id}: {e}")
             raise
@@ -131,11 +131,11 @@ class BaseRepository(ABC, Generic[T]):
     async def create(self, doc_id: str, model: T) -> T:
         """
         Create new document.
-        
+
         Args:
             doc_id: Document ID
             model: Domain model to create
-            
+
         Returns:
             Created domain model
         """
@@ -145,18 +145,18 @@ class BaseRepository(ABC, Generic[T]):
             data = self._to_dict(model)
             data["created_at"] = datetime.utcnow()
             data["updated_at"] = datetime.utcnow()
-            
+
             await doc_ref.set(data)
             self._metrics["writes"] += 1
             logger.info(f"Created document {doc_id}")
-            
+
             # Invalidate/update cache
             if self.redis_cache:
                 cache_key = self._cache_key(doc_id)
                 await self.redis_cache.set(cache_key, data, self.cache_ttl)
-            
+
             return self._from_dict(doc_id, data)
-            
+
         except Exception as e:
             logger.error(f"Error creating document {doc_id}: {e}")
             raise
@@ -166,11 +166,11 @@ class BaseRepository(ABC, Generic[T]):
     async def update(self, doc_id: str, model: T) -> T:
         """
         Update existing document.
-        
+
         Args:
             doc_id: Document ID
             model: Domain model with updates
-            
+
         Returns:
             Updated domain model
         """
@@ -179,18 +179,18 @@ class BaseRepository(ABC, Generic[T]):
             doc_ref = client.collection(self.collection_name).document(doc_id)
             data = self._to_dict(model)
             data["updated_at"] = datetime.utcnow()
-            
+
             await doc_ref.update(data)
             self._metrics["writes"] += 1
             logger.info(f"Updated document {doc_id}")
-            
+
             # Invalidate cache
             if self.redis_cache:
                 cache_key = self._cache_key(doc_id)
                 await self.redis_cache.delete(cache_key)
-            
+
             return model
-            
+
         except Exception as e:
             logger.error(f"Error updating document {doc_id}: {e}")
             raise
@@ -200,10 +200,10 @@ class BaseRepository(ABC, Generic[T]):
     async def delete(self, doc_id: str) -> bool:
         """
         Delete document.
-        
+
         Args:
             doc_id: Document ID
-            
+
         Returns:
             True if deleted
         """
@@ -213,14 +213,14 @@ class BaseRepository(ABC, Generic[T]):
             await doc_ref.delete()
             self._metrics["deletes"] += 1
             logger.info(f"Deleted document {doc_id}")
-            
+
             # Invalidate cache
             if self.redis_cache:
                 cache_key = self._cache_key(doc_id)
                 await self.redis_cache.delete(cache_key)
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Error deleting document {doc_id}: {e}")
             raise
@@ -236,18 +236,18 @@ class BaseRepository(ABC, Generic[T]):
     ) -> List[T]:
         """
         List documents by field value.
-        
+
         Args:
             field: Field name to filter by
             value: Field value
             limit: Maximum results
             use_cache: Whether to use cache (default: False for lists)
-            
+
         Returns:
             List of domain models
         """
         cache_key = f"{self.collection_name}:list:{field}:{value}:{limit}" if use_cache else None
-        
+
         # Try cache
         if use_cache and self.redis_cache and cache_key:
             cached_data = await self.redis_cache.get(cache_key)
@@ -255,29 +255,29 @@ class BaseRepository(ABC, Generic[T]):
                 self._metrics["cache_hits"] += 1
                 return [self._from_dict(doc["id"], doc["data"]) for doc in cached_data]
             self._metrics["cache_misses"] += 1
-        
+
         # Fetch from Firestore
         client = await self.firestore_pool.acquire()
         try:
             query = client.collection(self.collection_name).where(field, "==", value).limit(limit)
             docs = await query.get()
-            
+
             self._metrics["reads"] += len(docs)
             results = []
             cache_data = []
-            
+
             for doc in docs:
                 data = doc.to_dict()
                 model = self._from_dict(doc.id, data)
                 results.append(model)
                 cache_data.append({"id": doc.id, "data": data})
-            
+
             # Update cache
             if use_cache and self.redis_cache and cache_key:
                 await self.redis_cache.set(cache_key, cache_data, self.cache_ttl)
-            
+
             return results
-            
+
         except Exception as e:
             logger.error(f"Error listing documents by {field}={value}: {e}")
             raise
@@ -287,7 +287,7 @@ class BaseRepository(ABC, Generic[T]):
     async def transaction(self) -> AsyncTransaction:
         """
         Begin transaction.
-        
+
         Returns:
             Firestore transaction
         """
