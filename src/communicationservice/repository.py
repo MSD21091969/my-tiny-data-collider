@@ -107,4 +107,3 @@ class ChatSessionRepository(BaseRepository[ChatSession]):
         else:
             # List all chat sessions
             return await self.list_by_field("session_id", "", limit=None)  # type: ignore
-

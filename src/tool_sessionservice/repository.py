@@ -252,4 +252,3 @@ class ToolSessionRepository(BaseRepository[ToolSession]):
             return events
         finally:
             await self.firestore_pool.release(client)
-

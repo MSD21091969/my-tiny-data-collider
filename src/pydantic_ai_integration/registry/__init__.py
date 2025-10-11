@@ -16,14 +16,14 @@ Usage:
     result = loader.load_all_registries()
 """
 
+from .loader import RegistryLoader, get_validation_mode_from_env
 from .types import (
-    ValidationMode,
-    RegistryLoadResult,
-    CoverageReport,
     ConsistencyReport,
+    CoverageReport,
     DriftReport,
+    RegistryLoadResult,
+    ValidationMode,
 )
-from .loader import RegistryLoader
 
 __all__ = [
     "RegistryLoader",
@@ -32,4 +32,5 @@ __all__ = [
     "CoverageReport",
     "ConsistencyReport",
     "DriftReport",
+    "get_validation_mode_from_env",
 ]
