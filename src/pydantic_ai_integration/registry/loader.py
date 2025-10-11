@@ -163,8 +163,9 @@ class RegistryLoader:
             Exception: If method loading fails
         """
         try:
-            # Import registration function
-            from ..method_decorator import MANAGED_METHODS, register_methods_from_yaml
+            # Import registration function and registry
+            from ..method_decorator import register_methods_from_yaml
+            from ..method_registry import MANAGED_METHODS
 
             # Load methods
             register_methods_from_yaml()

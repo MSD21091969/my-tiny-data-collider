@@ -222,9 +222,7 @@ class TestRegistryLoader:
             signature_mismatches=[],
         )
 
-        loader = RegistryLoader(
-            validation_mode=ValidationMode.WARNING, enable_drift_detection=True
-        )
+        loader = RegistryLoader(validation_mode=ValidationMode.WARNING, enable_drift_detection=True)
         result = loader.load_all_registries()
 
         # Drift detection should be called
