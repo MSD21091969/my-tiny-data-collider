@@ -194,6 +194,48 @@ class TestRegistryLoader:
         assert result.error is not None
         assert "Failed to load methods" in result.error
 
+    @patch(
+        "src.pydantic_ai_integration.registry.loader.RegistryLoader._load_methods",
+        return_value=10,
+    )
+    @patch(
+        "src.pydantic_ai_integration.registry.loader.RegistryLoader._load_tools",
+        return_value=8,
+    )
+    @patch("src.pydantic_ai_integration.registry.loader.RegistryLoader._validate_coverage")
+    @patch("src.pydantic_ai_integration.registry.loader.RegistryLoader._validate_consistency")
+    @patch("src.pydantic_ai_integration.registry.loader.RegistryLoader._detect_drift")
+    def test_load_with_drift_detection_enabled(
+        self,
+        mock_drift,
+        mock_consistency,
+        mock_coverage,
+        mock_tools,
+        mock_methods,
+    ):
+        """Test that drift detection is called when enabled."""
+        mock_coverage.return_value = CoverageReport()
+        mock_consistency.return_value = ConsistencyReport()
+        mock_drift.return_value = DriftReport(
+            missing_in_yaml={"ServiceA.method1"},
+            missing_in_code=set(),
+            signature_mismatches=[],
+        )
+
+        loader = RegistryLoader(
+            validation_mode=ValidationMode.WARNING, enable_drift_detection=True
+        )
+        result = loader.load_all_registries()
+
+        # Drift detection should be called
+        mock_drift.assert_called_once()
+
+        # Result should include drift report
+        assert result.success
+        assert result.drift_report is not None
+        assert result.drift_report.has_errors
+        assert "ServiceA.method1" in result.drift_report.missing_in_yaml
+
 
 class TestValidationModeFromEnv:
     """Test suite for environment variable configuration."""

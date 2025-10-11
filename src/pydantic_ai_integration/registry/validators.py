@@ -155,31 +155,83 @@ def detect_yaml_code_drift() -> DriftReport:
     """
     Detect drift between YAML inventories and actual service code.
 
-    This is a placeholder implementation. Full drift detection requires:
-    - Scanning all service classes for methods
-    - Extracting method signatures from code
-    - Comparing with YAML definitions
-
-    Future enhancement: Implement AST-based service scanning.
+    Scans all service modules for public async methods and compares with
+    MANAGED_METHODS registry to identify:
+    - Methods in code but not registered (missing_in_yaml)
+    - Methods registered but not in code (missing_in_code)
+    - Signature mismatches (future enhancement)
 
     Returns:
-        DriftReport with detection results (currently always empty)
+        DriftReport with detection results
     """
-    # TODO: Implement service method scanning
-    # This requires:
-    # 1. Locate all service modules (casefileservice, tool_sessionservice, etc.)
-    # 2. Use AST or inspect to extract method signatures
-    # 3. Compare with YAML definitions
-    # 4. Report methods in code but not YAML
-    # 5. Report methods in YAML but not code
-    # 6. Compare signatures (parameters, types)
+    import ast
+    from pathlib import Path
 
-    # For Phase 1, return empty report (no drift detection)
+    from ..method_registry import MANAGED_METHODS
+
+    # Service modules to scan
+    service_modules = [
+        "casefileservice",
+        "tool_sessionservice",
+        "communicationservice",
+        "authservice",
+    ]
+
+    # Build set of methods from code
+    code_methods: set[str] = set()
+    src_path = Path(__file__).parent.parent.parent
+
+    for service_name in service_modules:
+        service_path = src_path / service_name / "service.py"
+        if not service_path.exists():
+            logger.debug(f"Service file not found: {service_path}")
+            continue
+
+        try:
+            # Parse the service file
+            with open(service_path, encoding="utf-8") as f:
+                tree = ast.parse(f.read(), filename=str(service_path))
+
+            # Find service class and extract public async methods
+            service_class_name = _to_pascal_case(service_name)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef) and node.name == service_class_name:
+                    for item in node.body:
+                        if isinstance(item, ast.AsyncFunctionDef):
+                            method_name = item.name
+                            # Include public methods (not starting with _)
+                            if not method_name.startswith("_"):
+                                full_name = f"{service_class_name}.{method_name}"
+                                code_methods.add(full_name)
+                                logger.debug(f"Found method in code: {full_name}")
+
+        except Exception as e:
+            logger.warning(f"Failed to scan {service_path}: {e}")
+
+    # Build set of methods from YAML (via MANAGED_METHODS registry)
+    yaml_methods = set(MANAGED_METHODS.keys())
+
+    # Find drift
+    missing_in_yaml = code_methods - yaml_methods
+    missing_in_code = yaml_methods - code_methods
+
+    # TODO: Implement signature comparison for methods in both sets
+    signature_mismatches = []
+
     report = DriftReport(
-        missing_in_yaml=set(),
-        missing_in_code=set(),
-        signature_mismatches=[],
+        missing_in_yaml=missing_in_yaml,
+        missing_in_code=missing_in_code,
+        signature_mismatches=signature_mismatches,
     )
 
-    logger.debug("Drift detection: Not yet implemented (Phase 3)")
+    logger.debug(
+        f"Drift detection: {len(missing_in_yaml)} missing in YAML, "
+        f"{len(missing_in_code)} missing in code"
+    )
     return report
+
+
+def _to_pascal_case(snake_str: str) -> str:
+    """Convert snake_case to PascalCase."""
+    components = snake_str.split("_")
+    return "".join(x.title() for x in components)
