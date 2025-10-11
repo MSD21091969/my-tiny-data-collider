@@ -391,15 +391,19 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - ✅ **Defined minimal toolset:** 10 essential tools across 5 user journeys (MVP_SPECIFICATION.md)
 - ✅ **Documented user journeys:** 5 essential flows with success criteria
 - ✅ **Captured release criteria:** Functional/non-functional requirements, go/no-go checklist
+- ✅ **Completed YAML validation:** All 10 MVP tools validated (67f182b)
+  * Fixed parameter inheritance for 5 ToolSessionService tools
+  * All tools now match payload models (CreateSessionPayload, GetSessionPayload, etc.)
+  * Validation clean: scripts/validate_tool_definitions.py passes
 
-**Current Status:** MVP scope defined, journey tests validate structure (1/7 passing), need completion work
+**Current Status:** Definition and validation phases complete, moving to integration testing
 
 **Remaining Action Items:**
 
-- Complete YAML validation for 5 remaining MVP tools (create_session, get_session, close_session, process_tool_request, grant_permission)
 - Add service layer mocks to complete integration test coverage (6 tests need mocks)
+- Create USER_FLOWS.md with executable examples
 - Generate API_REFERENCE.md from OpenAPI schema
-- Create load testing suite for performance baselines
+- Create load testing suite for performance baselines (p95 <500ms target)
 - Document deployment guide for production setup
 
 **Files Created:**
@@ -407,7 +411,15 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - `tests/integration/test_mvp_user_journeys.py` - Structural validation tests
 - `docs/MVP_SPECIFICATION.md` - Complete MVP definition with toolset, journeys, acceptance criteria
 
-**Commits:** 1ec5857 (journey tests), 0b22564 (MVP specification)
+**Files Modified:**
+
+- `config/methodtools_v1/ToolSessionService_create_session_tool.yaml` - Parameter inheritance fix
+- `config/methodtools_v1/ToolSessionService_get_session_tool.yaml` - Parameter inheritance fix
+- `config/methodtools_v1/ToolSessionService_close_session_tool.yaml` - Parameter inheritance fix
+- `config/methodtools_v1/ToolSessionService_process_tool_request_tool.yaml` - Parameter inheritance fix
+- `config/methodtools_v1/CasefileService_grant_permission_tool.yaml` - Parameter inheritance fix
+
+**Commits:** 1ec5857 (journey tests), 0b22564 (MVP specification), 67f182b (YAML validation)
 
 ---
 
