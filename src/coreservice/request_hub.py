@@ -717,6 +717,26 @@ class RequestHub:
         return composite_response
 
     async def _prepare_context(self, request: BaseRequest[Any]) -> dict[str, Any]:
+        """Prepare execution context by hydrating session/casefile data and merging policies.
+        
+        Context preparation follows the service transformation pattern:
+        1. Load policy defaults based on hints
+        2. Merge requirements and hooks from policy + request
+        3. Hydrate session data if session_id present and required
+        4. Hydrate casefile data if casefile_id present and required
+        5. Extract auth_context from request metadata for routing
+        
+        The prepared context flows through:
+        - Pre-execution hooks (metrics, audit, session_lifecycle)
+        - Service execution with enriched metadata
+        - Post-execution hooks with response data
+        
+        Args:
+            request: BaseRequest with operation, user_id, metadata, policy_hints
+            
+        Returns:
+            Context dict with policy, requirements, hooks, hook_events, and hydrated data
+        """
         policy_defaults = (
             self.policy_loader.load(request.policy_hints.get("pattern"))
             if request.policy_hints
@@ -746,11 +766,26 @@ class RequestHub:
             "hooks": combined_hooks,
             "hook_events": [],
         }
+        
+        # Extract auth_context from request metadata for routing and audit
+        if request.metadata and "auth_context" in request.metadata:
+            auth_context = request.metadata["auth_context"]
+            context["auth_context"] = auth_context
+            
+            # Log routing metadata for audit trail
+            session_request_id = auth_context.get("session_request_id")
+            if session_request_id:
+                context["session_request_id"] = session_request_id
+                logger.debug(f"Context prepared with session_request_id: {session_request_id}")
 
+        # Hydrate session data if required
         if "session" in combined_requirements and request.session_id:
             session = await self.service_manager.tool_session_service.repository.get_session(request.session_id)  # type: ignore[attr-defined]
             context["session"] = session.model_dump() if session else None
+            if session:
+                logger.debug(f"Context hydrated with session: {request.session_id}")
 
+        # Hydrate casefile data if required
         if "casefile" in combined_requirements:
             casefile_id = request.metadata.get("casefile_id")
             if not casefile_id and hasattr(request.payload, "casefile_id"):
@@ -758,6 +793,8 @@ class RequestHub:
             if casefile_id:
                 casefile = await self.service_manager.casefile_service.repository.get_casefile(casefile_id)  # type: ignore[attr-defined]
                 context["casefile"] = casefile.model_dump() if casefile else None
+                if casefile:
+                    logger.debug(f"Context hydrated with casefile: {casefile_id}")
 
         return context
 
