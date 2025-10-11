@@ -1,0 +1,100 @@
+# Example Composite Tool - Fetch and Transform Pipeline
+# Demonstrates composite tool YAML schema from tool_schema_v2.yaml
+# This mirrors the test_composite_tool.py prototype
+
+name: fetch_and_transform_composite
+description: "Composite tool that fetches data and transforms it in sequence"
+category: automation
+version: "1.0.0"
+schema_version: "2.0"
+
+tags:
+  - composite
+  - pipeline
+  - example
+
+metadata:
+  orchestration_pattern: sequential
+  step_count: 2
+  supports_rollback: false
+  execution_mode: synchronous
+  example_use_case: "Fetch data from source and apply transformations"
+
+implementation:
+  type: composite
+  steps:
+    - step_id: fetch_step
+      tool: fetch_data
+      description: "Fetch data from input source"
+      inputs:
+        input_value: "${context.input_value}"
+      on_success:
+        store_result: fetch_output
+        continue: true
+      on_failure:
+        abort: true
+        error_message: "Failed to fetch data"
+
+    - step_id: transform_step
+      tool: transform_data
+      description: "Transform fetched data"
+      inputs:
+        processed_value: "${fetch_output.data}"
+        modifier: "transformed"
+      on_success:
+        store_result: final_output
+        continue: true
+      on_failure:
+        abort: true
+        error_message: "Failed to transform data"
+
+parameters:
+  - name: input_value
+    type: string
+    required: true
+    description: "Initial input value to fetch and transform"
+    min_length: 1
+
+returns:
+  type: object
+  description: "Composite result with both fetch and transform outputs"
+  properties:
+    original_input:
+      type: string
+      description: "The original input value"
+    fetched:
+      type: object
+      description: "Result from fetch step"
+    transformed:
+      type: object
+      description: "Result from transform step"
+    composite_status:
+      type: string
+      description: "Overall execution status"
+
+api_call:
+  service: CompositeExecutor
+  method: execute_composite_tool
+  request_dto: CompositeToolRequest
+  response_dto: CompositeToolResponse
+
+business_rules:
+  - "Fetch step must complete before transform step"
+  - "Transform step receives output from fetch step via variable substitution"
+  - "If any step fails with on_failure.abort=true, composite execution stops"
+  - "Step results are stored in context using store_result keys"
+  - "Variable substitution pattern: ${step_id.field_path} or ${context.param_name}"
+
+classification:
+  domain: automation
+  subdomain: composite
+  capability: orchestrate
+  complexity: composite
+  maturity: experimental
+  integration_tier: internal
+
+requirements:
+  permissions: []
+  authentication: true
+  casefile_context: false
+  session_context: true

@@ -1,0 +1,116 @@
+# Example Composite Tool - Conditional Branching
+# Demonstrates conditional execution paths in composite tools
+# This mirrors the conditional_composite from test_composite_tool.py
+
+name: conditional_validation_composite
+description: "Composite tool with conditional success/failure branching"
+category: automation
+version: "1.0.0"
+schema_version: "2.0"
+
+tags:
+  - composite
+  - conditional
+  - validation
+  - example
+
+metadata:
+  orchestration_pattern: conditional
+  step_count: 3
+  supports_rollback: false
+  execution_mode: synchronous
+  example_use_case: "Validate input and route to success or error handler"
+
+implementation:
+  type: composite
+  steps:
+    - step_id: validation_step
+      tool: validate_input
+      description: "Validate input meets requirements"
+      inputs:
+        input_value: "${context.input_value}"
+      on_success:
+        store_result: validation_result
+        continue: true
+      on_failure:
+        abort: true
+        error_message: "Validation step failed unexpectedly"
+
+    - step_id: success_path
+      tool: process_valid
+      description: "Process valid input"
+      condition: "${validation_result.valid} == true"
+      inputs:
+        input_value: "${context.input_value}"
+      on_success:
+        store_result: processing_result
+        continue: true
+      on_failure:
+        abort: true
+        error_message: "Failed to process valid input"
+
+    - step_id: failure_path
+      tool: handle_invalid
+      description: "Handle invalid input"
+      condition: "${validation_result.valid} == false"
+      inputs:
+        input_value: "${context.input_value}"
+      on_success:
+        store_result: error_handling_result
+        continue: true
+      on_failure:
+        abort: true
+        error_message: "Failed to handle invalid input"
+
+parameters:
+  - name: input_value
+    type: string
+    required: true
+    description: "Input value to validate and process"
+    min_length: 1
+
+returns:
+  type: object
+  description: "Composite result showing validation and processing path"
+  properties:
+    validation:
+      type: object
+      description: "Validation result"
+    processing:
+      type: object
+      description: "Processing result (if validation succeeded)"
+    error_handling:
+      type: object
+      description: "Error handling result (if validation failed)"
+    path:
+      type: string
+      enum: ["success", "failure"]
+      description: "Execution path taken"
+
+api_call:
+  service: CompositeExecutor
+  method: execute_composite_tool
+  request_dto: CompositeToolRequest
+  response_dto: CompositeToolResponse
+
+business_rules:
+  - "Validation step always executes first"
+  - "Success path (process_valid) only executes if validation_result.valid == true"
+  - "Failure path (handle_invalid) only executes if validation_result.valid == false"
+  - "Steps with condition field are conditional - evaluated using stored results"
+  - "Only one of success_path or failure_path executes, never both"
+  - "Variable substitution supports boolean comparisons for conditions"
+
+classification:
+  domain: automation
+  subdomain: composite
+  capability: orchestrate
+  complexity: composite
+  maturity: experimental
+  integration_tier: internal
+
+requirements:
+  permissions: []
+  authentication: true
+  casefile_context: false
+  session_context: true
