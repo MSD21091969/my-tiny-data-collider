@@ -1,0 +1,12 @@
+Field Name,Type,Required,Description,Default Value
+session_id,str,YES,,
+user_id,str,YES,,
+casefile_id,Optional[str],NO,,
+created_at,str,NO,,
+updated_at,str,NO,,
+messages,"List[Dict[str, Any]]",NO,,
+message_index,"Dict[str, int]",NO,,
+request_index,"Dict[str, List[str]]",NO,,
+events,"List[Dict[str, Any]]",NO,,
+active,bool,NO,,True
+metadata,"Optional[Dict[str, Any]]",NO,,

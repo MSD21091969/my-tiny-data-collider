@@ -1,0 +1,12 @@
+Field Name,Type,Required,Description,Default Value
+request_id,UUID,NO,,
+session_id,Optional[str],NO,,
+user_id,str,YES,,
+operation,str,YES,,
+payload,RequestPayloadT,YES,,
+timestamp,str,NO,,
+metadata,"Dict[str, Any]",NO,,
+context_requirements,List[str],NO,"Optional context requirements for RequestHub (e.g., ['mds_context', 'casefile']).",
+hooks,List[str],NO,,
+policy_hints,"Dict[str, Any]",NO,,
+route_directives,"Dict[str, Any]",NO,"Optional route-level directives (e.g., {'emit_metrics': True}).",

@@ -1,0 +1,14 @@
+Model Name,Description,Field Count,Required Fields,Optional Fields
+DriveOwner,Metadata describing a file owner.,2,1,1
+DriveFile,Representation of a Google Drive file.,11,3,8
+DriveFolder,Representation of a Google Drive folder.,5,2,3
+CasefileDriveData,Typed Drive artifacts stored on a casefile.,6,0,6
+GmailAttachment,Metadata describing a Gmail attachment.,4,4,0
+GmailMessage,Envelope + payload for a Gmail message.,15,4,11
+GmailThread,Thread metadata for a set of Gmail messages.,5,1,4
+GmailLabel,Representation of a Gmail label.,4,2,2
+CasefileGmailData,Typed Gmail data stored on a casefile.,7,0,7
+SheetRange,Represents a rectangular range of spreadsheet values.,3,1,2
+SheetMetadata,Metadata for a Google Sheet tab.,4,2,2
+SheetData,Top-level spreadsheet data captured for a casefile.,5,2,3
+CasefileSheetsData,Typed Sheets data stored on a casefile.,5,0,5

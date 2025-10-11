@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+spreadsheet_id,str,YES,,
+title,str,YES,,
+metadata,List[SheetMetadata],NO,,
+ranges,List[SheetRange],NO,,
+updated_at,str,NO,,

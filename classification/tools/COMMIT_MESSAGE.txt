@@ -1,0 +1,63 @@
+feat: establish classification library for tool-method-model engineering
+
+WHAT: Create permanent classification library as foundation for ETL-RAR-session data mapping, transformation, and tool engineering
+
+STRUCTURE:
+├── classification/
+│   ├── README.md                    # Main library documentation & quick start
+│   ├── docs/                        # 4 foundational documents
+│   │   ├── ANALYTICAL_TOOLSET_ENGINEERING.md
+│   │   ├── METHOD_PARAMETER_INTEGRATION.md
+│   │   ├── PARAMETER_MAPPING_ANALYSIS.md
+│   │   └── TOOL_DEVELOPMENT_WORKFLOW.md
+│   ├── tools/                       # Analysis & generation tooling
+│   │   ├── export_models_to_spreadsheet.py
+│   │   ├── quick_model_viewer.py
+│   │   ├── verify_model_exports.py
+│   │   ├── analysis/                # Codebase analysis tools
+│   │   ├── generators/              # Code generation tools
+│   │   ├── validators/              # Validation tools
+│   │   └── visualization/           # Visualization tools
+│   └── exports/                     # 80+ model CSV exports
+│       └── base/, canonical/, operations/, views/, workspace/
+
+CONSOLIDATED FROM:
+- docs/archive/* (4 analytical docs)
+- model_analysis_tools/* (3 core tools)
+- scripts/analysis/, generators/, validators/, visualization/
+- model_exports/ (80 CSV files with complete model field data)
+
+KEY FEATURES:
+1. **Analytical Framework** - Systematic tool/method/model relationship analysis
+2. **Parameter Mapping** - Bridge between tool parameters and method parameters
+3. **Bidirectional Flow** - Input/output transformation mappings
+4. **Orchestration System** - Execution control separate from business logic
+5. **Meta-Tooling** - "Engineering tools for tools" approach
+6. **Pattern Recognition** - Identify and standardize common patterns
+
+INTEGRATION POINTS:
+- Complements existing MANAGED_TOOLS, MANAGED_METHODS, ModelRegistry
+- Supports ETL pipelines with parameter mapping infrastructure
+- Enables RAR (Request-Action-Response) pattern classification
+- Foundation for session-based data mapping and transformation
+- Ready for dependency injection and tool engineering workflows
+
+FUTURE PHASES (10-week roadmap):
+- Phase 1: Extended classification schemas
+- Phase 2: Analysis tools implementation
+- Phase 3: Population (36 tools, 34 methods, 80 models)
+- Phase 4: Runtime integration
+- Phase 5: Verification & documentation
+
+BENEFITS:
+✅ Single permanent home for classification system
+✅ Clear separation from general-purpose scripts
+✅ Foundation for ETL data mapping and transformation
+✅ Supports session-based workflow engineering
+✅ Ready for branch merge - all documentation preserved
+✅ 100% model coverage verified (80 models exported)
+
+REF: classification/README.md
+REF: classification/docs/ANALYTICAL_TOOLSET_ENGINEERING.md
+
+Co-authored-by: GitHub Copilot <copilot@github.com>

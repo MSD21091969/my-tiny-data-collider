@@ -1,0 +1,12 @@
+Field Name,Type,Required,Description,Default Value
+id,str,YES,,
+name,str,YES,,
+mime_type,str,YES,,
+size_bytes,Optional[int],NO,,
+web_view_link,Optional[str],NO,,
+icon_link,Optional[str],NO,,
+parents,List[str],NO,,
+owners,List[DriveOwner],NO,,
+created_time,str,NO,,
+modified_time,str,NO,,
+trashed,bool,NO,,False

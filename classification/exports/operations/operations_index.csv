@@ -1,0 +1,55 @@
+Model Name,Description,Field Count,Required Fields,Optional Fields
+CreateCasefilePayload,Payload for creating a new casefile.,3,1,2
+CasefileCreatedPayload,Response payload for casefile creation.,4,4,0
+GetCasefilePayload,Payload for retrieving a casefile.,1,1,0
+CasefileDataPayload,Response payload with full casefile data.,1,1,0
+UpdateCasefilePayload,"Payload for updating a casefile.
+
+SECURITY: Uses explicit fields instead of Dict[str, Any] to preven",5,1,4
+CasefileUpdatedPayload,Response payload for casefile update.,2,2,0
+ListCasefilesPayload,Payload for listing casefiles with filters.,5,0,5
+CasefileListPayload,Response payload with list of casefiles.,4,3,1
+DeleteCasefilePayload,Payload for deleting a casefile.,2,1,1
+CasefileDeletedPayload,Response payload for casefile deletion.,3,3,0
+AddSessionToCasefilePayload,Payload for linking a session to a casefile.,3,3,0
+SessionAddedPayload,Response payload for session addition.,4,4,0
+GrantPermissionPayload,Payload for granting permission to a user.,5,3,2
+PermissionGrantedPayload,Response payload for permission grant.,5,5,0
+RevokePermissionPayload,Payload for revoking permission from a user.,2,2,0
+PermissionRevokedPayload,Response payload for permission revocation.,4,4,0
+ListPermissionsPayload,Payload for listing all permissions for a casefile.,1,1,0
+PermissionListPayload,Response payload with list of all permissions.,5,5,0
+PermissionListResponse,Direct response with list of all permissions (legacy format).,5,5,0
+CheckPermissionPayload,Payload for checking if a user has permission.,3,3,0
+PermissionCheckPayload,Response payload with permission check result.,8,8,0
+StoreGmailMessagesPayload,Payload for storing Gmail messages in casefile.,6,2,4
+GmailStorageResultPayload,Response payload for Gmail message storage.,7,4,3
+StoreDriveFilesPayload,Payload for storing Google Drive files in casefile.,4,2,2
+DriveStorageResultPayload,Response payload for Drive file storage.,5,4,1
+StoreSheetDataPayload,Payload for storing Google Sheets data in casefile.,3,2,1
+SheetStorageResultPayload,Response payload for Sheets data storage.,5,4,1
+CreateChatSessionPayload,Payload for creating a new chat session.,2,0,2
+ChatSessionCreatedPayload,Response payload for chat session creation.,3,2,1
+GetChatSessionPayload,Payload for retrieving a chat session.,2,1,1
+ChatSessionDataPayload,Response payload with full chat session data.,10,5,5
+ListChatSessionsPayload,Payload for listing chat sessions with filters.,5,0,5
+ChatSessionListPayload,Response payload with list of chat sessions.,4,3,1
+CloseChatSessionPayload,Payload for closing a chat session.,1,1,0
+ChatSessionClosedPayload,Response payload for closed chat session.,5,4,1
+CreateCasefileWithSessionPayload,Payload for composite workflow that creates a casefile and session.,6,1,5
+CasefileWithSessionResultPayload,Result payload returning both casefile and session identifiers.,3,1,2
+CreateSessionWithCasefilePayload,Payload for creating a session and linking it to an existing casefile.,3,1,2
+SessionWithCasefileResultPayload,Result payload for session creation and casefile linking.,5,5,0
+ToolRequestPayload,Payload for a tool execution request.,5,1,4
+ToolResponsePayload,Payload for a tool execution response.,3,1,2
+ChatMessagePayload,"Canonical chat message structure (data entity, not request payload).",5,2,3
+ChatRequestPayload,Payload for chat message request (operation parameters).,4,2,2
+ChatResultPayload,Payload for chat message response (operation result).,3,1,2
+CreateSessionPayload,Payload for creating a new tool session.,2,0,2
+SessionCreatedPayload,Response payload for session creation.,3,2,1
+GetSessionPayload,Payload for retrieving a session.,1,1,0
+SessionDataPayload,Response payload with full session data.,10,6,4
+ListSessionsPayload,Payload for listing sessions with filters.,5,0,5
+SessionListPayload,Response payload with list of sessions.,4,3,1
+CloseSessionPayload,Payload for closing a session.,1,1,0
+SessionClosedPayload,Response payload for closed session.,5,4,1

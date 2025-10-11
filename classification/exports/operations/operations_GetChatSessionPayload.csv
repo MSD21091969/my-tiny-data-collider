@@ -1,0 +1,3 @@
+Field Name,Type,Required,Description,Default Value
+session_id,str,YES,,
+include_messages,bool,NO,,False

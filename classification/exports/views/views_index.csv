@@ -1,0 +1,4 @@
+Model Name,Description,Field Count,Required Fields,Optional Fields
+CasefileSummary,Summary view of a casefile.,7,7,0
+SessionSummary,Summary of a tool session.,8,6,2
+ChatSessionSummary,Summary of a chat session.,7,5,2

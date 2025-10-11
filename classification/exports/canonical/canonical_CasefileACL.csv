@@ -1,0 +1,5 @@
+Field Name,Type,Required,Description,Default Value
+owner_id,str,YES,,
+permissions,List[PermissionEntry],NO,,
+public_access,PermissionLevel,NO,,PermissionLevel.NONE
+inherit_from_parent,bool,NO,,False

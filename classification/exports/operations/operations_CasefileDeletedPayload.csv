@@ -1,0 +1,4 @@
+Field Name,Type,Required,Description,Default Value
+casefile_id,str,YES,,
+deleted_at,str,YES,,
+title,str,YES,,

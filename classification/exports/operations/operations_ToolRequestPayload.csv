@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+tool_name,str,YES,,
+parameters,"Dict[str, Any]",NO,,
+prompt,Optional[str],NO,,
+casefile_id,Optional[str],NO,,
+session_request_id,Optional[str],NO,,

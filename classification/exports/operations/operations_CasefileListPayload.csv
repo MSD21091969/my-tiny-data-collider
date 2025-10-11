@@ -1,0 +1,5 @@
+Field Name,Type,Required,Description,Default Value
+casefiles,List[CasefileSummary],NO,,
+total_count,int,YES,,
+offset,int,YES,,
+limit,int,YES,,

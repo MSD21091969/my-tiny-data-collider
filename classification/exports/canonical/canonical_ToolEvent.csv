@@ -1,0 +1,16 @@
+Field Name,Type,Required,Description,Default Value
+event_id,str,NO,,
+event_type,str,YES,,
+tool_name,str,YES,,
+timestamp,str,NO,,
+parameters,"Dict[str, Any]",NO,,
+result_summary,"Optional[Dict[str, Any]]",NO,,None
+duration_ms,Optional[int],NO,,None
+status,Optional[str],NO,,
+error_message,Optional[str],NO,,
+initiator,str,NO,,'user'
+chain_position,Optional[int],NO,,None
+chain_id,Optional[str],NO,,
+reasoning,Optional[str],NO,,None
+source_message_id,Optional[str],NO,,None
+related_events,List[str],NO,,

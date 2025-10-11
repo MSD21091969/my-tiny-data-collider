@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+content,str,YES,,
+message_type,MessageType,YES,,
+tool_calls,"List[Dict[str, Any]]",NO,,
+session_request_id,Optional[str],NO,,
+casefile_id,Optional[str],NO,,

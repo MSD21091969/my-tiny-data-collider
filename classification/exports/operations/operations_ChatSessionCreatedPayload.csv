@@ -1,0 +1,4 @@
+Field Name,Type,Required,Description,Default Value
+session_id,str,YES,,
+casefile_id,Optional[str],NO,,
+created_at,str,YES,,

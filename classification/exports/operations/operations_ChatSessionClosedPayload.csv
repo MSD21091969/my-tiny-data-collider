@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+session_id,str,YES,,
+closed_at,str,YES,,
+total_messages,int,YES,,
+total_events,int,YES,,
+duration_seconds,Optional[int],NO,,

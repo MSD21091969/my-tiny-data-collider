@@ -1,0 +1,4 @@
+Field Name,Type,Required,Description,Default Value
+result,"Dict[str, Any]",YES,,
+events,"List[Dict[str, Any]]",NO,,
+session_request_id,Optional[str],NO,,

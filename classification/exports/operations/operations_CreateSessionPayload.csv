@@ -1,0 +1,3 @@
+Field Name,Type,Required,Description,Default Value
+casefile_id,Optional[str],NO,,
+title,Optional[str],NO,,

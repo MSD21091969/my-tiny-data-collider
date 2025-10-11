@@ -1,0 +1,3 @@
+Field Name,Type,Required,Description,Default Value
+casefile,CasefileModel,YES,,
+updated_fields,List[str],YES,,

@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+casefile_id,str,YES,,
+sheets_stored,int,YES,,
+sync_status,str,YES,,
+sync_token,Optional[str],NO,,
+synced_at,str,YES,,

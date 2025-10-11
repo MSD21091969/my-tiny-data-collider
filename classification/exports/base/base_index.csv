@@ -1,0 +1,4 @@
+Model Name,Description,Field Count,Required Fields,Optional Fields
+BaseRequest,Base model for all requests in the system.,11,3,8
+BaseResponse,Base model for all responses in the system.,6,3,3
+RequestEnvelope,Envelope for all requests including authentication and context information.,4,1,3

@@ -1,0 +1,6 @@
+Field Name,Type,Required,Description,Default Value
+user_id,Optional[str],NO,,
+tags,Optional[List[str]],NO,,
+search_query,Optional[str],NO,,
+limit,int,NO,,50
+offset,int,NO,,0
