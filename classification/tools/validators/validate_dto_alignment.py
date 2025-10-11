@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Tuple
 import yaml
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
 from pydantic_ai_integration import method_registry
 from pydantic_ai_integration.model_registry import get_model_registry
