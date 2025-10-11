@@ -37,13 +37,23 @@ TOKEN_EXPIRE_MINUTES = 60
 # Security scheme
 security = HTTPBearer(auto_error=False)  # Don't auto-error in dev mode
 
-def create_token(user_id: str, username: str, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT token.
+def create_token(
+    user_id: str,
+    username: str,
+    expires_delta: Optional[timedelta] = None,
+    session_request_id: Optional[str] = None,
+    casefile_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+) -> str:
+    """Create a JWT token with routing metadata.
     
     Args:
         user_id: User ID to encode in the token
         username: Username to encode in the token
         expires_delta: Optional custom expiration time
+        session_request_id: Optional session request ID for audit trail routing
+        casefile_id: Optional casefile ID for authorization context
+        session_id: Optional tool session ID for context
         
     Returns:
         JWT token string
@@ -53,13 +63,21 @@ def create_token(user_id: str, username: str, expires_delta: Optional[timedelta]
     
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=TOKEN_EXPIRE_MINUTES))
     
-    # Token payload
+    # Token payload with routing metadata
     payload = {
         "sub": user_id,
         "username": username,
         "exp": int(expire.timestamp()),
-    "iat": int(datetime.now(UTC).timestamp()),
+        "iat": int(datetime.now(UTC).timestamp()),
     }
+    
+    # Add optional routing context
+    if session_request_id:
+        payload["session_request_id"] = session_request_id
+    if casefile_id:
+        payload["casefile_id"] = casefile_id
+    if session_id:
+        payload["session_id"] = session_id
     
     logger.info(f"Token payload: {payload}")
     
@@ -159,13 +177,13 @@ def validate_credentials(username: str, password: str) -> Dict[str, Any]:
         )
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
-    """FastAPI dependency to get the current authenticated user.
+    """FastAPI dependency to get the current authenticated user with routing context.
     
     Args:
         credentials: HTTP Authorization credentials
         
     Returns:
-        User information from the token
+        User information from the token including routing metadata
         
     Raises:
         HTTPException: If token is invalid or missing
@@ -177,7 +195,10 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             "user_id": MOCK_USER["user_id"],
             "username": MOCK_USER["username"],
             "email": MOCK_USER["email"],
-            "roles": MOCK_USER["roles"]
+            "roles": MOCK_USER["roles"],
+            "session_request_id": None,
+            "casefile_id": None,
+            "session_id": None,
         }
     
     if not credentials:
@@ -204,20 +225,28 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             detail="Invalid token content",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Extract routing metadata
+    session_request_id = payload.get("session_request_id")
+    casefile_id = payload.get("casefile_id")
+    session_id = payload.get("session_id")
         
-    # In development mode, just return mock user data
+    # In development mode, just return mock user data with routing context
     return {
         "user_id": user_id,
         "username": username,
         "email": MOCK_USER["email"],
-        "roles": MOCK_USER["roles"]
+        "roles": MOCK_USER["roles"],
+        "session_request_id": session_request_id,
+        "casefile_id": casefile_id,
+        "session_id": session_id,
     }
 
 def get_dev_user() -> Dict[str, Any]:
     """Get development user for testing without authentication.
     
     Returns:
-        Development user information
+        Development user information with routing metadata
     """
     if not is_dev_mode():
         raise HTTPException(
@@ -229,7 +258,10 @@ def get_dev_user() -> Dict[str, Any]:
         "user_id": MOCK_USER["user_id"],
         "username": MOCK_USER["username"],
         "email": MOCK_USER["email"],
-        "roles": MOCK_USER["roles"]
+        "roles": MOCK_USER["roles"],
+        "session_request_id": None,
+        "casefile_id": None,
+        "session_id": None,
     }
 
 def create_dev_token() -> str:
@@ -249,6 +281,60 @@ def create_dev_token() -> str:
         username=MOCK_USER["username"],
         expires_delta=timedelta(hours=1)
     )
+
+def create_service_token(
+    service_name: str,
+    casefile_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    expires_delta: Optional[timedelta] = None,
+) -> str:
+    """Create a service token for automated/scripted operations.
+    
+    Service tokens are used for non-interactive operations like scheduled jobs,
+    batch processing, or system automation. They carry service identity and
+    optional routing context.
+    
+    Args:
+        service_name: Name of the service/script requesting the token
+        casefile_id: Optional casefile ID for scoped operations
+        session_id: Optional session ID for context
+        expires_delta: Optional custom expiration (default: 24 hours)
+        
+    Returns:
+        JWT token string for service use
+    """
+    logger.info(f"Creating service token for: {service_name}")
+    
+    # Service tokens use special user_id format: svc_<service_name>
+    service_user_id = f"svc_{service_name}"
+    
+    expire = datetime.now(UTC) + (expires_delta or timedelta(hours=24))
+    
+    payload = {
+        "sub": service_user_id,
+        "username": f"Service:{service_name}",
+        "exp": int(expire.timestamp()),
+        "iat": int(datetime.now(UTC).timestamp()),
+        "service": True,  # Flag to identify service tokens
+        "service_name": service_name,
+    }
+    
+    # Add optional routing context
+    if casefile_id:
+        payload["casefile_id"] = casefile_id
+    if session_id:
+        payload["session_id"] = session_id
+    
+    logger.info(f"Service token payload: {payload}")
+    
+    try:
+        encoded_jwt = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+        if isinstance(encoded_jwt, bytes):
+            encoded_jwt = encoded_jwt.decode('utf-8')
+        return encoded_jwt
+    except Exception as e:
+        logger.error(f"Error encoding service token: {str(e)}")
+        raise
 
 def verify_admin(user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
     """Verify that the user is an admin.

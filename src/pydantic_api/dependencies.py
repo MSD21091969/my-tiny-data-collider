@@ -33,6 +33,22 @@ def get_current_user_id(current_user: Dict[str, Any] = Depends(get_current_user)
         User ID string
     """
     return current_user["user_id"]
+
+def get_auth_context(current_user: Dict[str, Any] = Depends(get_current_user)) -> Dict[str, Any]:
+    """Extract authentication context from token for routing and validation.
+    
+    Args:
+        current_user: Current user information from token
+        
+    Returns:
+        Auth context dict with user_id, session_request_id, casefile_id, session_id
+    """
+    return {
+        "user_id": current_user["user_id"],
+        "session_request_id": current_user.get("session_request_id"),
+        "casefile_id": current_user.get("casefile_id"),
+        "session_id": current_user.get("session_id"),
+    }
     
 def verify_casefile_access(
     casefile_id: str,

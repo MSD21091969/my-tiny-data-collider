@@ -517,7 +517,12 @@ class RequestHub:
         context = await self._prepare_context(request)
         await self._run_hooks("pre", request, context)
 
-        response = await self.service_manager.tool_session_service.process_tool_request(request)
+        # Extract auth_context from request metadata if available
+        auth_context = request.metadata.get("auth_context") if request.metadata else None
+
+        response = await self.service_manager.tool_session_service.process_tool_request(
+            request, auth_context=auth_context
+        )
 
         context["status"] = response.status.value
         if request.session_id:

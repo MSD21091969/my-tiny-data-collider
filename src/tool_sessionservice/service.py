@@ -103,7 +103,7 @@ class ToolSessionService:
             }
         )
     
-    async def process_tool_request(self, request: ToolRequest) -> ToolResponse:
+    async def process_tool_request(self, request: ToolRequest, auth_context: Dict[str, Any] | None = None) -> ToolResponse:
         """Process a tool request using the unified MANAGED_TOOLS registry.
         
         This method:
@@ -115,9 +115,13 @@ class ToolSessionService:
         
         Args:
             request: The tool request to process
+            auth_context: Optional authentication context from token (user_id, session_id, casefile_id, session_request_id)
             
         Returns:
             The tool response
+            
+        Raises:
+            ValueError: If token/session validation fails
         """
         # Clean computed fields before revalidation
         request_data = request.model_dump(
@@ -134,6 +138,27 @@ class ToolSessionService:
         session = await self.repository.get_session(session_id)
         if not session:
             raise ValueError(f"Session {session_id} not found")
+        
+        # SECURITY: Token/session alignment validation
+        if auth_context:
+            # Verify user owns the session
+            if session.user_id != auth_context.get("user_id"):
+                logger.error(f"Token user mismatch: token user={auth_context.get('user_id')}, session user={session.user_id}")
+                raise ValueError(f"Access denied: Session {session_id} does not belong to authenticated user")
+            
+            # If token contains session_id, verify it matches
+            token_session_id = auth_context.get("session_id")
+            if token_session_id and token_session_id != session_id:
+                logger.error(f"Token session mismatch: token session={token_session_id}, request session={session_id}")
+                raise ValueError(f"Token session mismatch: expected {token_session_id}, got {session_id}")
+            
+            # If token contains casefile_id, verify session belongs to that casefile
+            token_casefile_id = auth_context.get("casefile_id")
+            if token_casefile_id and session.casefile_id != token_casefile_id:
+                logger.error(f"Token casefile mismatch: token casefile={token_casefile_id}, session casefile={session.casefile_id}")
+                raise ValueError(f"Access denied: Session not authorized for casefile {token_casefile_id}")
+            
+            logger.info(f"Token/session validation passed for session {session_id}")
             
         request_id = str(cleaned_request.request_id)
         tool_name = cleaned_request.payload.tool_name
