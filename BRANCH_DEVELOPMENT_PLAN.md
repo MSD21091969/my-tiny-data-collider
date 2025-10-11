@@ -147,7 +147,8 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - **Performance**: Automated benchmarking and optimization tracking with detailed reporting
 - **Production Ready**: All components tested and ready for integration into MDS microservices
 
-## Implementation Priority
+<!-- markdownlint-disable-next-line MD033 -->
+<h2 style="color:red;">Implementation Priority</h2>
 
 **Completed (Milestones 1-5):**
 
@@ -156,6 +157,73 @@ The codebase had hardcoded service instantiation violations throughout, making t
 3. ✅ Service Discovery & Registry - Environment-aware service registration and health checks
 4. ✅ Context-Aware Services - Context propagation and observability framework
 5. ✅ Advanced Features & Optimization - Production-ready caching, resilience, and monitoring
+
+## After Milestone 5 Assessment
+
+- **MVP Delivery Specs & UX**: Validate auth/session flows, define minimal toolset, capture release criteria, and document required user journeys.
+- **Toolchain Validation**: Confirm token carries routing data, ensure request/session rehydration everywhere, inventory YAML toolset coverage and load tests.
+- **Auth Routing Hardening**: Extend token schema to include `session_request_id`, enforce token/session alignment for tool execution, and define service-token flow for scripted operations.
+- **RequestHub Context Flow**: Ensure all R-A-R operations rely on RequestHub for context hydration; document the service transformation pattern (prepare context → execute service → enrich response) so new modules follow the same lifecycle.
+- **Registry Consolidation**: Evaluate unifying method/tool YAML loaders, registries, and decorators into a cohesive lifecycle module (shared error handling, validation, and drift detection) so the inventory cycle remains explicit and self-tested.
+- **MVP Boundaries**: Freeze the minimum deployable toolset plus configs, outline future experimentation guardrails so PR branches stay non-blocking.
+- **Branch Strategy Prep**: Use `feature/develop` for analysis and issue triage, branch per experiment (tool mapping, executor engine, observability, YAML automation).
+- **Unified Classification & Mapping**: Design a searchable, versioned taxonomy for methods/tools/models so tool engineering can express data pipelines (fields, types, transformations, R-A-R context) with end-to-end documentation.
+- **MDSContext Alignment**: Schedule a branch to audit `pydantic_ai_integration/dependencies.py` so token/session routing, persistence hooks, and tool event tracking stay consistent with the hardened auth + RequestHub flow.
+- **Persistence Formalization**: Evaluate restructuring Firestore/Redis abstractions into a cohesive persistence layer (consistent pooling, caching, metrics) to reduce layering drift and keep dataflow explicit.
+- **RAR Envelope Alignment**: Map business logic entry points to the appropriate R-A-R request/response models and envelopes, ensuring every service/route consumes the canonical DTOs without ad-hoc payloads.
+- **Communication Service Boundaries**: Document and enforce the current chat-only scope, plan future integrations (Pub/Sub, logging, tracing) as opt-in extensions, and evaluate the pending execution-engine branch before expanding responsibilities.
+- **YAML Tool Engineering Readiness**: Treat `config/tool_schema_v2.yaml`, `config/methods_inventory_v1.yaml`, and `config/models_inventory_v1.yaml` as the authoritative trio; add validator coverage for parameter inheritance, composite orchestration, and version alignment before wider rollout.
+
+### Q&A Wrap (October 11, 2025)
+
+- Captured the latest tool engineering review: schema v2 is R-A-R aligned but needs validators and integration tests to confirm ToolDec parameter inheritance and composite execution.
+- Reaffirmed YAML as the generation canvas while reserving targeted Python scripts for complex conditional flows until composite/multi-tool orchestration is verified.
+- Recorded that the first five generated definitions under `config/methodtools_v1/` passed smoke tests; expanding coverage depends on the validator suite.
+- Logged creation of subsystem overview documentation (`docs/CORE_SERVICE_OVERVIEW.md`, `docs/CASEFILE_SERVICE_OVERVIEW.md`, `docs/TOOL_SESSION_SERVICE_OVERVIEW.md`, `docs/PYDANTIC_AI_INTEGRATION_OVERVIEW.md`, `docs/PYDANTIC_MODELS_OVERVIEW.md`, `docs/PERSISTENCE_OVERVIEW.md`, `docs/AUTHSERVICE_OVERVIEW.md`, `docs/COMMUNICATION_SERVICE_OVERVIEW.md`) as reference assets for follow-on branches.
+- Q&A cycle for Milestone 5 follow-up is complete; action items now live in the after-milestone backlog above.
+
+### YAML Tooling Status
+
+- `config/tool_schema_v2.yaml` captures the R-A-R separation cleanly, yet orchestration sections (`implementation.*`, composite steps, parameter overrides) lack automated validation; ToolDec parameter inheritance still needs an integration test pass.
+- `config/methods_inventory_v1.yaml` stays synchronized with MANAGED_METHODS (34 entries) and provides classification metadata, but the reference-only `business_rules` blocks can drift because enforcement lives outside the registry.
+- `config/models_inventory_v1.yaml` is auto-regenerated and aligns with the payload/DTO layering, supplying a reliable parameter source, though no guardrails confirm tool/method definitions actually match those payload signatures.
+- Generated definitions under `config/methodtools_v1/` honour the new schema; only the first five have completed smoke testing, so composite/multi-tool and conditional branches remain unproven.
+- YAML continues to cover declarative pipelines effectively, but for sophisticated branching (“soph cond logic”) a hybrid approach—YAML corridor plus targeted Python templates—remains safer until composite support is exercised.
+
+#### Immediate Checks
+
+- Add a schema-aware validator that loads each tool YAML, resolves `method_name`, and compares required parameters against the actual Pydantic request models.
+- Build a fixture-based test that runs ToolDec over the inventory to confirm inherited parameters land in generated tool stubs (start with the verified five, then fan out).
+- Prototype a composite tool in code first, then mirror it in YAML to prove the schema can express conditional/multi-step flows; fall back to scripted orchestration if it cannot.
+- Wire version metadata (`schema_version`, inventory version) into the generator so drift between YAML and code is caught during CI.
+
+### Infrastructure Specs & Boundaries (October 11, 2025)
+
+- Core FastAPI server must remain session-capable; keep an always-on cloud instance (Cloud Run or equivalent) sized for steady tool execution.
+- Evaluate lightweight worker options (Cloud Run Jobs, Cloud Functions, queue-driven workers) for burst execution; keep the worker count minimal until load data arrives.
+- Redis stays the coordination/cache layer; plan for managed Redis if we move fully to cloud to avoid ops overhead.
+- Firestore continues as the metadata source of truth for casefiles; note a future extension path for RAG assets (GCS buckets for artifacts, BigQuery for analytical views).
+- Keep scalability stubs in place (async repos, pooling) without over-engineering; document hooks for when RAG/analytics land.
+- Logging/monitoring preference: explore Pyd Logfire as an alternative to Cloud Logging explorers for cost-effective observability.
+- Cost posture: bias toward serverless/autoscaled services with predictable baselines; capture cost estimates in follow-up branch before committing to infra spend.
+
+### Initial Branch Strategy
+
+- Keep branch tree shallow: sequenced feature branches off `feature/develop`, each scoped to a single validation or infrastructure task.
+- First branch: `feature/yaml-validator` implementing schema-aware validation plus the ToolDec fixture tests noted in Immediate Checks; target small, reviewable commits.
+- Second branch (once validator merged): `feature/inventory-drift-guard` wiring version metadata into generators and CI sanity checks.
+- Parallel only when necessary; otherwise serialize work to avoid context drift and maintain quick review cycles.
+- Capture any infra experiments (Cloud Run sizing, managed Redis evaluation, logging options) in short-lived `spike/*` branches with README notes, then fold decisions back into the plan.
+
+## CI/CD + Toolchain Mindmap (Initial Narrative)
+
+1. `main` holds stable FastAPI app, vetted tool/method/model inventories.
+2. CI/CD runs toolset tests (optionally with workers) using engineering YAMLs before promoting to user/agent-facing inventories.
+3. Toolsets can be exercised locally or through scripts without auth, plus audited HTTP sessions with Firestore persistence.
+4. Sessions persist under casefile → session → session_request hierarchy; tokens carry endpoint hint, expire and renew with fresh audit entries.
+5. Feature branches explore advanced YAML templates, mapper generation, observability, and engine upgrades in isolated workspaces.
+
+## Success Criteria (recap)
 
 ## Success Criteria
 
@@ -195,6 +263,11 @@ The codebase had hardcoded service instantiation violations throughout, making t
 - ✅ `src/coreservice/service_metrics.py` - **NEW** Advanced metrics collection, performance profiling, and service optimization
 - ✅ `tests/test_service_metrics.py` - **NEW** Comprehensive test suite with 23 tests for all metrics functionality
 - ✅ `tests/coreservice/test_service_caching.py` - Service caching and circuit breaker tests
+
+**Cross-Branch Documentation & YAML Engineering:**
+
+- ✅ `docs/CORE_SERVICE_OVERVIEW.md`, `docs/CASEFILE_SERVICE_OVERVIEW.md`, `docs/TOOL_SESSION_SERVICE_OVERVIEW.md`, `docs/PYDANTIC_AI_INTEGRATION_OVERVIEW.md`, `docs/PYDANTIC_MODELS_OVERVIEW.md`, `docs/PERSISTENCE_OVERVIEW.md`, `docs/AUTHSERVICE_OVERVIEW.md`, `docs/COMMUNICATION_SERVICE_OVERVIEW.md` - Reference overviews supporting alignment work on future branches
+- ✅ `config/tool_schema_v2.yaml`, `config/methods_inventory_v1.yaml`, `config/models_inventory_v1.yaml`, `config/methodtools_v1/` - Updated schema, inventories, and generated tool definitions for the YAML-based tool engineering pipeline
 
 ## Dependencies
 
