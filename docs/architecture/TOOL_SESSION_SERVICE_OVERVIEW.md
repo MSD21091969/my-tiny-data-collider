@@ -53,5 +53,5 @@ src/tool_sessionservice/
 ## Navigation
 
 - [[CORE_SERVICE_OVERVIEW.md|coreservice overview]]
-- [[CASEFILE_SERVICE_OVERVIEW.md|casefileservice overview]]
+- [[CASEFILE_SERVICE_OVERVIEW|casefileservice overview]]
 - [[BRANCH_DEVELOPMENT_PLAN.md|branch development plan]]
