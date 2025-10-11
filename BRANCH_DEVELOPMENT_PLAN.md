@@ -283,3 +283,238 @@ The codebase had hardcoded service instantiation violations throughout, making t
 
 **Risk:** Over-engineering advanced features in Milestone 5
 **Mitigation:** ✅ Focused on production requirements, implemented incrementally with comprehensive testing
+
+---
+
+## 📊 Implementation Priority: Next Phase
+
+### **TIER 1 - CRITICAL (MVP Blockers)**
+
+#### 1. **Auth Routing Hardening** 🔐
+**Priority:** IMMEDIATE | **Risk:** HIGH | **Complexity:** MEDIUM
+
+**Action Items:**
+- Extend token schema in `authservice/token.py` to include `session_request_id` and casefile authorization context
+- Implement token/session validation gate in tool execution flow
+- Define service-token pattern for automated/scripted operations
+- Document token payload shape for cross-service consistency
+
+**Blockers Resolved:** Security, session routing, audit trail integrity
+
+**Files Affected:**
+- `src/authservice/token.py`
+- `src/pydantic_api/dependencies.py`
+- `src/tool_sessionservice/service.py`
+- `src/coreservice/request_hub.py`
+
+---
+
+#### 2. **RequestHub Context Flow** 🔄
+**Priority:** IMMEDIATE | **Risk:** HIGH | **Complexity:** MEDIUM
+
+**Action Items:**
+- Ensure all R-A-R operations rely on RequestHub for context hydration
+- Document service transformation pattern (prepare context → execute service → enrich response)
+- Validate `_prepare_context` hydrates `session_request_id` for correct audit subcollections
+- Standardize hook execution across all operation types
+
+**Blockers Resolved:** Context consistency, audit trail completeness, service lifecycle
+
+**Files Affected:**
+- `src/coreservice/request_hub.py`
+- All service implementations (`service.py` files)
+
+---
+
+#### 3. **YAML Toolchain Validation** ✅
+**Priority:** HIGH | **Risk:** HIGH | **Complexity:** HIGH
+
+**Action Items:**
+- Add schema-aware validator that cross-checks YAML tool definitions against Pydantic request models
+- Build fixture-based tests for ToolDec parameter inheritance
+- Prototype composite tool in code, then mirror in YAML to validate schema expressiveness
+- Wire version metadata (`schema_version`) into generators for drift detection
+
+**Current Gap:** Only 5 of 34+ generated tool definitions have smoke tests
+
+**Files to Create:**
+- `tests/validation/test_yaml_tool_schema.py`
+- `scripts/validate_tool_definitions.py`
+- `tests/fixtures/tool_parameter_inheritance.py`
+
+**Branch Strategy:** `feature/yaml-validator` (next immediate branch)
+
+---
+
+### **TIER 2 - HIGH (Production Readiness)**
+
+#### 4. **MVP Delivery Specs & UX** 📋
+**Priority:** HIGH | **Risk:** MEDIUM | **Complexity:** MEDIUM
+
+**Action Items:**
+- Validate auth/session flows end-to-end with integration tests
+- Define minimal toolset for MVP release
+- Document required user journeys (create casefile → session → tool execution → results)
+- Capture release criteria and acceptance tests
+
+**Files to Create:**
+- `docs/MVP_SPECIFICATION.md`
+- `tests/integration/test_mvp_user_journeys.py`
+- `docs/USER_FLOWS.md`
+
+---
+
+#### 5. **Toolset Inventory Coverage** 📊
+**Priority:** HIGH | **Risk:** MEDIUM | **Complexity:** LOW
+
+**Action Items:**
+- Inventory all 34 YAML tool definitions for coverage completeness
+- Run load tests on tool execution paths
+- Validate all tools have corresponding operations DTOs and service methods
+- Document tool→method→service mapping
+
+**Files Affected:**
+- `config/methods_inventory_v1.yaml` (34 methods)
+- `config/methodtools_v1/*.yaml` (expanded coverage)
+
+---
+
+#### 6. **Persistence Formalization** 💾
+**Priority:** HIGH | **Risk:** MEDIUM | **Complexity:** MEDIUM
+
+**Action Items:**
+- Restructure Firestore/Redis abstractions into cohesive persistence layer
+- Implement consistent pooling, caching, and metrics across repositories
+- Add integration tests for repository ↔ canonical model alignment
+- Document dataflow patterns and session request ID persistence
+
+**Files Affected:**
+- `src/persistence/firestore_pool.py`
+- `src/persistence/redis_cache.py`
+- All repository implementations
+
+---
+
+### **TIER 3 - MEDIUM (Architecture Enhancement)**
+
+#### 7. **Registry Consolidation** 🔧
+**Priority:** MEDIUM | **Risk:** LOW | **Complexity:** HIGH
+
+**Action Items:**
+- Unify method/tool YAML loaders into cohesive lifecycle module
+- Add shared error handling and validation for all registries
+- Implement drift detection between YAML inventories and code registries
+- Make inventory validation blocking in CI/CD
+
+**Benefits:** Reduced maintenance, self-testing inventory cycle
+
+---
+
+#### 8. **RAR Envelope Alignment** 📦
+**Priority:** MEDIUM | **Risk:** LOW | **Complexity:** MEDIUM
+
+**Action Items:**
+- Map all business logic entry points to R-A-R request/response models
+- Audit for ad-hoc payloads not using canonical DTOs
+- Ensure service/route consistency with operations models
+- Generate schema documentation from aligned models
+
+**Files Affected:**
+- All routers in `src/pydantic_api/routers/`
+- Operations models in `src/pydantic_models/operations/`
+
+---
+
+#### 9. **MDSContext Alignment** 🎯
+**Priority:** MEDIUM | **Risk:** MEDIUM | **Complexity:** MEDIUM
+
+**Action Items:**
+- Audit `pydantic_ai_integration/dependencies.py` for token/session routing consistency
+- Align persistence hooks with RequestHub flow
+- Ensure tool event tracking stays consistent with auth hardening
+- Document context lifecycle across tool executions
+
+**Branch Strategy:** `feature/mdscontext-audit`
+
+---
+
+### **TIER 4 - LOW (Future Extensions)**
+
+#### 10. **Communication Service Boundaries** 💬
+**Priority:** LOW | **Risk:** LOW | **Complexity:** LOW
+
+**Action Items:**
+- Document chat-only scope formally
+- Plan Pub/Sub, logging, tracing as opt-in extensions
+- Evaluate pending execution-engine branch before expanding
+
+**Current Status:** Service is scoped and stable
+
+---
+
+#### 11. **Infrastructure Specs & Cloud Migration** ☁️
+**Priority:** LOW | **Risk:** LOW | **Complexity:** HIGH
+
+**Action Items:**
+- Size Cloud Run instance for steady tool execution
+- Evaluate managed Redis for coordination/cache layer
+- Plan GCS buckets for RAG artifacts
+- Implement Pyd Logfire for cost-effective observability
+- Capture cost estimates before infrastructure spend
+
+**Dependencies:** MVP validation complete, load testing done
+
+---
+
+#### 12. **Unified Classification & Mapping** 📚
+**Priority:** LOW | **Risk:** LOW | **Complexity:** HIGH
+
+**Action Items:**
+- Design searchable, versioned taxonomy for methods/tools/models
+- Express data pipelines with end-to-end documentation
+- Create tool engineering reference documentation
+- Version schema changes with migration paths
+
+---
+
+## 📈 Recommended Execution Sequence
+
+### **Sprint 1 (Immediate - Next 2 weeks)**
+1. Auth Routing Hardening → Branch: `feature/auth-routing-v2`
+2. RequestHub Context Flow → Integrate with auth work
+3. YAML Toolchain Validation → Branch: `feature/yaml-validator`
+
+### **Sprint 2 (Production Prep - Weeks 3-4)**
+4. MVP Delivery Specs & UX
+5. Toolset Inventory Coverage
+6. Persistence Formalization
+
+### **Sprint 3 (Enhancement - Weeks 5-6)**
+7. Registry Consolidation → Branch: `feature/inventory-drift-guard`
+8. RAR Envelope Alignment
+9. MDSContext Alignment → Branch: `feature/mdscontext-audit`
+
+### **Future Backlog**
+10-12. Service boundaries, infrastructure, classification system
+
+---
+
+## 🚨 Critical Success Factors
+
+1. **Auth/Session routing MUST be resolved before tool execution expands**
+2. **YAML validation prevents technical debt from accumulating**
+3. **Integration tests validate the complete user journey**
+4. **Keep branch tree shallow - serialize work to avoid context drift**
+5. **Document as you build - living docs prevent knowledge loss**
+
+---
+
+## 📊 Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|-----------|
+| YAML tool drift | HIGH | Automated validation in CI/CD |
+| Auth routing gaps | HIGH | Token schema extension + tests |
+| Context inconsistency | MEDIUM | RequestHub standardization |
+| Inventory coverage | MEDIUM | Systematic audit + smoke tests |
+| Infrastructure costs | LOW | Serverless-first, measure before commit |
