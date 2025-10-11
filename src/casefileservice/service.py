@@ -3,8 +3,8 @@ Service for managing casefiles.
 """
 
 import logging
+import os
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional
 
 from pydantic_models.base.types import RequestStatus
 from pydantic_models.canonical.acl import CasefileACL, PermissionEntry
@@ -57,16 +57,60 @@ from pydantic_models.workspace import (
 )
 
 from .repository import CasefileRepository
+from coreservice.context_aware_service import ContextAwareService
 
 logger = logging.getLogger(__name__)
 
-class CasefileService:
+class CasefileService(ContextAwareService):
     """Service for managing casefiles (Firestore only)."""
-    
+
     def __init__(self, repository: CasefileRepository | None = None):
         """Initialize the service."""
+        # Initialize context-aware service first
+        super().__init__(service_name="casefile_service", service_version="1.0.0")
+        
         self.repository = repository or CasefileRepository()
         
+        # Schedule auto-registration with service registry
+        # This will run asynchronously when the event loop is available
+        import asyncio
+        if asyncio.get_event_loop().is_running():
+            asyncio.create_task(self._auto_register_service())
+        else:
+            # If no event loop is running, we'll register when the service is first used
+            self._registered = False
+
+    async def _auto_register_service(self) -> None:
+        """Auto-register this service with the service registry."""
+        try:
+            # Import here to avoid circular imports
+            from coreservice.service_registry import ServiceCapability, service_registry
+            
+            # Get service host and port from environment
+            host = os.getenv("SERVICE_HOST", "localhost")
+            port = int(os.getenv("SERVICE_PORT", "8000"))
+            environment = os.getenv("ENVIRONMENT", "development")
+            
+            # Auto-register the service
+            await service_registry.auto_register_service(
+                service_name="casefile_service",
+                service_type="CasefileService",
+                host=host,
+                port=port,
+                capabilities=[
+                    ServiceCapability.CASEFILE_MANAGEMENT,
+                    ServiceCapability.DATA_STORAGE
+                ],
+                environment=environment,
+                tags=["casefile", "data", "storage"]
+            )
+            
+            logger.info(f"CasefileService auto-registered with registry at {host}:{port}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to auto-register CasefileService: {e}")
+            # Don't fail service initialization if registry is unavailable
+
     async def create_casefile(self, request: CreateCasefileRequest) -> CreateCasefileResponse:
         """Create a new casefile.
         
@@ -76,13 +120,19 @@ class CasefileService:
         Returns:
             Response with the created casefile ID and metadata
         """
-        start_time = datetime.now()
-        
+        return await self.execute_with_context(
+            "create_casefile",
+            self._create_casefile_impl,
+            request
+        )
+
+    async def _create_casefile_impl(self, request: CreateCasefileRequest) -> CreateCasefileResponse:
+        """Internal implementation of create_casefile with context awareness."""
         user_id = request.user_id
         title = request.payload.title
         description = request.payload.description
         tags = request.payload.tags
-        
+
         # Create metadata
         metadata = CasefileMetadata(
             title=title,
@@ -90,25 +140,23 @@ class CasefileService:
             tags=tags or [],
             created_by=user_id
         )
-        
+
         # Create ACL with owner
         acl = CasefileACL(
             owner_id=user_id,
             permissions=[],
             public_access=PermissionLevel.NONE
         )
-        
+
         # Create casefile
         casefile = CasefileModel(
             metadata=metadata,
             acl=acl
         )
-        
+
         # Store in repository
         casefile_id = await self.repository.create_casefile(casefile)
-        
-        execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return CreateCasefileResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -119,12 +167,11 @@ class CasefileService:
                 created_by=user_id
             ),
             metadata={
-                "execution_time_ms": execution_time_ms,
                 "user_id": user_id,
                 "operation": "create_casefile"
             }
         )
-    
+
     async def get_casefile(self, request: GetCasefileRequest) -> GetCasefileResponse:
         """Get a casefile by ID.
         
@@ -135,9 +182,9 @@ class CasefileService:
             Response with the casefile data
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
-        
+
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -152,9 +199,9 @@ class CasefileService:
                     "operation": "get_casefile"
                 }
             )
-            
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return GetCasefileResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -167,7 +214,7 @@ class CasefileService:
                 "operation": "get_casefile"
             }
         )
-    
+
     async def update_casefile(self, request: UpdateCasefileRequest) -> UpdateCasefileResponse:
         """Update a casefile.
         
@@ -178,9 +225,9 @@ class CasefileService:
             Response with the updated casefile data
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
-        
+
         # Get existing casefile
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
@@ -196,10 +243,10 @@ class CasefileService:
                     "operation": "update_casefile"
                 }
             )
-        
+
         # Track what was updated
         updates_applied = []
-        
+
         # Update metadata fields
         metadata = casefile.metadata
         if request.payload.title is not None:
@@ -211,20 +258,20 @@ class CasefileService:
         if request.payload.tags is not None:
             metadata.tags = request.payload.tags
             updates_applied.append("tags")
-            
+
         # Update notes
         if request.payload.notes is not None:
             casefile.notes = request.payload.notes
             updates_applied.append("notes")
-            
+
         # Update timestamp
         metadata.updated_at = datetime.now().isoformat()
-        
+
         # Store updated casefile
         await self.repository.update_casefile(casefile)
-        
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return UpdateCasefileResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -238,7 +285,7 @@ class CasefileService:
                 "operation": "update_casefile"
             }
         )
-    
+
     async def list_casefiles(self, request: ListCasefilesRequest) -> ListCasefilesResponse:
         """List casefiles, optionally filtered by user.
         
@@ -249,19 +296,19 @@ class CasefileService:
             Response with list of casefile summaries
         """
         start_time = datetime.now()
-        
+
         user_id = request.payload.user_id
         limit = request.payload.limit
         offset = request.payload.offset
-        
+
         summaries = await self.repository.list_casefiles(user_id=user_id)
-        
+
         # Apply pagination
         total_count = len(summaries)
         paginated_summaries = summaries[offset:offset + limit]
-        
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return ListCasefilesResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -277,7 +324,7 @@ class CasefileService:
                 "operation": "list_casefiles"
             }
         )
-    
+
     async def delete_casefile(self, request: DeleteCasefileRequest) -> DeleteCasefileResponse:
         """Delete a casefile.
         
@@ -288,9 +335,9 @@ class CasefileService:
             Response with deletion status information
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
-        
+
         # Verify casefile exists
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
@@ -306,10 +353,10 @@ class CasefileService:
                     "operation": "delete_casefile"
                 }
             )
-            
+
         # Delete casefile
         success = await self.repository.delete_casefile(casefile_id)
-        
+
         if not success:
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
             return DeleteCasefileResponse(
@@ -323,9 +370,9 @@ class CasefileService:
                     "operation": "delete_casefile"
                 }
             )
-            
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return DeleteCasefileResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -339,7 +386,7 @@ class CasefileService:
                 "operation": "delete_casefile"
             }
         )
-        
+
     async def add_session_to_casefile(self, request: AddSessionToCasefileRequest) -> AddSessionToCasefileResponse:
         """Add a session to a casefile.
         
@@ -350,10 +397,10 @@ class CasefileService:
             Response with updated casefile data
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
         session_id = request.payload.session_id
-        
+
         # Get existing casefile
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
@@ -370,19 +417,19 @@ class CasefileService:
                     "operation": "add_session_to_casefile"
                 }
             )
-            
+
         # Add session if not already present
         was_added = False
         if session_id not in casefile.session_ids:
             casefile.session_ids.append(session_id)
             casefile.metadata.updated_at = datetime.now().isoformat()
-            
+
             # Store updated casefile
             await self.repository.update_casefile(casefile)
             was_added = True
-            
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return AddSessionToCasefileResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -411,7 +458,7 @@ class CasefileService:
             Response with storage result
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
         messages = request.payload.messages
         sync_token = request.payload.sync_token
@@ -472,9 +519,9 @@ class CasefileService:
         casefile.gmail_data = gmail_data
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
-        
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return StoreGmailMessagesResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -506,7 +553,7 @@ class CasefileService:
             Response with storage result
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
         files = request.payload.files
         sync_token = request.payload.sync_token
@@ -546,9 +593,9 @@ class CasefileService:
         casefile.drive_data = drive_data
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
-        
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return StoreDriveFilesResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -578,7 +625,7 @@ class CasefileService:
             Response with storage result
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
         sheet_payloads = request.payload.sheet_payloads
         sync_token = request.payload.sync_token
@@ -613,9 +660,9 @@ class CasefileService:
         casefile.sheets_data = sheets_data
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
-        
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         return StoreSheetDataResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -640,11 +687,11 @@ class CasefileService:
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
         return sheets_data.model_dump()
-    
+
     # ============================================================================
     # ACL (Access Control List) Methods
     # ============================================================================
-    
+
     async def grant_permission(self, request: GrantPermissionRequest) -> GrantPermissionResponse:
         """Grant permission to a user on a casefile.
         
@@ -655,14 +702,14 @@ class CasefileService:
             Response with permission grant details
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
         granting_user_id = request.user_id
         target_user_id = request.payload.target_user_id
         permission = request.payload.permission
         expires_at = request.payload.expires_at
         notes = request.payload.notes
-        
+
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -676,7 +723,7 @@ class CasefileService:
                     "operation": "grant_permission"
                 }
             )
-        
+
         # Initialize ACL if not present (for legacy casefiles)
         if not casefile.acl:
             casefile.acl = CasefileACL(
@@ -684,7 +731,7 @@ class CasefileService:
                 permissions=[],
                 public_access=PermissionLevel.NONE
             )
-        
+
         # Check if granting user can share
         if not casefile.acl.can_share(granting_user_id):
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -698,12 +745,12 @@ class CasefileService:
                     "operation": "grant_permission"
                 }
             )
-        
+
         # Remove existing permission for this user (if any)
         casefile.acl.permissions = [
             p for p in casefile.acl.permissions if p.user_id != target_user_id
         ]
-        
+
         # Add new permission
         entry = PermissionEntry(
             user_id=target_user_id,
@@ -713,15 +760,15 @@ class CasefileService:
             notes=notes
         )
         casefile.acl.permissions.append(entry)
-        
+
         # Update casefile
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
-        
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         logger.info(f"Granted {permission.value} permission on casefile {casefile_id} to user {target_user_id}")
-        
+
         return GrantPermissionResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -737,7 +784,7 @@ class CasefileService:
                 "operation": "grant_permission"
             }
         )
-    
+
     async def revoke_permission(self, request: RevokePermissionRequest) -> RevokePermissionResponse:
         """Revoke permission from a user on a casefile.
         
@@ -748,7 +795,7 @@ class CasefileService:
             Response with revocation details
         """
         start_time = datetime.now()
-        
+
         casefile_id = request.payload.casefile_id
         revoking_user_id = request.user_id
         target_user_id = request.payload.target_user_id
@@ -765,7 +812,7 @@ class CasefileService:
                     "operation": "revoke_permission"
                 }
             )
-        
+
         if not casefile.acl:
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
             return RevokePermissionResponse(
@@ -778,7 +825,7 @@ class CasefileService:
                     "operation": "revoke_permission"
                 }
             )
-        
+
         # Check if revoking user can share
         if not casefile.acl.can_share(revoking_user_id):
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -792,7 +839,7 @@ class CasefileService:
                     "operation": "revoke_permission"
                 }
             )
-        
+
         # Cannot revoke owner's permissions
         if target_user_id == casefile.acl.owner_id:
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
@@ -806,13 +853,13 @@ class CasefileService:
                     "operation": "revoke_permission"
                 }
             )
-        
+
         # Remove permission
         original_count = len(casefile.acl.permissions)
         casefile.acl.permissions = [
             p for p in casefile.acl.permissions if p.user_id != target_user_id
         ]
-        
+
         if len(casefile.acl.permissions) == original_count:
             execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
             logger.warning(f"No permission found for user {target_user_id} on casefile {casefile_id}")
@@ -826,15 +873,15 @@ class CasefileService:
                     "operation": "revoke_permission"
                 }
             )
-        
+
         # Update casefile
         casefile.metadata.updated_at = datetime.now().isoformat()
         await self.repository.update_casefile(casefile)
-        
+
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         logger.info(f"Revoked permission on casefile {casefile_id} from user {target_user_id}")
-        
+
         return RevokePermissionResponse(
             request_id=request.request_id,
             status=RequestStatus.COMPLETED,
@@ -849,7 +896,7 @@ class CasefileService:
                 "operation": "revoke_permission"
             }
         )
-    
+
     async def list_permissions(self, casefile_id: str, requesting_user_id: str) -> CasefileACL:
         """List all permissions for a casefile.
         
@@ -866,7 +913,7 @@ class CasefileService:
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
             raise ValueError(f"Casefile {casefile_id} not found")
-        
+
         if not casefile.acl:
             # Initialize ACL for legacy casefiles
             casefile.acl = CasefileACL(
@@ -874,13 +921,13 @@ class CasefileService:
                 permissions=[],
                 public_access=PermissionLevel.NONE
             )
-        
+
         # Check if requesting user can read
         if not casefile.acl.can_read(requesting_user_id):
             raise ValueError(f"User {requesting_user_id} does not have permission to view casefile {casefile_id}")
-        
+
         return casefile.acl
-    
+
     async def check_permission(
         self,
         casefile_id: str,
@@ -900,9 +947,42 @@ class CasefileService:
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
             return False
-        
+
         if not casefile.acl:
             # Legacy casefile - only owner has access
             return user_id == casefile.metadata.created_by
-        
+
         return casefile.acl.has_permission(user_id, required_permission)
+
+    async def _record_metrics(
+        self,
+        context: "ServiceContext",
+        execution_time: float,
+        success: bool,
+        error: Exception | None = None
+    ) -> None:
+        """Record operation metrics for CasefileService."""
+        # Placeholder for metrics collection
+        # This would integrate with Prometheus, DataDog, etc.
+        # For now, we'll just log the metrics
+        if success:
+            logger.info(
+                f"CasefileService operation completed",
+                extra={
+                    "service": "casefile_service",
+                    "operation": context.operation,
+                    "execution_time": execution_time,
+                    "success": True
+                }
+            )
+        else:
+            logger.warning(
+                f"CasefileService operation failed",
+                extra={
+                    "service": "casefile_service",
+                    "operation": context.operation,
+                    "execution_time": execution_time,
+                    "success": False,
+                    "error": str(error) if error else None
+                }
+            )
