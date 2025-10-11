@@ -290,29 +290,36 @@ The codebase had hardcoded service instantiation violations throughout, making t
 
 ### **TIER 1 - CRITICAL (MVP Blockers)**
 
-#### 1. **Auth Routing Hardening** 🔐
+#### 1. **Auth Routing Hardening** - COMPLETE
 
+**Status:** COMPLETE (October 11, 2025)
 **Priority:** IMMEDIATE | **Risk:** HIGH | **Complexity:** MEDIUM
 
-**Action Items:**
+**Completed Action Items:**
 
-- Extend token schema in `authservice/token.py` to include `session_request_id` and casefile authorization context
-- Implement token/session validation gate in tool execution flow
-- Define service-token pattern for automated/scripted operations
-- Document token payload shape for cross-service consistency
+- Extended token schema in `authservice/token.py` to include `session_request_id`, `casefile_id`, `session_id`
+- Implemented token/session validation gate in tool execution flow with user ownership and casefile authorization checks
+- Defined service-token pattern via `create_service_token()` for automated/scripted operations
+- Documented token payload shape in `docs/TOKEN_SCHEMA.md` with examples and integration patterns
 
 **Blockers Resolved:** Security, session routing, audit trail integrity
 
-**Files Affected:**
+**Files Modified:**
 
-- `src/authservice/token.py`
-- `src/pydantic_api/dependencies.py`
-- `src/tool_sessionservice/service.py`
-- `src/coreservice/request_hub.py`
+- `src/authservice/token.py` - Token schema extensions and service token creation
+- `src/pydantic_api/dependencies.py` - Added `get_auth_context()` dependency
+- `src/tool_sessionservice/service.py` - Token/session validation with detailed audit logging
+- `src/coreservice/request_hub.py` - Auth context extraction and propagation
+
+**Files Created:**
+
+- `docs/TOKEN_SCHEMA.md` - Complete token payload specification and usage guide
+
+**Commit:** cf6f592
 
 ---
 
-#### 2. **RequestHub Context Flow** 🔄
+#### 2. **RequestHub Context Flow**
 
 **Priority:** IMMEDIATE | **Risk:** HIGH | **Complexity:** MEDIUM
 
