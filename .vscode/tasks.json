@@ -2,7 +2,86 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "My Tools: Quick Analysis",
+			"label": "Get My Tools",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"clone",
+				"https://github.com/MSD21091969/my-tiny-toolset.git",
+				"TOOLSET"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Get Prompt Collections",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"git clone https://github.com/f/awesome-chatgpt-prompts.git PROMPTS/awesome-prompts; git clone https://github.com/microsoft/prompts-for-edu.git PROMPTS/edu-prompts; git clone https://github.com/dabit3/awesome-gpt3.git PROMPTS/gpt3-prompts"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Get Schema Collections",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"git clone https://github.com/SchemaStore/schemastore.git SCHEMAS/schemastore; git clone https://github.com/APIs-guru/openapi-directory.git SCHEMAS/openapi-examples"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Get Template Collections",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"git clone https://github.com/cookiecutter/cookiecutter.git TEMPLATES/cookiecutter; git clone https://github.com/tiangolo/full-stack-fastapi-postgresql.git TEMPLATES/fastapi-stack"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Get Config Collections",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"git clone https://github.com/github/gitignore.git CONFIGS/gitignore-templates; git clone https://github.com/tiangolo/fastapi.git CONFIGS/fastapi-configs"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Get Example Collections",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"git clone https://github.com/public-apis/public-apis.git EXAMPLES/public-apis; git clone https://github.com/pydantic/pydantic.git EXAMPLES/pydantic-examples"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Setup Tool Outputs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; Copy-Item -Path '${workspaceFolder}\\TOOLSET\\*.md' -Destination 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\' -Force -ErrorAction SilentlyContinue"
+			],
+			"group": "build",
+			"dependsOn": "Get My Tools",
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Quick Analysis",
 			"type": "shell",
 			"command": "python",
 			"args": [
@@ -14,27 +93,11 @@
 				"--json"
 			],
 			"group": "build",
+			"dependsOn": "Setup Tool Outputs",
 			"problemMatcher": []
 		},
 		{
-			"label": "My Tools: Full Version Tracking",
-			"type": "shell",
-			"command": "python",
-			"args": [
-				"${workspaceFolder}\\TOOLSET\\tools\\version_tracker.py",
-				"${workspaceFolder}",
-				"--output",
-				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\versions",
-				"--version",
-				"${input:version}",
-				"--json",
-				"--yaml"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "My Tools: Model Mapping",
+			"label": "Run Model Mapping",
 			"type": "shell",
 			"command": "python",
 			"args": [
@@ -45,10 +108,11 @@
 				"--json"
 			],
 			"group": "build",
+			"dependsOn": "Setup Tool Outputs",
 			"problemMatcher": []
 		},
 		{
-			"label": "My Tools: Excel Export",
+			"label": "Run Excel Export",
 			"type": "shell",
 			"command": "python",
 			"args": [
@@ -58,7 +122,33 @@
 				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel"
 			],
 			"group": "build",
+			"dependsOn": "Setup Tool Outputs",
 			"problemMatcher": []
+		},
+		{
+			"label": "Get All Collections",
+			"dependsOrder": "parallel",
+			"dependsOn": [
+				"Get My Tools",
+				"Get Prompt Collections",
+				"Get Schema Collections",
+				"Get Template Collections",
+				"Get Config Collections",
+				"Get Example Collections"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Complete Toolset Setup",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"Get All Collections",
+				"Setup Tool Outputs",
+				"Run Quick Analysis",
+				"Run Model Mapping", 
+				"Run Excel Export"
+			],
+			"group": "build"
 		}
 	],
 	"inputs": [
