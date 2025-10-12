@@ -39,13 +39,10 @@
 		{
 			"label": "Quick Analysis (Direct)",
 			"type": "shell",
-			"command": "code_analyzer",
+			"command": "powershell",
 			"args": [
-				".",
-				"--csv",
-				"--json",
-				"--output-dir",
-				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis"
+				"-Command",
+				"code_analyzer . --csv --json --output-dir C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis; if (Test-Path '.\\analysis_*.json') { Move-Item '.\\analysis_*.json' 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis\\' }"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -81,7 +78,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$broken = (cd 'C:\\Users\\HP\\my-tiny-toolset'; git submodule status | Select-String '^-'); if ($broken) { Write-Host 'Fixing broken submodules...'; git submodule update --init --recursive } else { Write-Host 'Toolset healthy ✓' }; Write-Host 'AI Context:'; dir 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\ai-context' -ErrorAction SilentlyContinue | Select-Object Name"
+$broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-String '^-'); if ($broken) { Write-Host 'Fixing broken submodules...'; git submodule update --init --recursive } else { Write-Host 'Toolset healthy ✓' }; Write-Host 'Personal Notes:'; if (Test-Path 'C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md') { Write-Host 'Available ✓' } else { Write-Host 'Missing - create personal notes' }
 			],
 			"group": "build",
 			"problemMatcher": []

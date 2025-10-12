@@ -16,7 +16,7 @@
   - Test `code_analyzer` command → suggest Direct tasks
   - Check for `TINYTOOLSET/` → suggest Legacy setup tasks  
   - Working in toolset repo → reference toolset development tasks
-- **Access conceptual resources** from `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\` for AI-assisted design
+- **Access conceptual resources** from `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\` for AI-assisted design
 - Reach for MCP tools, repo utilities, or test runs whenever they yield authoritative answers for CI/CD or workspace state.
 - **Run appropriate VS Code tasks** based on detected environment without mentioning task type
 - Prefer file paths, diffs, or command output over prose when they communicate faster.
@@ -24,11 +24,11 @@
 - Call out follow-up actions only when they exist and align with the current plan.
 
 ### Conceptual Laboratory Integration
-- **When concrete data is absent**: Reference `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\ai-context\conceptual-patterns.md` for domain patterns and architectural guidance
-- **For AI collaboration**: Access dedicated context at `tool-outputs\docs\ai-context\` (separate from task outputs)
+- **When concrete data is absent**: Reference `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md` for domain patterns and architectural guidance
+- **For AI collaboration**: Access personal documentation at `tool-outputs\docs\personal\` (persistent across sessions)
 - **For design decisions**: Use FastAPI configs, Pydantic examples, and schema patterns as reference
 - **For learning/exploration**: Leverage prompt collections and educational resources
-- **Human-relevant context hints**: Always check `ai-context\README.md` for current guidance approach
+- **Human-relevant context hints**: Always check personal field notes for current guidance approach
 
 ### Conversation Flow
 - Reply in sequence and log new decisions or discoveries in the branch plan as they surface.
