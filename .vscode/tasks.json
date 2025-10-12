@@ -93,6 +93,135 @@
 				"Run Excel Export"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Create Feature Branch",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$branch = Read-Host 'Enter feature branch name (feature/your-name)'; git checkout -b $branch"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Switch to Develop",
+			"type": "shell",
+			"command": "git",
+			"args": ["checkout", "develop"],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Switch to Main",
+			"type": "shell",
+			"command": "git",
+			"args": ["checkout", "main"],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Pull Latest Changes",
+			"type": "shell",
+			"command": "git",
+			"args": ["pull", "origin", "HEAD"],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Sync with Develop",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"git fetch origin; git merge origin/develop"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate Before PR",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"scripts/validate_registries.py",
+				"--strict",
+				"--verbose"
+			],
+			"group": "test",
+			"problemMatcher": []
+		},
+		{
+			"label": "Run All Tests",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"pytest",
+				"tests/",
+				"-v",
+				"--tb=short"
+			],
+			"group": "test",
+			"problemMatcher": []
+		},
+		{
+			"label": "Create Pull Request",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$title = Read-Host 'Enter PR title'; $body = Read-Host 'Enter PR description'; gh pr create --title \"$title\" --body \"$body\" --base develop"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Check PR Status",
+			"type": "shell",
+			"command": "gh",
+			"args": ["pr", "status"],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Merge Current PR",
+			"type": "shell",
+			"command": "gh",
+			"args": ["pr", "merge", "--squash", "--delete-branch"],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Resolve Merge Conflicts",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"Write-Host 'Opening merge tool...'; git mergetool; Write-Host 'After resolving conflicts, run: git add . && git commit'"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Pre-commit Checks",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"Validate Before PR",
+				"Run All Tests"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Full PR Workflow",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"Sync with Develop",
+				"Pre-commit Checks",
+				"Create Pull Request"
+			],
+			"group": "build"
 		}
 	],
 	"inputs": [
