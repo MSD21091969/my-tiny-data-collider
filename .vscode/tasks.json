@@ -1,0 +1,72 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "My Tools: Quick Analysis",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"${workspaceFolder}\\TOOLSET\\tools\\code_analyzer.py",
+				"${workspaceFolder}",
+				"--output",
+				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis",
+				"--csv",
+				"--json"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "My Tools: Full Version Tracking",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"${workspaceFolder}\\TOOLSET\\tools\\version_tracker.py",
+				"${workspaceFolder}",
+				"--output",
+				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\versions",
+				"--version",
+				"${input:version}",
+				"--json",
+				"--yaml"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "My Tools: Model Mapping",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"${workspaceFolder}\\TOOLSET\\tools\\mapping_analyzer.py",
+				"${workspaceFolder}",
+				"--output",
+				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings",
+				"--json"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "My Tools: Excel Export",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"${workspaceFolder}\\TOOLSET\\tools\\excel_exporter.py",
+				"${workspaceFolder}",
+				"--output",
+				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel"
+			],
+			"group": "build",
+			"problemMatcher": []
+		}
+	],
+	"inputs": [
+		{
+			"id": "version",
+			"type": "promptString",
+			"description": "Enter version number",
+			"default": "1.0.0"
+		}
+	]
+}

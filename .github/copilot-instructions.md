@@ -31,12 +31,18 @@
 ## Development Toolset
 
 ### CRITICAL: Toolset Location
-**Tools are installed globally at: `C:\Users\HP\my-tiny-toolset\`**
+**Tools location: `${workspaceFolder}\TOOLSET\`**
 
-**NEVER clone or copy toolset into the application repository.**
-- Toolset lives in separate repository: `https://github.com/MSD21091969/my-tiny-toolset.git`
-- Application repository is: `https://github.com/MSD21091969/my-tiny-data-collider.git`
+**Clone/download toolset ONLY into `/TOOLSET` folder:**
+- Toolset repository: `https://github.com/MSD21091969/my-tiny-toolset.git`
+- Application repository: `https://github.com/MSD21091969/my-tiny-data-collider.git`
 - `.gitignore` blocks `TOOLSET/` folder to prevent accidental commits
+- **NEVER** scatter tool files, docs, or scripts outside `/TOOLSET`
+
+**Tool outputs ALWAYS go to: `C:\Users\HP\Desktop\krabbel\tool-outputs\`**
+- Keeps application workspace clean
+- Outputs never committed to repository
+- Organized by tool type (analysis, versions, mappings, excel)
 
 ### Available Tools
 - **code_analyzer.py**: Analyzes Python code for models, functions, and API patterns
@@ -45,14 +51,14 @@
 - **excel_exporter.py**: Exports analysis results to Excel format
 
 ### VS Code Integration
-Tools are accessible via VS Code tasks pointing to `C:\Users\HP\my-tiny-toolset\`.
-Use Command Palette (Ctrl+Shift+P) → "Tasks: Run Task" → Select tool.
+Tools accessible via Command Palette (Ctrl+Shift+P) → "Tasks: Run Task" → Select tool.
 
 ### Tool Usage
-All tools accept `${workspaceFolder}` as the target directory and output results to their respective directories with appropriate flags (--csv, --json, --yaml, --quiet).
+All tools accept `${workspaceFolder}` as the target directory and output to `C:\Users\HP\Desktop\krabbel\tool-outputs\` with flags (--csv, --json, --yaml).
 
 **Workflow:**
 1. Clone application repo: `git clone https://github.com/MSD21091969/my-tiny-data-collider.git`
-2. Use tools from global location: `C:\Users\HP\my-tiny-toolset\`
-3. Push application code back (toolset never included)
+2. Clone toolset into `/TOOLSET`: `cd my-tiny-data-collider && git clone https://github.com/MSD21091969/my-tiny-toolset.git TOOLSET`
+3. Run tools via VS Code tasks—outputs to `C:\Users\HP\Desktop\krabbel\tool-outputs\`
+4. Push application code (toolset auto-ignored by `.gitignore`)
 
