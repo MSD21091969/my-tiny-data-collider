@@ -1,4 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-message,ChatMessagePayload,YES,Assistant's response message,
-related_messages,List[ChatMessagePayload],NO,,
-events,"List[Dict[str, Any]]",NO,,

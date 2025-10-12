@@ -1,6 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-title,Optional[str],NO,,
-description,Optional[str],NO,,
-tags,Optional[List[str]],NO,,
-notes,Optional[str],NO,,

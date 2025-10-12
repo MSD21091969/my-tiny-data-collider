@@ -1,5 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-request,"Dict[str, Any]",YES,,
-auth_token,Optional[str],NO,,
-trace_id,UUID,NO,,
-client_info,"Dict[str, Any]",NO,,

@@ -1,6 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-id,str,YES,,
-name,str,YES,,
-parents,List[str],NO,,
-created_time,str,NO,,
-modified_time,str,NO,,

@@ -1,5 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-id,str,YES,,
-name,str,YES,,
-label_type,str,NO,,'user'
-message_visibility,str,NO,,'show'

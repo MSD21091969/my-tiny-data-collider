@@ -1,5 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-sessions,List[ChatSessionSummary],NO,,
-total_count,int,YES,,
-offset,int,YES,,
-limit,int,YES,,

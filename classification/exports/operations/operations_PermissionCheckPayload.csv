@@ -1,9 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-user_id,str,YES,,
-permission,PermissionLevel,YES,,
-can_read,bool,YES,,
-can_write,bool,YES,,
-can_share,bool,YES,,
-can_delete,bool,YES,,
-has_required_permission,bool,YES,,

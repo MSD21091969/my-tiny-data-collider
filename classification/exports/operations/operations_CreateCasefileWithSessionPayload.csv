@@ -1,7 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-title,str,YES,,
-description,str | None,NO,,
-tags,list[str],NO,,
-auto_start_session,bool,NO,,
-session_title,str | None,NO,,
-hook_channels,list[str],NO,,

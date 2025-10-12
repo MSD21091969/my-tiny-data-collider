@@ -1,5 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-title,str,YES,,
-created_at,str,YES,,
-created_by,str,YES,,

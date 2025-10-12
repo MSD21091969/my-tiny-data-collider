@@ -1,8 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-session_id,str,YES,,
-user_id,str,YES,,
-casefile_id,Optional[str],NO,,
-created_at,str,YES,,
-updated_at,str,YES,,
-active,bool,YES,,
-message_count,int,NO,,0

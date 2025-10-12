@@ -1,8 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-title,str,YES,,
-description,str,YES,,
-tags,List[str],YES,,
-created_at,str,YES,,
-resource_count,int,YES,,
-session_count,int,YES,,

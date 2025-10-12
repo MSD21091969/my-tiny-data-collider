@@ -1,5 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-target_user_id,str,YES,,
-revoked_by,str,YES,,
-revoked_at,str,YES,,

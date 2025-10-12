@@ -1,3 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-confirm,bool,NO,,False

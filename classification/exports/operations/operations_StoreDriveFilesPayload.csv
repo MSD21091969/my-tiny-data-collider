@@ -1,5 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-files,List[dict],YES,,
-sync_token,Optional[str],NO,,
-overwrite,bool,NO,,

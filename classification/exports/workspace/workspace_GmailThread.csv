@@ -1,6 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-id,str,YES,,
-message_ids,List[str],NO,,
-snippet,str,NO,,
-history_id,Optional[str],NO,,
-updated_at,str,NO,,

@@ -1,1 +1,0 @@
-"""Validators scripts package."""

@@ -1,7 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-title,str,YES,,
-description,str,NO,,''
-tags,List[str],NO,,
-created_by,str,YES,,
-created_at,str,NO,,
-updated_at,str,NO,,

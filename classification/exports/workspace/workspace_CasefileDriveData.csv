@@ -1,7 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-files,List[DriveFile],NO,,
-folders,List[DriveFolder],NO,,
-last_sync_token,Optional[str],NO,,
-synced_at,Optional[str],NO,,
-sync_status,str,NO,,'idle'
-error_message,Optional[str],NO,,

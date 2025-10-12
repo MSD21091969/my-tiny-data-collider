@@ -1,8 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-messages_stored,int,YES,,
-threads_stored,int,NO,,
-labels_stored,int,NO,,
-sync_status,str,YES,,
-sync_token,Optional[str],NO,,
-synced_at,str,YES,,

@@ -1,7 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-request_id,UUID,YES,,
-status,RequestStatus,YES,,
-payload,ResponsePayloadT,YES,,
-timestamp,str,NO,,
-error,Optional[str],NO,,
-metadata,"Dict[str, Any]",NO,,

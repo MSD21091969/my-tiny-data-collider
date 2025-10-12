@@ -1,3 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-email,str,YES,,
-display_name,Optional[str],NO,,

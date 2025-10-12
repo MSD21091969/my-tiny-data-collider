@@ -1,7 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-user_id,str,YES,,
-permission,PermissionLevel,YES,,
-granted_by,str,YES,,
-granted_at,str,NO,,
-expires_at,Optional[str],NO,,
-notes,Optional[str],NO,,

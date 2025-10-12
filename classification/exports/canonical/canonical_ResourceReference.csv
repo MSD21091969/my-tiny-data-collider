@@ -1,5 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-resource_id,str,YES,,
-resource_type,str,YES,,
-added_at,str,NO,,
-metadata,"Dict[str, Any]",NO,,

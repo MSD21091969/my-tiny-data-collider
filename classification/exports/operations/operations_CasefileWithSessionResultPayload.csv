@@ -1,4 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-casefile_id,str,YES,,
-session_id,str | None,NO,,
-hooks_executed,list[str],NO,,

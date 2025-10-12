@@ -1,4 +1,0 @@
-Field Name,Type,Required,Description,Default Value
-range,str,YES,,
-values,List[List[Any]],NO,,
-major_dimension,str,NO,,'ROWS'
