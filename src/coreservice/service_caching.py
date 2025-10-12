@@ -1,4 +1,4 @@
-﻿"""
+"""
 Service Caching and Pooling for MDS Architecture.
 
 This module provides caching and connection pooling capabilities for:
