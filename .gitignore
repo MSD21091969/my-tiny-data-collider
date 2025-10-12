@@ -28,10 +28,13 @@ ENV/
 
 # IDE files
 .idea/
-.vscode/
 *.swp
 *.swo
 .vs/
+
+# VS Code settings (keep tasks.json for shared workflows)
+.vscode/settings.json
+.vscode/launch.json
 
 # Development tools
 TINYTOOLSET/
