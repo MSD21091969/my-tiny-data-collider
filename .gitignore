@@ -36,6 +36,16 @@ ENV/
 # Development tools
 TINYTOOLSET/
 
+# Tool outputs (should go to external directory)
+analysis_*.json
+analysis_*.csv
+models_*.csv
+model_fields_*.csv
+functions_*.csv
+req_resp_mappings_*.csv
+mappings_*.json
+version_history_*.csv
+
 # Environment variables
 .env
 .env.local

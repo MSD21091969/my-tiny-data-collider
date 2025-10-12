@@ -34,63 +34,119 @@
 				"New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; Copy-Item -Path 'C:\\Users\\HP\\my-tiny-toolset\\*.md' -Destination 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\' -Force -ErrorAction SilentlyContinue"
 			],
 			"group": "build",
-			"dependsOn": "Get My Extended Toolset",
 			"problemMatcher": []
 		},
 		{
-			"label": "Run Quick Analysis",
+			"label": "Quick Analysis (Direct)",
 			"type": "shell",
-			"command": "python",
+			"command": "code_analyzer",
 			"args": [
-				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\code_analyzer.py",
-				"${workspaceFolder}",
-				"--output",
-				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis",
+				".",
 				"--csv",
-				"--json"
+				"--json",
+				"--output-dir",
+				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis"
 			],
 			"group": "build",
-			"dependsOn": "Setup Tool Outputs",
 			"problemMatcher": []
 		},
 		{
-			"label": "Run Model Mapping",
+			"label": "Model Mapping (Direct)",
 			"type": "shell",
-			"command": "python",
+			"command": "mapping_analyzer",
 			"args": [
-				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\mapping_analyzer.py",
-				"${workspaceFolder}",
-				"--output",
-				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings",
-				"--json"
+				".",
+				"--json",
+				"--output-dir",
+				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings"
 			],
 			"group": "build",
-			"dependsOn": "Setup Tool Outputs",
 			"problemMatcher": []
 		},
 		{
-			"label": "Run Excel Export",
+			"label": "Excel Export (Direct)",
 			"type": "shell",
-			"command": "python",
+			"command": "excel_exporter",
 			"args": [
-				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\excel_exporter.py",
-				"${workspaceFolder}",
-				"--output",
+				".",
+				"--output-dir",
 				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel"
 			],
 			"group": "build",
-			"dependsOn": "Setup Tool Outputs",
 			"problemMatcher": []
 		},
+		{
+			"label": "Health Check Toolset",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$broken = (cd 'C:\\Users\\HP\\my-tiny-toolset'; git submodule status | Select-String '^-'); if ($broken) { Write-Host 'Fixing broken submodules...'; git submodule update --init --recursive } else { Write-Host 'Toolset healthy ✓' }; Write-Host 'AI Context:'; dir 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\ai-context' -ErrorAction SilentlyContinue | Select-Object Name"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Lab Status Check",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-File",
+				"C:\\Users\\HP\\my-tiny-toolset\\manage-lab.ps1",
+				"-Status"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Load AI Context",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$context = Read-Host 'Context to load (prompts/schemas/templates/examples/all)'; & 'C:\\Users\\HP\\my-tiny-toolset\\manage-lab.ps1' -Context $context"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Setup Conceptual Lab",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-File",
+				"C:\\Users\\HP\\my-tiny-toolset\\setup-lab.ps1",
+				"-QuickCheck"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Version Tracking (Direct)",
+			"type": "shell",
+			"command": "version_tracker",
+			"args": [
+				".",
+				"--json",
+				"--output-dir",
+				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+
+
+
+
 		{
 			"label": "Complete Toolset Setup",
 			"dependsOrder": "sequence",
 			"dependsOn": [
-				"Get My Extended Toolset",
 				"Setup Tool Outputs",
-				"Run Quick Analysis",
-				"Run Model Mapping", 
-				"Run Excel Export"
+				"Quick Analysis (Direct)",
+				"Model Mapping (Direct)", 
+				"Excel Export (Direct)",
+				"Version Tracking (Direct)"
 			],
 			"group": "build"
 		},
@@ -109,7 +165,7 @@
 			"label": "Switch to Develop",
 			"type": "shell",
 			"command": "git",
-			"args": ["checkout", "develop"],
+			"args": ["checkout", "feature/develop"],
 			"group": "build",
 			"problemMatcher": []
 		},
