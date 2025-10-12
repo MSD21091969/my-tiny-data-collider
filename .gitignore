@@ -34,7 +34,7 @@ ENV/
 .vs/
 
 # Development tools
-TOOLSET/
+TINYTOOLSET/
 
 # Environment variables
 .env
