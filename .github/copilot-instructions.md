@@ -31,13 +31,19 @@
 ## Development Toolset
 
 ### CRITICAL: Toolset Location
-**Tools location: `${workspaceFolder}\TOOLSET\`**
+**Primary tools location: `C:\Users\HP\my-tiny-toolset\TOOLSET\`** (local installation)
+**Workspace reference: `${workspaceFolder}\TINYTOOLSET\TOOLSET\`** (workspace clone)
 
-**Clone/download toolset ONLY into `/TOOLSET` folder:**
+**Dual Setup Strategy:**
+- **Local Station**: Use `C:\Users\HP\my-tiny-toolset\TOOLSET\` (lightweight, fast)
+- **Workspace Development**: Use `${workspaceFolder}\TINYTOOLSET\` (full repository with submodules)
+- **VS Code Tasks**: Configured to use local installation for performance
+- **Documentation**: Follow README pattern `$env:USERPROFILE\my-tiny-toolset\TOOLSET\`
+
+**Repository URLs:**
 - Toolset repository: `https://github.com/MSD21091969/my-tiny-toolset.git`
 - Application repository: `https://github.com/MSD21091969/my-tiny-data-collider.git`
-- `.gitignore` blocks `TOOLSET/` folder to prevent accidental commits
-- **NEVER** scatter tool files, docs, or scripts outside `/TOOLSET`
+- `.gitignore` blocks `TINYTOOLSET/` folder to prevent accidental commits
 
 **Tool outputs ALWAYS go to: `C:\Users\HP\Desktop\krabbel\tool-outputs\`**
 - Keeps application workspace clean
@@ -56,9 +62,10 @@ Tools accessible via Command Palette (Ctrl+Shift+P) → "Tasks: Run Task" → Se
 ### Tool Usage
 All tools accept `${workspaceFolder}` as the target directory and output to `C:\Users\HP\Desktop\krabbel\tool-outputs\` with flags (--csv, --json, --yaml).
 
-**Workflow:**
-1. Clone application repo: `git clone https://github.com/MSD21091969/my-tiny-data-collider.git`
-2. Clone toolset into `/TOOLSET`: `cd my-tiny-data-collider && git clone https://github.com/MSD21091969/my-tiny-toolset.git TOOLSET`
-3. Run tools via VS Code tasks—outputs to `C:\Users\HP\Desktop\krabbel\tool-outputs\`
-4. Push application code (toolset auto-ignored by `.gitignore`)
+**Workflow Options:**
+1. **Local Station Development**: Use existing `C:\Users\HP\my-tiny-toolset\` 
+2. **Workspace Development**: Clone into workspace `git clone https://github.com/MSD21091969/my-tiny-toolset.git TINYTOOLSET`
+3. **Quick Analysis**: Run tools via VS Code tasks → outputs to `C:\Users\HP\Desktop\krabbel\tool-outputs\`
+4. **Full Development**: Access complete toolset with submodules for template/config work
+5. **Push Code**: Application code only (toolset auto-ignored by `.gitignore`)
 

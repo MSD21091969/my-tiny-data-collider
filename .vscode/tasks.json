@@ -31,7 +31,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; Copy-Item -Path '${workspaceFolder}\\TINYTOOLSET\\TOOLSET\\*.md' -Destination 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\' -Force -ErrorAction SilentlyContinue"
+				"New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; Copy-Item -Path 'C:\\Users\\HP\\my-tiny-toolset\\*.md' -Destination 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\' -Force -ErrorAction SilentlyContinue"
 			],
 			"group": "build",
 			"dependsOn": "Get My Extended Toolset",
@@ -42,7 +42,7 @@
 			"type": "shell",
 			"command": "python",
 			"args": [
-				"${workspaceFolder}\\TINYTOOLSET\\TOOLSET\\tools\\code_analyzer.py",
+				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\code_analyzer.py",
 				"${workspaceFolder}",
 				"--output",
 				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis",
@@ -58,7 +58,7 @@
 			"type": "shell",
 			"command": "python",
 			"args": [
-				"${workspaceFolder}\\TINYTOOLSET\\TOOLSET\\tools\\mapping_analyzer.py",
+				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\mapping_analyzer.py",
 				"${workspaceFolder}",
 				"--output",
 				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings",
@@ -73,7 +73,7 @@
 			"type": "shell",
 			"command": "python",
 			"args": [
-				"${workspaceFolder}\\TINYTOOLSET\\TOOLSET\\tools\\excel_exporter.py",
+				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\excel_exporter.py",
 				"${workspaceFolder}",
 				"--output",
 				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel"
