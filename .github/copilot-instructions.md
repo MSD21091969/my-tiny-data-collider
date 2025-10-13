@@ -1,5 +1,25 @@
 # AI Instructions - Tiny Data Collider
 
+## 0. Session Startup Protocol
+
+**Every new session, run this sequence:**
+
+1. **Set environment:** `$env:MY_TOOLSET = "C:\Users\HP\my-tiny-toolset\TOOLSET"`
+2. **Check branch:** `git status` - Confirm you're on correct branch
+3. **Quick Analysis:** Run VS Code task "Quick Analysis" (Ctrl+Shift+P → Tasks: Run Task)
+4. **Review outputs:** Check `.tool-outputs/analysis/` for context
+5. **Report status:** Summarize branch, models count, known issues
+
+**Standard opening message:**
+```
+Branch: <branch-name>
+Models: <count> | Functions: <count> | Mappings: <count>
+Status: <clean|modified files>
+Ready. What are we working on?
+```
+
+---
+
 ## 1. What is "Tiny Data Collider"
 
 **What:**

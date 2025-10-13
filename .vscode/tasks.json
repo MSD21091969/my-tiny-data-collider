@@ -2,32 +2,12 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Analyze Current Branch",
-			"type": "shell",
-			"command": "python",
-			"args": [
-				"${env:MY_TOOLSET}\\version_tracker.py",
-				"${workspaceFolder}",
-				"--version",
-				"${input:versionNumber}",
-				"--json",
-				"--yaml"
-			],
-			"group": "test",
-			"problemMatcher": [],
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"panel": "new"
-			}
-		},
-		{
-			"label": "Quick Code Analysis",
+			"label": "Quick Analysis",
 			"type": "shell",
 			"command": "python",
 			"args": [
 				"${env:MY_TOOLSET}\\code_analyzer.py",
-				"${workspaceFolder}",
+				".",
 				"--json",
 				"--csv"
 			],
@@ -35,133 +15,29 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Generate Mapping Report",
+			"label": "Full Analysis",
 			"type": "shell",
-			"command": "python",
+			"command": "powershell",
 			"args": [
-				"${env:MY_TOOLSET}\\mapping_analyzer.py",
-				"${workspaceFolder}",
-				"--html",
-				"--json"
+				"-Command",
+				"$v = '${input:versionNumber}'; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version $v --json --yaml; python \"$env:MY_TOOLSET\\mapping_analyzer.py\" . --html; Write-Host '✓ Done. Check .tool-outputs/' -ForegroundColor Green"
 			],
 			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Export to Excel",
+			"label": "Open Dashboard",
 			"type": "shell",
-			"command": "python",
+			"command": "powershell",
 			"args": [
-				"${env:MY_TOOLSET}\\excel_exporter.py",
-				"${workspaceFolder}",
-				"--output",
-				".tool-outputs/excel/analysis_${input:versionNumber}.xlsx"
+				"-Command",
+				"if (Test-Path '.tool-outputs/mappings/mapping_dashboard.html') { Start-Process '.tool-outputs/mappings/mapping_dashboard.html' } else { Write-Host 'Run Full Analysis first' -ForegroundColor Yellow }"
 			],
 			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Full Analysis (PR Ready)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$version = '${input:versionNumber}'; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version $version --json --yaml --html; python \"$env:MY_TOOLSET\\mapping_analyzer.py\" . --html; python \"$env:MY_TOOLSET\\excel_exporter.py\" . --output \".tool-outputs/excel/analysis_$version.xlsx\"; Write-Host '✓ Analysis complete! Check .tool-outputs/' -ForegroundColor Green"
-			],
-			"group": "test",
-			"problemMatcher": []
-		},
-		{
-			"label": "Compare with Baseline",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"Write-Host 'Creating baseline...' -ForegroundColor Yellow; git stash; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version baseline --json; git stash pop; Write-Host 'Analyzing current state...' -ForegroundColor Yellow; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version current --json; Write-Host '✓ Compare .tool-outputs/analysis/baseline vs current' -ForegroundColor Green"
-			],
-			"group": "test",
-			"problemMatcher": []
-		},
-		{
-			"label": "Open Mapping Dashboard",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"if (Test-Path '.tool-outputs/mappings/mapping_dashboard.html') { Start-Process '.tool-outputs/mappings/mapping_dashboard.html' } else { Write-Host 'Dashboard not found. Run: Generate Mapping Report' -ForegroundColor Yellow }"
-			],
-			"group": "test",
-			"problemMatcher": []
-		},
-		{
-			"label": "Clean Tool Outputs",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"if (Test-Path '.tool-outputs') { Remove-Item -Recurse -Force '.tool-outputs'; Write-Host '✓ Cleaned .tool-outputs/' -ForegroundColor Green } else { Write-Host 'No outputs to clean' -ForegroundColor Yellow }"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Create Feature Branch",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$branch = Read-Host 'Enter feature branch name (feature/your-name)'; git checkout -b $branch"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Switch to Develop",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"checkout",
-				"feature/develop"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Switch to Main",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"checkout",
-				"main"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Pull Latest Changes",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"pull",
-				"origin",
-				"HEAD"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Sync with Develop",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"git fetch origin; git merge origin/develop"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Validate Before PR",
+			"label": "Validate Registries",
 			"type": "shell",
 			"command": "python",
 			"args": [
@@ -173,91 +49,34 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Run All Tests",
+			"label": "Run Tests",
 			"type": "shell",
 			"command": "python",
 			"args": [
 				"-m",
 				"pytest",
 				"tests/",
-				"-v",
-				"--tb=short"
+				"-v"
 			],
 			"group": "test",
-			"problemMatcher": []
-		},
-		{
-			"label": "Create Pull Request",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$title = Read-Host 'Enter PR title'; $body = Read-Host 'Enter PR description'; gh pr create --title \"$title\" --body \"$body\" --base develop"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Check PR Status",
-			"type": "shell",
-			"command": "gh",
-			"args": [
-				"pr",
-				"status"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Merge Current PR",
-			"type": "shell",
-			"command": "gh",
-			"args": [
-				"pr",
-				"merge",
-				"--squash",
-				"--delete-branch"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Resolve Merge Conflicts",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"Write-Host 'Opening merge tool...'; git mergetool; Write-Host 'After resolving conflicts, run: git add . && git commit'"
-			],
-			"group": "build",
 			"problemMatcher": []
 		},
 		{
 			"label": "Pre-commit Checks",
 			"dependsOrder": "sequence",
 			"dependsOn": [
-				"Validate Before PR",
-				"Run All Tests"
+				"Validate Registries",
+				"Run Tests"
 			],
 			"group": "test"
-		},
-		{
-			"label": "Full PR Workflow",
-			"dependsOrder": "sequence",
-			"dependsOn": [
-				"Sync with Develop",
-				"Pre-commit Checks",
-				"Create Pull Request"
-			],
-			"group": "build"
 		}
 	],
 	"inputs": [
 		{
-			"id": "version",
+			"id": "versionNumber",
 			"type": "promptString",
-			"description": "Enter version number",
-			"default": "1.0.0"
+			"description": "Version (e.g., 1.0.0, PR-123, baseline)",
+			"default": "current"
 		}
 	]
 }
