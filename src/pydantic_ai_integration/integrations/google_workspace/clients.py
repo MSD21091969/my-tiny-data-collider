@@ -254,6 +254,21 @@ class DriveClient:
 
         raise NotImplementedError("Real Drive API integration not yet implemented")
 
+    async def upload_file(self, file_name: str, content: str = "", mime_type: str = "text/plain") -> dict:
+        """Upload a file to Google Drive (mock mode only)."""
+        if self._use_mock:
+            logger.debug("Mock uploading file %s for user %s", file_name, self.user_id)
+            now_iso = datetime.now().isoformat()
+            mock_file_id = f"mock-upload-{datetime.now().timestamp()}"
+            return {
+                "id": mock_file_id,
+                "name": file_name,
+                "web_view_link": f"https://drive.google.com/{mock_file_id}",
+                "created_time": now_iso,
+                "size": len(content.encode('utf-8'))
+            }
+        raise NotImplementedError("Real Drive API integration not yet implemented")
+
     @staticmethod
     def to_casefile_data(response: DriveListFilesResponse) -> CasefileDriveData:
         """Convert a Drive response payload into typed casefile data."""
@@ -306,6 +321,32 @@ class SheetsClient:
 
             return SheetsBatchGetResponse(spreadsheet=sheet_data)
 
+        raise NotImplementedError("Real Sheets API integration not yet implemented")
+
+    async def create_spreadsheet(self, title: str = "New Spreadsheet") -> dict:
+        """Create a new Google Spreadsheet (mock mode only)."""
+        if self._use_mock:
+            logger.debug("Mock creating spreadsheet '%s' for user %s", title, self.user_id)
+            mock_id = f"mock-sheet-{datetime.now().timestamp()}"
+            return {
+                "spreadsheet_id": mock_id,
+                "title": title,
+                "sheets": [{"properties": {"sheet_id": 0, "title": "Sheet1"}}],
+                "spreadsheet_url": f"https://docs.google.com/spreadsheets/d/{mock_id}"
+            }
+        raise NotImplementedError("Real Sheets API integration not yet implemented")
+
+    async def update_values(self, spreadsheet_id: str, range_name: str, values: list) -> dict:
+        """Update values in a Google Spreadsheet (mock mode only)."""
+        if self._use_mock:
+            logger.debug("Mock updating range %s in spreadsheet %s for user %s", range_name, spreadsheet_id, self.user_id)
+            return {
+                "spreadsheet_id": spreadsheet_id,
+                "updated_range": range_name,
+                "updated_rows": len(values),
+                "updated_columns": len(values[0]) if values else 0,
+                "updated_cells": sum(len(row) for row in values)
+            }
         raise NotImplementedError("Real Sheets API integration not yet implemented")
 
     @staticmethod
