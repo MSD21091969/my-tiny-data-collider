@@ -4,6 +4,11 @@
 **Branch:** feature/pydantic-enhancement  
 **Status:** Documented - Not Blocking Development
 
+> **Related Documentation:**
+> - [Documentation Index](README.md) - All documentation
+> - [Development Progress](DEVELOPMENT_PROGRESS.md) - Phase 1 status
+> - [Parameter Mapping Test Issues](PARAMETER_MAPPING_TEST_ISSUES.md) - Similar test challenges
+
 ---
 
 ## Issue Summary

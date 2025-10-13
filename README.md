@@ -107,6 +107,24 @@ def validate_model(self) -> 'MyModel':
 
 See `docs/VALIDATION_PATTERNS.md` for detailed usage examples and migration guide.
 
+## Documentation
+
+### Core Documentation
+- **[Documentation Index](docs/README.md)** - Complete documentation guide and navigation ⭐
+- **[Validation Patterns](docs/VALIDATION_PATTERNS.md)** - Custom types and validators guide
+- **[Development Progress](docs/DEVELOPMENT_PROGRESS.md)** - Phase 1 completion tracking (27/32 hours)
+- **[Phase 1 Summary](docs/PHASE1_COMPLETION_SUMMARY.md)** - Comprehensive achievements overview
+
+### Technical References
+- **[Parameter Mapping Results](docs/PARAMETER_MAPPING_RESULTS.md)** - 40 tool-method mismatches discovered
+- **[Pytest Import Issue](docs/PYTEST_IMPORT_ISSUE.md)** - Test collection issue and workarounds
+- **[Parameter Mapping Test Issues](docs/PARAMETER_MAPPING_TEST_ISSUES.md)** - Test creation challenges
+
+### Planning Documents
+- **[Pydantic Enhancement Longlist](docs/PYDANTIC_ENHANCEMENT_LONGLIST.md)** - Original planning (historical reference)
+
+**See [docs/README.md](docs/README.md) for complete documentation index and quick navigation.**
+
 ## Knowledge Base
 
 ### Documentation

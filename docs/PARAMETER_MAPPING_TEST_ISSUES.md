@@ -4,6 +4,12 @@
 **Created:** October 13, 2025  
 **Status:** ⚠️ Known Issues - Workaround Available  
 
+> **Related Documentation:**
+> - [Documentation Index](README.md) - All documentation
+> - [Pytest Import Issue](PYTEST_IMPORT_ISSUE.md) - Similar root cause
+> - [Parameter Mapping Results](PARAMETER_MAPPING_RESULTS.md) - Validation findings
+> - [Development Progress](DEVELOPMENT_PROGRESS.md) - Phase 1 status
+
 ---
 
 ## Issue Summary
