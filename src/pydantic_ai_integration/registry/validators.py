@@ -2,10 +2,12 @@
 Registry validation functions.
 
 Provides coverage, consistency, and drift detection for method and tool registries.
+Includes parameter mapping validation for tool-to-method compatibility.
 """
 
 import logging
 
+from .parameter_mapping import validate_parameter_mappings, ParameterMappingReport
 from .types import ConsistencyReport, CoverageReport, DriftReport
 
 logger = logging.getLogger(__name__)
