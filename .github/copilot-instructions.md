@@ -2,6 +2,15 @@
 
 ## 0. Session Startup Protocol
 
+**Multi-repo workspace (recommended):**
+```powershell
+# Open both repos together
+code .github\my-tiny-toolset.code-workspace
+```
+This gives access to both collider code and toolset documentation in one workspace.
+
+**Single-repo mode (current):**
+
 **Every new session, run this sequence:**
 
 1. **Set environment:** `$env:MY_TOOLSET = "C:\Users\HP\my-tiny-toolset\TOOLSET"`
@@ -35,6 +44,7 @@ Ready. What are we working on?
 **Where:**
 - Repository: https://github.com/MSD21091969/my-tiny-data-collider.git
 - Toolset: https://github.com/MSD21091969/my-tiny-toolset.git
+- Workspace: `.github/my-tiny-toolset.code-workspace` (opens both repos)
 - Outputs: `.tool-outputs/` (gitignored, local only)
 
 **How:**
