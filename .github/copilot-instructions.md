@@ -13,18 +13,19 @@
 - Prefer direct artefacts (paths, commands, diffs) over narration. Offer follow-up actions only when they are concrete next steps.
 
 ## Session Flow
-1. Verify `MY_TINY_TOOLSET_DIR`; surface relevant direct tasks without mentioning task categories.
-2. Review `MY_FIELD_NOTES.md` for context; log any new decisions in the branch plan as they arise.
+1. Verify `MY_TINY_TOOLSET_DIR`; if unset, set it to `C:\Users\HP\my-tiny-toolset` and run `Health Check Toolset`.
+2. Review field notes at `$MY_TINY_TOOLSET_DIR\docs\personal\MY_FIELD_NOTES.md` for context.
 3. Detect environment:
-   - `code_analyzer` on PATH → use direct tasks.
+   - Local toolset at `MY_TINY_TOOLSET_DIR` → use direct tasks.
    - `TINYTOOLSET/` clone present → fall back to legacy setup tasks.
-   - Working inside the toolset repo → use that repo’s tasks.
+   - Working inside the toolset repo → use that repo's tasks.
 4. Investigate with repo evidence or MCP tools before responding.
-5. Answer the user’s question, then point at immediate next steps only if they exist.
+5. Answer the user's question, then point at immediate next steps only if they exist.
 
 ## Quick Command Map
+- `check` → set `MY_TINY_TOOLSET_DIR=C:\Users\HP\my-tiny-toolset`, run `Health Check Toolset`, check field notes.
 - `start the session and run the tasks` → run `Complete Toolset Setup`.
-- `check field notes` → read `MY_FIELD_NOTES.md`, summarize changes.
+- `check field notes` → read `$MY_TINY_TOOLSET_DIR\docs\personal\MY_FIELD_NOTES.md`, summarize changes.
 - `what's the current project status?` → `git status`, branch info, recent commits.
 - `analyze the codebase` → run `Quick Analysis (Direct)`.
 - `check for issues or errors` → `Validate Before PR` + `Run All Tests`.
