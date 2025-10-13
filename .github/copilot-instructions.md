@@ -1,57 +1,119 @@
-# Tiny Data Collider – Copilot Guide
+# AI Instructions - Tiny Data Collider
 
-## Core Expectations
-- `MY_TINY_TOOLSET_DIR` must point at **`C:\Users\HP\my-tiny-toolset`** (local toolset repository with knowledge base). Abort fast if it is unset.
-- Use the toolset's direct tasks first (`Quick Analysis`, `Version Tracking`, `Excel Export`). Report the exact task name and error output when something fails.
-- Open each session by checking for updates in `MY_FIELD_NOTES.md` at **`C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md`** and confirming any outstanding issues the user flags.
-- Reference system architecture and classification documents at **`C:\Users\HP\Desktop\krabbel\classification\`** for planning, registry analysis, and development context.
-- Stay concise, code-forward, and evidence-based—cite files, diffs, or tool output instead of prose summaries.
-- Default to acting autonomously once the user hands off a task; ask only when a decision is blocking progress.
+## 1. What is "Tiny Data Collider"
 
-## Response Style
-- Developer voice only: no fluff, emojis, or recaps of agreed plans.
-- Reference documentation or tool outputs already in the repo (README, service docs, `.github/BRANCH_PROTECTION.md`, analysis exports).
-- Reference toolset knowledge base at **`C:\Users\HP\my-tiny-toolset\`** (EXAMPLES/, CONFIGS/, PROMPTS/, TEMPLATES/, SCHEMAS/).
-- Reference classification documents at **`C:\Users\HP\Desktop\krabbel\classification\`** for system architecture, registry analysis, development plans.
-- Prefer direct artefacts (paths, commands, diffs) over narration. Offer follow-up actions only when they are concrete next steps.
+**What:**
+- Application repository: FastAPI-based data integration and API orchestration platform
+- Tech stack: FastAPI, Python 3.13+, Pydantic, Google Cloud (Firestore, Cloud Run)
+- Analysis toolset: Uses my-tiny-toolset for code inspection and documentation
 
-## Session Flow
-1. Verify `MY_TINY_TOOLSET_DIR`; if unset, set it to **`C:\Users\HP\my-tiny-toolset`** and run `Health Check Toolset`.
-2. Review field notes at **`C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md`** for user context (read-only, personal reference).
-3. Check classification documents at **`C:\Users\HP\Desktop\krabbel\classification\`** for system architecture context:
-   - `GRAND_CLASSIFICATION_PLAN.md` - Registry system overview (36 tools, 34 methods, 80 models)
-   - `SYSTEM/BRANCH_DEVELOPMENT_PLAN.md` - Development milestones and progress
-   - `SYSTEM/registry/REGISTRY_CONSOLIDATION_SUMMARY.md` - Registry consolidation status
-   - `FIELD_REFERENCES.md` - External references and patterns
-   - `exports/` - Model exports and analysis tools
-4. Detect environment:
-   - Local toolset at **`C:\Users\HP\my-tiny-toolset`** → use direct tasks.
-   - `TINYTOOLSET/` clone present → fall back to legacy setup tasks.
-   - Working inside the toolset repo → use that repo's tasks.
-5. Investigate with repo evidence or MCP tools before responding.
-6. Answer the user's question, then point at immediate next steps only if they exist.
+**Who:**
+- Developed by: AI coding assistants (Copilot, agents) + human oversight
+- Maintained by: MSD21091969
+- Toolset: MSD21091969/my-tiny-toolset
 
-## Quick Command Map
-- `check` → set `MY_TINY_TOOLSET_DIR=C:\Users\HP\my-tiny-toolset`, run `Health Check Toolset`, check field notes.
-- `start the session and run the tasks` → run `Complete Toolset Setup`.
-- `check field notes` → read **`C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md`**, summarize changes.
-- `check classification` → review **`C:\Users\HP\Desktop\krabbel\classification\`** for system architecture and registry status.
-- `what's the current project status?` → `git status`, branch info, recent commits, check classification docs for milestones.
-- `analyze the codebase` → run `Quick Analysis (Direct)`.
-- `check for issues or errors` → `Validate Before PR` + `Run All Tests`.
-- `create a PR` → guided PR workflow tasks.
-- `fix the mapping analyzer` → note that `mapping_analyzer` lacks a CLI entry point; highlight replacement work.
+**Where:**
+- Repository: https://github.com/MSD21091969/my-tiny-data-collider.git
+- Toolset: https://github.com/MSD21091969/my-tiny-toolset.git
+- Outputs: `.tool-outputs/` (gitignored, local only)
 
-## Key Resource Locations
-- **Toolset Repository:** `C:\Users\HP\my-tiny-toolset` (knowledge base: EXAMPLES/, CONFIGS/, PROMPTS/, TEMPLATES/, SCHEMAS/, TOOLSET/)
-- **Field Notes:** `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md` (personal reference, read-only)
-- **Classification Project:** `C:\Users\HP\Desktop\krabbel\classification\` (system architecture, registry analysis, development plans)
-- **Tool Outputs:** `C:\Users\HP\Desktop\krabbel\tool-outputs\` (analysis/, mappings/, excel/, docs/)
-- **Model Exports:** `C:\Users\HP\Desktop\krabbel\classification\exports\` (77 CSV files with model field structure)
+**How:**
+- AI assistants use toolset to analyze code structure before/after changes
+- Tools run from this directory, outputs appear in `.tool-outputs/`
+- Environment variable: `$env:MY_TOOLSET` points to toolset location
 
-## Tooling Reminders
-- Assume outputs land under the configured toolset output directory (default installation uses `C:\Users\HP\Desktop\krabbel\tool-outputs\`).
-- Known gaps: `mapping_analyzer` has no main; `excel_exporter` needs `openpyxl`; `code_analyzer` BAT wrapper is unreliable—call the Python module directly.
-- When remote: clone `my-tiny-toolset` into `TINYTOOLSET`, run submodule init, then use legacy tasks.
-- When developing the toolset itself: switch to that repo’s `.vscode/tasks.json` and follow its workflow.
+---
 
+## 2. Practices
+
+**Communication:**
+- Chat responses: Short, dry, no emojis (developers, not managers)
+- Report analysis results in chat when making significant changes
+- Update existing documents, do not create new ones without approval
+
+**Code Maintenance:**
+- Run analysis before major changes (baseline)
+- Re-run analysis after changes (verification)
+- Include analysis summary in PR descriptions
+- Maintain backward compatibility in API changes
+
+**Documentation:**
+- Keep README.md current with architectural changes
+- Update API documentation when endpoints change
+- Single source of truth: avoid duplicate information
+
+---
+
+## 3. Toolset Usage
+
+**Available tools** via `$env:MY_TOOLSET`:
+
+| Tool | Purpose | When to Use |
+|------|---------|-------------|
+| `version_tracker.py` | Full analysis + Git history | Before PR, after refactoring |
+| `code_analyzer.py` | Quick structure check | During development |
+| `mapping_analyzer.py` | Model relationships | When changing data models |
+| `excel_exporter.py` | Stakeholder reports | For documentation/review |
+
+**Common commands:**
+```powershell
+# Quick analysis
+python $env:MY_TOOLSET\version_tracker.py . --version 1.0.0 --json
+
+# Full report for PR
+python $env:MY_TOOLSET\version_tracker.py . --version PR-123 --json --yaml --html
+
+# Model relationships
+python $env:MY_TOOLSET\mapping_analyzer.py . --html
+
+# Excel report
+python $env:MY_TOOLSET\excel_exporter.py . --output analysis.xlsx
+```
+
+---
+
+## 4. AI Workflow
+
+**Before coding:**
+1. Run baseline analysis: `python $env:MY_TOOLSET\version_tracker.py . --version baseline --json`
+2. Review current structure in `.tool-outputs/analysis/version_analysis.json`
+3. Understand existing models, endpoints, relationships
+
+**During coding:**
+1. Make changes based on requirements
+2. Quick checks: `python $env:MY_TOOLSET\code_analyzer.py .`
+3. Verify changes don't break existing patterns
+
+**After coding:**
+1. Run full analysis: `python $env:MY_TOOLSET\version_tracker.py . --version current --json`
+2. Compare with baseline
+3. Generate mapping report: `python $env:MY_TOOLSET\mapping_analyzer.py . --html`
+4. Review outputs in `.tool-outputs/`
+
+**Before PR:**
+1. Full analysis with all formats
+2. Include summary in PR description
+3. Highlight breaking changes if any
+
+---
+
+## 5. Output Structure
+
+**`.tool-outputs/` contains:**
+- `analysis/` - JSON/YAML analysis data (models, functions, endpoints)
+- `mappings/` - Relationship diagrams (HTML dashboards)
+- `docs/` - Generated documentation (HTML reports)
+- `excel/` - Spreadsheet reports
+- `README.md` - Explains contents (auto-generated)
+
+**All gitignored** - copy what you need before cleanup.
+
+---
+
+## 6. Quick Reference
+
+**When user asks "what models do we have?"** → Run code_analyzer, check `.tool-outputs/analysis/`  
+**When user asks "how are things connected?"** → Run mapping_analyzer, open dashboard  
+**When user asks "document this"** → Run version_tracker with --html  
+**Before committing major changes** → Run full analysis, verify outputs  
+**If unclear about structure** → Check existing analysis in `.tool-outputs/`

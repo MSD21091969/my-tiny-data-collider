@@ -2,139 +2,107 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Get My Extended Toolset",
+			"label": "Analyze Current Branch",
 			"type": "shell",
-			"command": "git",
+			"command": "python",
 			"args": [
-				"clone",
-				"--recursive",
-				"https://github.com/MSD21091969/my-tiny-toolset.git",
-				"TINYTOOLSET"
+				"${env:MY_TOOLSET}\\version_tracker.py",
+				"${workspaceFolder}",
+				"--version",
+				"${input:versionNumber}",
+				"--json",
+				"--yaml"
 			],
-			"group": "build",
+			"group": "test",
+			"problemMatcher": [],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"panel": "new"
+			}
+		},
+		{
+			"label": "Quick Code Analysis",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"${env:MY_TOOLSET}\\code_analyzer.py",
+				"${workspaceFolder}",
+				"--json",
+				"--csv"
+			],
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Update Toolset Submodules",
+			"label": "Generate Mapping Report",
 			"type": "shell",
-			"command": "powershell",
+			"command": "python",
 			"args": [
-				"-Command",
-				"cd TINYTOOLSET; git submodule update --remote --recursive"
+				"${env:MY_TOOLSET}\\mapping_analyzer.py",
+				"${workspaceFolder}",
+				"--html",
+				"--json"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Setup Tool Outputs",
+			"label": "Export to Excel",
 			"type": "shell",
-			"command": "powershell",
+			"command": "python",
 			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $docs = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; $analysis = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; $mappings = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings'; $excel = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; New-Item -ItemType Directory -Force -Path $docs, $analysis, $mappings, $excel | Out-Null; Copy-Item -Path (Join-Path $toolset '*.md') -Destination $docs -Force -ErrorAction SilentlyContinue"
+				"${env:MY_TOOLSET}\\excel_exporter.py",
+				"${workspaceFolder}",
+				"--output",
+				".tool-outputs/excel/analysis_${input:versionNumber}.xlsx"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Quick Analysis (Direct)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $analysisOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; python \"$toolset\\TOOLSET\\code_analyzer.py\" . --csv --json --output-dir $analysisOut; Get-ChildItem -Filter 'analysis_*.json' -Path . -ErrorAction SilentlyContinue | Move-Item -Destination $analysisOut -Force -ErrorAction SilentlyContinue"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Model Mapping (Direct)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; Write-Host \"Note: mapping_analyzer at $toolset still lacks a main() - replace with a CLI wrapper.\""
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Excel Export (Direct)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $excelOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; python \"$toolset\\TOOLSET\\excel_exporter.py\" . --output-dir $excelOut; Get-ChildItem -Filter 'code_analysis_*.xlsx' -Path . -ErrorAction SilentlyContinue | Move-Item -Destination $excelOut -Force -ErrorAction SilentlyContinue"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Version Tracking (Direct)",
+			"label": "Full Analysis (PR Ready)",
 			"type": "shell",
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $analysisOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; python \"$toolset\\TOOLSET\\version_tracker.py\" . --json --output-dir $analysisOut"
+				"$version = '${input:versionNumber}'; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version $version --json --yaml --html; python \"$env:MY_TOOLSET\\mapping_analyzer.py\" . --html; python \"$env:MY_TOOLSET\\excel_exporter.py\" . --output \".tool-outputs/excel/analysis_$version.xlsx\"; Write-Host '✓ Analysis complete! Check .tool-outputs/' -ForegroundColor Green"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Health Check Toolset",
+			"label": "Compare with Baseline",
 			"type": "shell",
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; try { Push-Location $toolset; $broken = git submodule status | Select-String '^-'; if ($broken) { Write-Host '[toolset] fixing submodules...'; git submodule update --init --recursive } else { Write-Host '[toolset] healthy' } } finally { Pop-Location }; $notes = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\personal\\MY_FIELD_NOTES.md'; if (Test-Path $notes) { Write-Host \"[notes] found at $notes\" } else { Write-Host '[notes] not found (optional personal reference)' }"
+				"Write-Host 'Creating baseline...' -ForegroundColor Yellow; git stash; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version baseline --json; git stash pop; Write-Host 'Analyzing current state...' -ForegroundColor Yellow; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version current --json; Write-Host '✓ Compare .tool-outputs/analysis/baseline vs current' -ForegroundColor Green"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Lab Status Check",
+			"label": "Open Mapping Dashboard",
 			"type": "shell",
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; & (Join-Path $toolset 'manage-lab.ps1') -Status"
+				"if (Test-Path '.tool-outputs/mappings/mapping_dashboard.html') { Start-Process '.tool-outputs/mappings/mapping_dashboard.html' } else { Write-Host 'Dashboard not found. Run: Generate Mapping Report' -ForegroundColor Yellow }"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Load AI Context",
+			"label": "Clean Tool Outputs",
 			"type": "shell",
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $context = Read-Host 'Context to load (prompts/schemas/templates/examples/all)'; & (Join-Path $toolset 'manage-lab.ps1') -Context $context"
+				"if (Test-Path '.tool-outputs') { Remove-Item -Recurse -Force '.tool-outputs'; Write-Host '✓ Cleaned .tool-outputs/' -ForegroundColor Green } else { Write-Host 'No outputs to clean' -ForegroundColor Yellow }"
 			],
 			"group": "build",
 			"problemMatcher": []
-		},
-		{
-			"label": "Setup Conceptual Lab",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; & (Join-Path $toolset 'setup-lab.ps1') -QuickCheck"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Complete Toolset Setup",
-			"dependsOrder": "sequence",
-			"dependsOn": [
-				"Setup Tool Outputs",
-				"Quick Analysis (Direct)",
-				"Model Mapping (Direct)",
-				"Excel Export (Direct)",
-				"Version Tracking (Direct)"
-			],
-			"group": "build"
 		},
 		{
 			"label": "Create Feature Branch",

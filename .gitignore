@@ -39,7 +39,20 @@ ENV/
 # Development tools
 TINYTOOLSET/
 
-# Tool outputs (should go to external directory)
+# Toolset outputs (analysis results)
+.tool-outputs/
+
+# Legacy output folders (if migrating)
+analysis_output/
+tool-outputs/
+
+# Analysis files
+*_analysis_*.json
+*_analysis_*.yaml
+*_analysis_*.csv
+mapping_*.html
+version_*.json
+manifest_*.yaml
 analysis_*.json
 analysis_*.csv
 models_*.csv
@@ -48,6 +61,9 @@ functions_*.csv
 req_resp_mappings_*.csv
 mappings_*.json
 version_history_*.csv
+
+# Temporary analysis data
+.version_tracker/
 
 # Environment variables
 .env
