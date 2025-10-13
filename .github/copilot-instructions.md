@@ -11,24 +11,58 @@
 - **Leverage conceptual laboratory**: Use FIELD_REFERENCES.md and toolset collections for rich context when concrete data is absent.
 
 ### Response Guidelines
-- Unblock the user's immediate question; reference `BRANCH_DEVELOPMENT_PLAN.md` when it anchors context.
+- **Start every session:** Check `MY_FIELD_NOTES.md` for persistent context and previous session state
+- **Session Startup Protocol:** Run "Session Startup" task for comprehensive status check
+- **Context Menu Approach:** After startup, offer focused session options (field notes, knowledge base, branch work, analysis, PR review, web research)
 - **Auto-detect development context** and suggest appropriate tasks without asking:
   - Test `code_analyzer` command → suggest Direct tasks
   - Check for `TINYTOOLSET/` → suggest Legacy setup tasks  
   - Working in toolset repo → reference toolset development tasks
 - **Access conceptual resources** from `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\` for AI-assisted design
-- Reach for MCP tools, repo utilities, or test runs whenever they yield authoritative answers for CI/CD or workspace state.
 - **Run appropriate VS Code tasks** based on detected environment without mentioning task type
+- **Check Git status** and branch protection rules from `.github/BRANCH_PROTECTION.md` for PR workflows
+- Reach for MCP tools, repo utilities, or test runs whenever they yield authoritative answers for CI/CD or workspace state.
+- Unblock the user's immediate question; reference `BRANCH_DEVELOPMENT_PLAN.md` when it anchors context.
 - Prefer file paths, diffs, or command output over prose when they communicate faster.
 - Keep responses tight; produce layered summaries only when the user requests them explicitly.
 - Call out follow-up actions only when they exist and align with the current plan.
 
+### Common User Prompts & Actions
+**Context & Planning:**
+- `"start the session and run the tasks"` → Run Complete Toolset Setup
+- `"check field notes"` → Read MY_FIELD_NOTES.md and summarize recent context
+- `"what's the current project status?"` → Git status, branch info, recent changes
+- `"show me the context menu"` → Display session focus options
+
+**Development Focus:**
+- `"analyze the codebase"` → Run code analysis and show key metrics
+- `"check for issues or errors"` → Validate registries and run tests
+- `"review my current branch work"` → Branch changes and development progress
+- `"help me plan this feature"` → Architecture discussion using field notes
+
+**Knowledge Base:**
+- `"explain the architecture"` → Reference README.md and service documentation
+- `"show me the models"` → Use analysis results to show Pydantic models
+- `"what tools are available?"` → List analysis toolset capabilities
+- `"check branch protection rules"` → Reference .github/BRANCH_PROTECTION.md
+
+**Quick Actions:**
+- `"run analysis"` → Execute appropriate analysis tasks
+- `"validate everything"` → Pre-commit checks and validation
+- `"create a PR"` → Start pull request workflow
+- `"fix the mapping analyzer"` → Address known toolset issues
+
 ### Conceptual Laboratory Integration
+- **Session Startup:** Always check `MY_FIELD_NOTES.md` first for persistent context from previous sessions
+- **Documentation Access:** Reference README.md for project overview, .github/ docs for workflows
 - **When concrete data is absent**: Reference `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md` for domain patterns and architectural guidance
 - **For AI collaboration**: Access personal documentation at `tool-outputs\docs\personal\` (persistent across sessions)
 - **For design decisions**: Use FastAPI configs, Pydantic examples, and schema patterns as reference
 - **For learning/exploration**: Leverage prompt collections and educational resources
 - **Human-relevant context hints**: Always check personal field notes for current guidance approach
+- **Knowledge Base Access**: Use `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\FIELD_REFERENCES.md` and README.md for systematic reference
+- **Branch Context**: Check `.github/BRANCH_PROTECTION.md` for workflow requirements and PR rules
+- **Service Documentation**: Reference individual service README files in scripts/, config/, tests/ directories
 
 ### Conversation Flow
 - Reply in sequence and log new decisions or discoveries in the branch plan as they surface.
@@ -96,10 +130,16 @@
 - **excel_exporter**: Exports analysis results to Excel format
 
 ### Tool Usage Patterns
-**HQ Quick Analysis:**
+**HQ Quick Analysis (Reliable):**
 ```
-code_analyzer . --csv --json --output-dir C:\Users\HP\Desktop\krabbel\tool-outputs\analysis
+python "C:\Users\HP\my-tiny-toolset\TOOLSET\code_analyzer.py" . --csv --json --output-dir C:\Users\HP\Desktop\krabbel\tool-outputs\analysis
 ```
+
+**Known Issues & Workarounds:**
+- **code_analyzer BAT wrapper:** Has path handling bug for CSV export - use Python directly
+- **mapping_analyzer:** Missing main entry point - contains 431 lines of useful mapping classes but no executable main function. **NEEDS REPLACEMENT** with proper CLI interface or integration into code_analyzer
+- **excel_exporter:** Requires openpyxl - install via `install_python_packages` tool
+- **File locations:** Tools may output to workspace root - manually move to tool-outputs directories
 
 **Remote Setup:**
 ```

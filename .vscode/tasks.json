@@ -42,7 +42,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"code_analyzer . --csv --json --output-dir C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis; if (Test-Path '.\\analysis_*.json') { Move-Item '.\\analysis_*.json' 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis\\' }"
+				"python 'C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\code_analyzer.py' . --csv --json --output-dir 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; if (Test-Path '.\\analysis_*.json') { Move-Item '.\\analysis_*.json' 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis\\' }"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -50,12 +50,10 @@
 		{
 			"label": "Model Mapping (Direct)",
 			"type": "shell",
-			"command": "mapping_analyzer",
+			"command": "powershell",
 			"args": [
-				".",
-				"--json",
-				"--output-dir",
-				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings"
+				"-Command",
+				"Write-Host 'Note: mapping_analyzer has 431 lines of useful code but missing main() - NEEDS REPLACEMENT with proper CLI interface'"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -63,11 +61,10 @@
 		{
 			"label": "Excel Export (Direct)",
 			"type": "shell",
-			"command": "excel_exporter",
+			"command": "powershell",
 			"args": [
-				".",
-				"--output-dir",
-				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel"
+				"-Command",
+				"python 'C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\excel_exporter.py' . --output-dir 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; if (Test-Path '.\\code_analysis_*.xlsx') { Move-Item '.\\code_analysis_*.xlsx' 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel\\' }"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -121,8 +118,9 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 		{
 			"label": "Version Tracking (Direct)",
 			"type": "shell",
-			"command": "version_tracker",
+			"command": "python",
 			"args": [
+				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\version_tracker.py",
 				".",
 				"--json",
 				"--output-dir",
