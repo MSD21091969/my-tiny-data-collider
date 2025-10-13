@@ -7,34 +7,108 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, computed_field
 
+from ..base.custom_types import NonEmptyString, PositiveInt, FileSizeBytes, EmailList, IsoTimestamp
+
 
 class GmailAttachment(BaseModel):
     """Metadata describing a Gmail attachment."""
 
-    filename: str = Field(..., description="Attachment filename")
-    mime_type: str = Field(..., description="Attachment MIME type")
-    size_bytes: int = Field(..., ge=0, description="Attachment size in bytes")
-    attachment_id: str = Field(..., description="Gmail attachment identifier")
+    filename: NonEmptyString = Field(
+        ...,
+        description="Attachment filename",
+        json_schema_extra={"example": "document.pdf"}
+    )
+    mime_type: str = Field(
+        ...,
+        description="Attachment MIME type",
+        json_schema_extra={"example": "application/pdf"}
+    )
+    size_bytes: FileSizeBytes = Field(
+        ...,
+        description="Attachment size in bytes",
+        json_schema_extra={"example": 1024000}
+    )
+    attachment_id: str = Field(
+        ...,
+        description="Gmail attachment identifier",
+        json_schema_extra={"example": "ANGjdJ8w..."}
+    )
 
 
 class GmailMessage(BaseModel):
     """Envelope + payload for a Gmail message."""
 
-    id: str = Field(..., description="Gmail message ID")
-    thread_id: str = Field(..., description="Thread ID for the message")
-    subject: str = Field("", description="Message subject")
-    sender: str = Field(..., description="From email address")
-    to_recipients: List[str] = Field(default_factory=list, description="Primary recipient email addresses")
-    cc_recipients: List[str] = Field(default_factory=list, description="CC recipient email addresses")
-    bcc_recipients: List[str] = Field(default_factory=list, description="BCC recipient email addresses")
-    snippet: str = Field("", description="Short snippet preview from Gmail")
-    internal_date: str = Field(..., description="Gmail internal timestamp (ISO 8601)")
-    labels: List[str] = Field(default_factory=list, description="Gmail labels applied to the message")
-    has_attachments: bool = Field(default=False, description="Whether the message has attachments")
-    attachments: List[GmailAttachment] = Field(default_factory=list, description="Attachment metadata")
-    body_text: Optional[str] = Field(None, description="Plaintext body, if available")
-    body_html: Optional[str] = Field(None, description="HTML body, if available")
-    fetched_at: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Timestamp when data was fetched")
+    id: str = Field(
+        ...,
+        description="Gmail message ID",
+        json_schema_extra={"example": "17a1b2c3d4e5f6"}
+    )
+    thread_id: str = Field(
+        ...,
+        description="Thread ID for the message",
+        json_schema_extra={"example": "17a1b2c3d4e5f6"}
+    )
+    subject: str = Field(
+        "",
+        description="Message subject",
+        max_length=1000,
+        json_schema_extra={"example": "Important: Project Update"}
+    )
+    sender: str = Field(
+        ...,
+        description="From email address",
+        json_schema_extra={"example": "sender@example.com"}
+    )
+    to_recipients: EmailList = Field(
+        default_factory=list,
+        description="Primary recipient email addresses",
+        json_schema_extra={"example": ["recipient1@example.com", "recipient2@example.com"]}
+    )
+    cc_recipients: EmailList = Field(
+        default_factory=list,
+        description="CC recipient email addresses"
+    )
+    bcc_recipients: EmailList = Field(
+        default_factory=list,
+        description="BCC recipient email addresses"
+    )
+    snippet: str = Field(
+        "",
+        description="Short snippet preview from Gmail",
+        max_length=500,
+        json_schema_extra={"example": "This is the beginning of the email message..."}
+    )
+    internal_date: IsoTimestamp = Field(
+        ...,
+        description="Gmail internal timestamp (ISO 8601)",
+        json_schema_extra={"example": "2025-10-13T12:00:00"}
+    )
+    labels: List[str] = Field(
+        default_factory=list,
+        description="Gmail labels applied to the message",
+        json_schema_extra={"example": ["INBOX", "IMPORTANT", "UNREAD"]}
+    )
+    has_attachments: bool = Field(
+        default=False,
+        description="Whether the message has attachments"
+    )
+    attachments: List[GmailAttachment] = Field(
+        default_factory=list,
+        description="Attachment metadata"
+    )
+    body_text: Optional[str] = Field(
+        None,
+        description="Plaintext body, if available"
+    )
+    body_html: Optional[str] = Field(
+        None,
+        description="HTML body, if available"
+    )
+    fetched_at: IsoTimestamp = Field(
+        default_factory=lambda: datetime.now().isoformat(),
+        description="Timestamp when data was fetched (ISO 8601)",
+        json_schema_extra={"example": "2025-10-13T12:00:00"}
+    )
 
 
 class GmailThread(BaseModel):

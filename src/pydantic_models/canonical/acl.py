@@ -15,6 +15,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+from ..base.custom_types import IsoTimestamp
+
 
 class PermissionLevel(str, Enum):
     """Permission levels for casefile access."""
@@ -27,27 +29,54 @@ class PermissionLevel(str, Enum):
 
 class PermissionEntry(BaseModel):
     """Single permission entry for a user on a casefile."""
-    user_id: str = Field(..., description="User ID granted permission")
-    permission: PermissionLevel = Field(..., description="Level of access granted")
-    granted_by: str = Field(..., description="User who granted this permission")
-    granted_at: str = Field(
-        default_factory=lambda: datetime.now().isoformat(),
-        description="When permission was granted"
+    user_id: str = Field(
+        ...,
+        description="User ID granted permission",
+        json_schema_extra={"example": "user123@example.com"}
     )
-    expires_at: Optional[str] = Field(None, description="Optional expiration timestamp")
-    notes: Optional[str] = Field(None, description="Optional notes about this permission")
+    permission: PermissionLevel = Field(
+        ...,
+        description="Level of access granted",
+        json_schema_extra={"example": "editor"}
+    )
+    granted_by: str = Field(
+        ...,
+        description="User who granted this permission",
+        json_schema_extra={"example": "admin@example.com"}
+    )
+    granted_at: IsoTimestamp = Field(
+        default_factory=lambda: datetime.now().isoformat(),
+        description="When permission was granted (ISO 8601)",
+        json_schema_extra={"example": "2025-10-13T12:00:00"}
+    )
+    expires_at: Optional[IsoTimestamp] = Field(
+        None,
+        description="Optional expiration timestamp (ISO 8601)",
+        json_schema_extra={"example": "2025-12-31T23:59:59"}
+    )
+    notes: Optional[str] = Field(
+        None,
+        description="Optional notes about this permission",
+        max_length=500,
+        json_schema_extra={"example": "Temporary access for project collaboration"}
+    )
 
 
 class CasefileACL(BaseModel):
     """Access Control List for a casefile."""
-    owner_id: str = Field(..., description="Casefile owner (has all permissions)")
+    owner_id: str = Field(
+        ...,
+        description="Casefile owner (has all permissions)",
+        json_schema_extra={"example": "owner@example.com"}
+    )
     permissions: List[PermissionEntry] = Field(
         default_factory=list,
         description="List of user permissions"
     )
     public_access: PermissionLevel = Field(
         default=PermissionLevel.NONE,
-        description="Default access level for all users"
+        description="Default access level for all users",
+        json_schema_extra={"example": "viewer"}
     )
     inherit_from_parent: bool = Field(
         default=False,

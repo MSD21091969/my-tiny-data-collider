@@ -13,6 +13,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
 from ..base.envelopes import BaseRequest, BaseResponse
+from ..base.custom_types import ShortString, MediumString, LongString, TagList, PositiveInt, NonNegativeInt
 from ..canonical.acl import CasefileACL, PermissionEntry, PermissionLevel
 from ..canonical.casefile import CasefileModel
 from ..views.casefile_views import CasefileSummary
@@ -23,9 +24,21 @@ from ..views.casefile_views import CasefileSummary
 
 class CreateCasefilePayload(BaseModel):
     """Payload for creating a new casefile."""
-    title: str = Field(..., min_length=1, max_length=200, description="Casefile title")
-    description: str = Field(default="", max_length=2000, description="Casefile description")
-    tags: List[str] = Field(default_factory=list, description="Tags for categorization")
+    title: ShortString = Field(
+        ...,
+        description="Casefile title",
+        json_schema_extra={"example": "Investigation Case 2025-001"}
+    )
+    description: MediumString = Field(
+        default="",
+        description="Casefile description",
+        json_schema_extra={"example": "Email investigation for incident #42"}
+    )
+    tags: TagList = Field(
+        default_factory=list,
+        description="Tags for categorization",
+        json_schema_extra={"example": ["incident", "email", "security"]}
+    )
 
 
 class CreateCasefileRequest(BaseRequest[CreateCasefilePayload]):
@@ -81,11 +94,31 @@ class UpdateCasefilePayload(BaseModel):
     SECURITY: Uses explicit fields instead of Dict[str, Any] to prevent injection.
     All fields are optional - only provided fields will be updated.
     """
-    casefile_id: str = Field(..., description="Casefile ID to update")
-    title: Optional[str] = Field(None, min_length=1, max_length=200, description="New title")
-    description: Optional[str] = Field(None, max_length=2000, description="New description")
-    tags: Optional[List[str]] = Field(None, description="New tags (replaces existing)")
-    notes: Optional[str] = Field(None, max_length=5000, description="New notes")
+    casefile_id: str = Field(
+        ...,
+        description="Casefile ID to update",
+        json_schema_extra={"example": "cf_251013_abc123"}
+    )
+    title: Optional[ShortString] = Field(
+        None,
+        description="New title",
+        json_schema_extra={"example": "Updated Investigation Case"}
+    )
+    description: Optional[MediumString] = Field(
+        None,
+        description="New description",
+        json_schema_extra={"example": "Updated description with new findings"}
+    )
+    tags: Optional[TagList] = Field(
+        None,
+        description="New tags (replaces existing)",
+        json_schema_extra={"example": ["incident", "email", "resolved"]}
+    )
+    notes: Optional[LongString] = Field(
+        None,
+        description="New notes",
+        json_schema_extra={"example": "Additional investigation notes"}
+    )
 
 
 class UpdateCasefileRequest(BaseRequest[UpdateCasefilePayload]):
@@ -110,11 +143,33 @@ class UpdateCasefileResponse(BaseResponse[CasefileUpdatedPayload]):
 
 class ListCasefilesPayload(BaseModel):
     """Payload for listing casefiles with filters."""
-    user_id: Optional[str] = Field(None, description="Filter by user ID (owner)")
-    tags: Optional[List[str]] = Field(None, description="Filter by tags (any match)")
-    search_query: Optional[str] = Field(None, description="Search in title/description")
-    limit: int = Field(default=50, ge=1, le=100, description="Maximum results to return")
-    offset: int = Field(default=0, ge=0, description="Offset for pagination")
+    user_id: Optional[str] = Field(
+        None,
+        description="Filter by user ID (owner)",
+        json_schema_extra={"example": "user@example.com"}
+    )
+    tags: Optional[TagList] = Field(
+        None,
+        description="Filter by tags (any match)",
+        json_schema_extra={"example": ["incident", "email"]}
+    )
+    search_query: Optional[str] = Field(
+        None,
+        description="Search in title/description",
+        max_length=500,
+        json_schema_extra={"example": "investigation"}
+    )
+    limit: PositiveInt = Field(
+        default=50,
+        le=100,
+        description="Maximum results to return",
+        json_schema_extra={"example": 50}
+    )
+    offset: NonNegativeInt = Field(
+        default=0,
+        description="Offset for pagination",
+        json_schema_extra={"example": 0}
+    )
 
 
 class ListCasefilesRequest(BaseRequest[ListCasefilesPayload]):
