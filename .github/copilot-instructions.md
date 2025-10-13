@@ -1,147 +1,39 @@
-# Tiny Data Collider - AI Agent Instructions
+# Tiny Data Collider – Copilot Guide
 
-## AI Chat Practices
+## Core Expectations
+- `MY_TINY_TOOLSET_DIR` must point at the local toolset root (example: `C:\Users\HP\my-tiny-toolset`). Abort fast if it is unset.
+- Use the toolset’s direct tasks first (`Quick Analysis`, `Version Tracking`, `Excel Export`). Report the exact task name and error output when something fails.
+- Open each session by checking for updates in `MY_FIELD_NOTES.md` and confirming any outstanding issues the user flags.
+- Stay concise, code-forward, and evidence-based—cite files, diffs, or tool output instead of prose summaries.
+- Default to acting autonomously once the user hands off a task; ask only when a decision is blocking progress.
 
-### Core Principles
-- Ship answers in developer voice—concise, direct, and code-first.
-- Stay DRY: avoid repeating established facts or restating plan items.
-- Base every response on repository evidence, tool output, or **conceptual context** from toolset resources.
-- Skip fluff, emojis, and management speak; maintain engineering cadence.
-- Work autonomously when the task is clear and the user has delegated ownership.
-- **Leverage conceptual laboratory**: Use toolset collections for rich context when concrete data is absent.
+## Response Style
+- Developer voice only: no fluff, emojis, or recaps of agreed plans.
+- Reference documentation or tool outputs already in the repo (README, service docs, `.github/BRANCH_PROTECTION.md`, analysis exports).
+- Prefer direct artefacts (paths, commands, diffs) over narration. Offer follow-up actions only when they are concrete next steps.
 
-### Response Guidelines
-- **Start every session:** Check `MY_FIELD_NOTES.md` for persistent context and previous session state
-- **Context Menu Approach:** Suggest focused session options based on field notes and current state
-- **Auto-detect development context** and suggest appropriate tasks without asking:
-  - Test `code_analyzer` command → suggest Direct tasks
-  - Check for `TINYTOOLSET/` → suggest Legacy setup tasks  
-  - Working in toolset repo → reference toolset development tasks
-- **Access conceptual resources** from `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\` for AI-assisted design
-- **Run appropriate VS Code tasks** based on detected environment without mentioning task type
-- **Check Git status** and branch protection rules from `.github/BRANCH_PROTECTION.md` for PR workflows
-- Reach for MCP tools, repo utilities, or test runs whenever they yield authoritative answers for CI/CD or workspace state.
-- Unblock the user's immediate question using field notes and current analysis.
-- Prefer file paths, diffs, or command output over prose when they communicate faster.
-- Keep responses tight; produce layered summaries only when the user requests them explicitly.
-- Call out follow-up actions only when they exist and align with the current plan.
+## Session Flow
+1. Verify `MY_TINY_TOOLSET_DIR`; surface relevant direct tasks without mentioning task categories.
+2. Review `MY_FIELD_NOTES.md` for context; log any new decisions in the branch plan as they arise.
+3. Detect environment:
+   - `code_analyzer` on PATH → use direct tasks.
+   - `TINYTOOLSET/` clone present → fall back to legacy setup tasks.
+   - Working inside the toolset repo → use that repo’s tasks.
+4. Investigate with repo evidence or MCP tools before responding.
+5. Answer the user’s question, then point at immediate next steps only if they exist.
 
-### Common User Prompts & Actions
-**Context & Planning:**
-- `"start the session and run the tasks"` → Run Complete Toolset Setup
-- `"check field notes"` → Read MY_FIELD_NOTES.md and summarize recent context
-- `"what's the current project status?"` → Git status, branch info, recent changes
-- `"show me the context menu"` → Display session focus options
+## Quick Command Map
+- `start the session and run the tasks` → run `Complete Toolset Setup`.
+- `check field notes` → read `MY_FIELD_NOTES.md`, summarize changes.
+- `what's the current project status?` → `git status`, branch info, recent commits.
+- `analyze the codebase` → run `Quick Analysis (Direct)`.
+- `check for issues or errors` → `Validate Before PR` + `Run All Tests`.
+- `create a PR` → guided PR workflow tasks.
+- `fix the mapping analyzer` → note that `mapping_analyzer` lacks a CLI entry point; highlight replacement work.
 
-**Development Focus:**
-- `"analyze the codebase"` → Run code analysis and show key metrics
-- `"check for issues or errors"` → Validate registries and run tests
-- `"review my current branch work"` → Branch changes and development progress
-- `"help me plan this feature"` → Architecture discussion using field notes
-
-**Knowledge Base:**
-- `"explain the architecture"` → Reference README.md and service documentation
-- `"show me the models"` → Use analysis results to show Pydantic models
-- `"what tools are available?"` → List analysis toolset capabilities
-- `"check branch protection rules"` → Reference .github/BRANCH_PROTECTION.md
-
-**Quick Actions:**
-- `"run analysis"` → Execute appropriate analysis tasks
-- `"validate everything"` → Pre-commit checks and validation
-- `"create a PR"` → Start pull request workflow
-- `"fix the mapping analyzer"` → Address known toolset issues
-
-### Conceptual Laboratory Integration
-- **Documentation Access:** Reference README.md for project overview, .github/ docs for workflows
-- **Personal Context**: Access `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\` for AI collaboration and domain patterns
-- **Design Resources**: Use FastAPI configs, Pydantic examples, schema patterns, and prompt collections
-- **Branch Context**: Check `.github/BRANCH_PROTECTION.md` for workflow requirements and PR rules
-- **Service Documentation**: Reference individual service README files in scripts/, config/, tests/ directories
-
-### Conversation Flow
-- Reply in sequence and log new decisions or discoveries in the branch plan as they surface.
-- Investigate with tools first, then report back with citations to files or commands.
-- Treat field notes and analysis results as the shared ledger for ongoing work.
-- Advance without transition fluff; no restating prior agreements or conclusions.
-
-### Documentation
-- Document code and systems factually, using the established overview structure as the template.
-- Update living documents in place instead of creating parallel summaries.
-- Add inline code comments sparingly, only where logic is non-obvious.
-- Avoid recap reports or management-style summaries that repeat existing content.
-
-## Development Toolset
-
-### CRITICAL: Location-Aware Toolset Strategy
-
-**Three Development Contexts:**
-
-1. **HQ Station (Primary Development)**
-   - Location: `C:\Users\HP\my-tiny-toolset\TOOLSET\` (permanent installation)
-   - PATH configured: Direct tool execution (`code_analyzer`, `mapping_analyzer`, etc.)
-   - Tasks: Use "Direct" tasks in VS Code (fastest execution)
-   - Outputs: `C:\Users\HP\Desktop\krabbel\tool-outputs\`
-
-2. **Remote/Other Locations (Away from HQ)**
-   - Clone: `git clone https://github.com/MSD21091969/my-tiny-toolset.git TINYTOOLSET`
-   - Initialize: `git submodule update --init --recursive`
-   - Tasks: Use "Legacy" tasks in VS Code (full setup workflow)
-   - Outputs: `C:\Users\HP\Desktop\krabbel\tool-outputs\` (or local equivalent)
-
-3. **Toolset Development (Working on toolset itself)**
-   - Location: Inside `my-tiny-toolset` repository
-   - Tasks: Use toolset's own `.vscode/tasks.json` for tool development
-   - Testing: Local tool modifications and template work
-
-**Auto-Detection Strategy:**
-- Check if `code_analyzer` command works → HQ Station
-- Check if `TINYTOOLSET/` exists → Remote with workspace clone
-- Check if `TOOLSET/` exists in current directory → Toolset development
-
-### Repository Tasks Integration
-
-**Multiple tasks.json Files:**
-- **Application repo**: `.vscode/tasks.json` (data collider development tasks)
-  - Direct tasks: For HQ with permanent toolset
-  - Legacy tasks: For remote locations requiring setup
-  - Git workflow tasks: Branch management, PR workflow
-- **Toolset repo**: `my-tiny-toolset/.vscode/tasks.json` (tool development tasks)
-  - Tool testing and development
-  - Template and config management
-  - Submodule maintenance
-
-**VS Code Command Palette Integration:**
-- Tasks automatically available via "Tasks: Run Task"
-- Context-aware task selection based on environment detection
-- Direct tasks preferred when PATH toolset available
-- Legacy tasks for remote/setup scenarios
-- **Never mention task type** - just run appropriate tasks for context
-
-### Available Tools
-- **code_analyzer**: Analyzes Python code for models, functions, and API patterns
-- **version_tracker**: Tracks version history and changes across the codebase
-- **mapping_analyzer**: Analyzes model mappings and transformations
-- **excel_exporter**: Exports analysis results to Excel format
-
-### Tool Usage Patterns
-**HQ Quick Analysis (Reliable):**
-```
-python "C:\Users\HP\my-tiny-toolset\TOOLSET\code_analyzer.py" . --csv --json --output-dir C:\Users\HP\Desktop\krabbel\tool-outputs\analysis
-```
-
-**Known Issues & Workarounds:**
-- **code_analyzer BAT wrapper:** Has path handling bug for CSV export - use Python directly
-- **mapping_analyzer:** Missing main entry point - contains 431 lines of useful mapping classes but no executable main function. **NEEDS REPLACEMENT** with proper CLI interface or integration into code_analyzer
-- **excel_exporter:** Requires openpyxl - install via `install_python_packages` tool
-- **File locations:** Tools may output to workspace root - manually move to tool-outputs directories
-
-**Remote Setup:**
-```
-Tasks: Run Task → "Complete Toolset Setup"
-```
-
-**Toolset Development:**
-```
-Tasks: Run Task → "Test Tool" (from toolset's tasks.json)
-```
+## Tooling Reminders
+- Assume outputs land under the configured toolset output directory (default installation uses `C:\Users\HP\Desktop\krabbel\tool-outputs\`).
+- Known gaps: `mapping_analyzer` has no main; `excel_exporter` needs `openpyxl`; `code_analyzer` BAT wrapper is unreliable—call the Python module directly.
+- When remote: clone `my-tiny-toolset` into `TINYTOOLSET`, run submodule init, then use legacy tasks.
+- When developing the toolset itself: switch to that repo’s `.vscode/tasks.json` and follow its workflow.
 

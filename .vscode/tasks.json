@@ -31,7 +31,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings'; New-Item -ItemType Directory -Force -Path 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; Copy-Item -Path 'C:\\Users\\HP\\my-tiny-toolset\\*.md' -Destination 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\' -Force -ErrorAction SilentlyContinue"
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $docs = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; $analysis = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; $mappings = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings'; $excel = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; New-Item -ItemType Directory -Force -Path $docs, $analysis, $mappings, $excel | Out-Null; Copy-Item -Path (Join-Path $toolset '*.md') -Destination $docs -Force -ErrorAction SilentlyContinue"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -42,7 +42,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"python 'C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\code_analyzer.py' . --csv --json --output-dir 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; if (Test-Path '.\\analysis_*.json') { Move-Item '.\\analysis_*.json' 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis\\' }"
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $analysisOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; python \"$toolset\\TOOLSET\\code_analyzer.py\" . --csv --json --output-dir $analysisOut; Get-ChildItem -Filter 'analysis_*.json' -Path . -ErrorAction SilentlyContinue | Move-Item -Destination $analysisOut -Force -ErrorAction SilentlyContinue"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -53,7 +53,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"Write-Host 'Note: mapping_analyzer has 431 lines of useful code but missing main() - NEEDS REPLACEMENT with proper CLI interface'"
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; Write-Host \"Note: mapping_analyzer at $toolset still lacks a main() - replace with a CLI wrapper.\""
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -64,7 +64,18 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"python 'C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\excel_exporter.py' . --output-dir 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; if (Test-Path '.\\code_analysis_*.xlsx') { Move-Item '.\\code_analysis_*.xlsx' 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel\\' }"
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $excelOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; python \"$toolset\\TOOLSET\\excel_exporter.py\" . --output-dir $excelOut; Get-ChildItem -Filter 'code_analysis_*.xlsx' -Path . -ErrorAction SilentlyContinue | Move-Item -Destination $excelOut -Force -ErrorAction SilentlyContinue"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Version Tracking (Direct)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-Command",
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $analysisOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; python \"$toolset\\TOOLSET\\version_tracker.py\" . --json --output-dir $analysisOut"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -75,7 +86,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-$broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-String '^-'); if ($broken) { Write-Host 'Fixing broken submodules...'; git submodule update --init --recursive } else { Write-Host 'Toolset healthy ✓' }; Write-Host 'Personal Notes:'; if (Test-Path 'C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md') { Write-Host 'Available ✓' } else { Write-Host 'Missing - create personal notes' }
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; try { Push-Location $toolset; $broken = git submodule status | Select-String '^-'; if ($broken) { Write-Host '[toolset] fixing submodules...'; git submodule update --init --recursive } else { Write-Host '[toolset] healthy' } } finally { Pop-Location }; $notes = Join-Path $toolset 'docs\\personal\\MY_FIELD_NOTES.md'; if (Test-Path $notes) { Write-Host \"[notes] found at $notes\" } else { Write-Host '[notes] missing - add MY_FIELD_NOTES.md' }"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -85,9 +96,8 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"type": "shell",
 			"command": "powershell",
 			"args": [
-				"-File",
-				"C:\\Users\\HP\\my-tiny-toolset\\manage-lab.ps1",
-				"-Status"
+				"-Command",
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; & (Join-Path $toolset 'manage-lab.ps1') -Status"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -98,7 +108,7 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$context = Read-Host 'Context to load (prompts/schemas/templates/examples/all)'; & 'C:\\Users\\HP\\my-tiny-toolset\\manage-lab.ps1' -Context $context"
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $context = Read-Host 'Context to load (prompts/schemas/templates/examples/all)'; & (Join-Path $toolset 'manage-lab.ps1') -Context $context"
 			],
 			"group": "build",
 			"problemMatcher": []
@@ -108,38 +118,19 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"type": "shell",
 			"command": "powershell",
 			"args": [
-				"-File",
-				"C:\\Users\\HP\\my-tiny-toolset\\setup-lab.ps1",
-				"-QuickCheck"
+				"-Command",
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; & (Join-Path $toolset 'setup-lab.ps1') -QuickCheck"
 			],
 			"group": "build",
 			"problemMatcher": []
 		},
-		{
-			"label": "Version Tracking (Direct)",
-			"type": "shell",
-			"command": "python",
-			"args": [
-				"C:\\Users\\HP\\my-tiny-toolset\\TOOLSET\\version_tracker.py",
-				".",
-				"--json",
-				"--output-dir",
-				"C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-
-
-
-
 		{
 			"label": "Complete Toolset Setup",
 			"dependsOrder": "sequence",
 			"dependsOn": [
 				"Setup Tool Outputs",
 				"Quick Analysis (Direct)",
-				"Model Mapping (Direct)", 
+				"Model Mapping (Direct)",
 				"Excel Export (Direct)",
 				"Version Tracking (Direct)"
 			],
@@ -160,7 +151,10 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"label": "Switch to Develop",
 			"type": "shell",
 			"command": "git",
-			"args": ["checkout", "feature/develop"],
+			"args": [
+				"checkout",
+				"feature/develop"
+			],
 			"group": "build",
 			"problemMatcher": []
 		},
@@ -168,7 +162,10 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"label": "Switch to Main",
 			"type": "shell",
 			"command": "git",
-			"args": ["checkout", "main"],
+			"args": [
+				"checkout",
+				"main"
+			],
 			"group": "build",
 			"problemMatcher": []
 		},
@@ -176,7 +173,11 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"label": "Pull Latest Changes",
 			"type": "shell",
 			"command": "git",
-			"args": ["pull", "origin", "HEAD"],
+			"args": [
+				"pull",
+				"origin",
+				"HEAD"
+			],
 			"group": "build",
 			"problemMatcher": []
 		},
@@ -232,7 +233,10 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"label": "Check PR Status",
 			"type": "shell",
 			"command": "gh",
-			"args": ["pr", "status"],
+			"args": [
+				"pr",
+				"status"
+			],
 			"group": "build",
 			"problemMatcher": []
 		},
@@ -240,7 +244,12 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 			"label": "Merge Current PR",
 			"type": "shell",
 			"command": "gh",
-			"args": ["pr", "merge", "--squash", "--delete-branch"],
+			"args": [
+				"pr",
+				"merge",
+				"--squash",
+				"--delete-branch"
+			],
 			"group": "build",
 			"problemMatcher": []
 		},
@@ -284,3 +293,4 @@ $broken = (cd 'C:\Users\HP\my-tiny-toolset'; git submodule status | Select-Strin
 		}
 	]
 }
+
