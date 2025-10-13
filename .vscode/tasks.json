@@ -86,7 +86,7 @@
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; try { Push-Location $toolset; $broken = git submodule status | Select-String '^-'; if ($broken) { Write-Host '[toolset] fixing submodules...'; git submodule update --init --recursive } else { Write-Host '[toolset] healthy' } } finally { Pop-Location }; $notes = Join-Path $toolset 'docs\\personal\\MY_FIELD_NOTES.md'; if (Test-Path $notes) { Write-Host \"[notes] found at $notes\" } else { Write-Host '[notes] missing - add MY_FIELD_NOTES.md' }"
+				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; try { Push-Location $toolset; $broken = git submodule status | Select-String '^-'; if ($broken) { Write-Host '[toolset] fixing submodules...'; git submodule update --init --recursive } else { Write-Host '[toolset] healthy' } } finally { Pop-Location }; $notes = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\personal\\MY_FIELD_NOTES.md'; if (Test-Path $notes) { Write-Host \"[notes] found at $notes\" } else { Write-Host '[notes] not found (optional personal reference)' }"
 			],
 			"group": "build",
 			"problemMatcher": []
