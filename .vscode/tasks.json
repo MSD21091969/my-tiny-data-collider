@@ -2,198 +2,42 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Get My Extended Toolset",
+			"label": "Quick Analysis",
 			"type": "shell",
-			"command": "git",
+			"command": "python",
 			"args": [
-				"clone",
-				"--recursive",
-				"https://github.com/MSD21091969/my-tiny-toolset.git",
-				"TINYTOOLSET"
+				"${env:MY_TOOLSET}\\code_analyzer.py",
+				".",
+				"--json",
+				"--csv"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Update Toolset Submodules",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"cd TINYTOOLSET; git submodule update --remote --recursive"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Setup Tool Outputs",
+			"label": "Full Analysis",
 			"type": "shell",
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $docs = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs'; $analysis = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; $mappings = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\mappings'; $excel = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; New-Item -ItemType Directory -Force -Path $docs, $analysis, $mappings, $excel | Out-Null; Copy-Item -Path (Join-Path $toolset '*.md') -Destination $docs -Force -ErrorAction SilentlyContinue"
+				"$v = '${input:versionNumber}'; python \"$env:MY_TOOLSET\\version_tracker.py\" . --version $v --json --yaml; python \"$env:MY_TOOLSET\\mapping_analyzer.py\" . --html; Write-Host '✓ Done. Check .tool-outputs/' -ForegroundColor Green"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Quick Analysis (Direct)",
+			"label": "Open Dashboard",
 			"type": "shell",
 			"command": "powershell",
 			"args": [
 				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $analysisOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; python \"$toolset\\TOOLSET\\code_analyzer.py\" . --csv --json --output-dir $analysisOut; Get-ChildItem -Filter 'analysis_*.json' -Path . -ErrorAction SilentlyContinue | Move-Item -Destination $analysisOut -Force -ErrorAction SilentlyContinue"
+				"if (Test-Path '.tool-outputs/mappings/mapping_dashboard.html') { Start-Process '.tool-outputs/mappings/mapping_dashboard.html' } else { Write-Host 'Run Full Analysis first' -ForegroundColor Yellow }"
 			],
-			"group": "build",
+			"group": "test",
 			"problemMatcher": []
 		},
 		{
-			"label": "Model Mapping (Direct)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; Write-Host \"Note: mapping_analyzer at $toolset still lacks a main() - replace with a CLI wrapper.\""
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Excel Export (Direct)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $excelOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\excel'; python \"$toolset\\TOOLSET\\excel_exporter.py\" . --output-dir $excelOut; Get-ChildItem -Filter 'code_analysis_*.xlsx' -Path . -ErrorAction SilentlyContinue | Move-Item -Destination $excelOut -Force -ErrorAction SilentlyContinue"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Version Tracking (Direct)",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $analysisOut = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\analysis'; python \"$toolset\\TOOLSET\\version_tracker.py\" . --json --output-dir $analysisOut"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Health Check Toolset",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; try { Push-Location $toolset; $broken = git submodule status | Select-String '^-'; if ($broken) { Write-Host '[toolset] fixing submodules...'; git submodule update --init --recursive } else { Write-Host '[toolset] healthy' } } finally { Pop-Location }; $notes = 'C:\\Users\\HP\\Desktop\\krabbel\\tool-outputs\\docs\\personal\\MY_FIELD_NOTES.md'; if (Test-Path $notes) { Write-Host \"[notes] found at $notes\" } else { Write-Host '[notes] not found (optional personal reference)' }"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Lab Status Check",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; & (Join-Path $toolset 'manage-lab.ps1') -Status"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Load AI Context",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; $context = Read-Host 'Context to load (prompts/schemas/templates/examples/all)'; & (Join-Path $toolset 'manage-lab.ps1') -Context $context"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Setup Conceptual Lab",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$toolset = $Env:MY_TINY_TOOLSET_DIR; if (-not $toolset) { throw 'Set MY_TINY_TOOLSET_DIR to your toolset root.' }; & (Join-Path $toolset 'setup-lab.ps1') -QuickCheck"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Complete Toolset Setup",
-			"dependsOrder": "sequence",
-			"dependsOn": [
-				"Setup Tool Outputs",
-				"Quick Analysis (Direct)",
-				"Model Mapping (Direct)",
-				"Excel Export (Direct)",
-				"Version Tracking (Direct)"
-			],
-			"group": "build"
-		},
-		{
-			"label": "Create Feature Branch",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$branch = Read-Host 'Enter feature branch name (feature/your-name)'; git checkout -b $branch"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Switch to Develop",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"checkout",
-				"feature/develop"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Switch to Main",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"checkout",
-				"main"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Pull Latest Changes",
-			"type": "shell",
-			"command": "git",
-			"args": [
-				"pull",
-				"origin",
-				"HEAD"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Sync with Develop",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"git fetch origin; git merge origin/develop"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Validate Before PR",
+			"label": "Validate Registries",
 			"type": "shell",
 			"command": "python",
 			"args": [
@@ -205,91 +49,34 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Run All Tests",
+			"label": "Run Tests",
 			"type": "shell",
 			"command": "python",
 			"args": [
 				"-m",
 				"pytest",
 				"tests/",
-				"-v",
-				"--tb=short"
+				"-v"
 			],
 			"group": "test",
-			"problemMatcher": []
-		},
-		{
-			"label": "Create Pull Request",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"$title = Read-Host 'Enter PR title'; $body = Read-Host 'Enter PR description'; gh pr create --title \"$title\" --body \"$body\" --base develop"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Check PR Status",
-			"type": "shell",
-			"command": "gh",
-			"args": [
-				"pr",
-				"status"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Merge Current PR",
-			"type": "shell",
-			"command": "gh",
-			"args": [
-				"pr",
-				"merge",
-				"--squash",
-				"--delete-branch"
-			],
-			"group": "build",
-			"problemMatcher": []
-		},
-		{
-			"label": "Resolve Merge Conflicts",
-			"type": "shell",
-			"command": "powershell",
-			"args": [
-				"-Command",
-				"Write-Host 'Opening merge tool...'; git mergetool; Write-Host 'After resolving conflicts, run: git add . && git commit'"
-			],
-			"group": "build",
 			"problemMatcher": []
 		},
 		{
 			"label": "Pre-commit Checks",
 			"dependsOrder": "sequence",
 			"dependsOn": [
-				"Validate Before PR",
-				"Run All Tests"
+				"Validate Registries",
+				"Run Tests"
 			],
 			"group": "test"
-		},
-		{
-			"label": "Full PR Workflow",
-			"dependsOrder": "sequence",
-			"dependsOn": [
-				"Sync with Develop",
-				"Pre-commit Checks",
-				"Create Pull Request"
-			],
-			"group": "build"
 		}
 	],
 	"inputs": [
 		{
-			"id": "version",
+			"id": "versionNumber",
 			"type": "promptString",
-			"description": "Enter version number",
-			"default": "1.0.0"
+			"description": "Version (e.g., 1.0.0, PR-123, baseline)",
+			"default": "current"
 		}
 	]
 }
