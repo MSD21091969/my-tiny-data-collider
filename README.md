@@ -4,17 +4,7 @@ A comprehensive data integration and API orchestration platform built with FastA
 
 ## Quick Start
 
-After cloning the repository, run the **Session Startup** task in VS Code for immediate context and session planning:
-
-```
-Tasks: Run Task → "Session Startup"
-```
-
-This will:
-- Check field notes for previous session context
-- Display knowledge base status
-- Show current branch and recent changes
-- Present context menu for focused development
+After cloning the repository, AI assistant will check field notes for context.
 
 ## Architecture Overview
 
@@ -39,7 +29,6 @@ This will:
 - `feature/*`: Feature branches (CI required)
 
 ### Available Tasks
-- **Session Startup**: Initialize development session with context
 - **Complete Toolset Setup**: Full analysis and tooling setup
 - **Quick Analysis**: Fast codebase analysis
 - **Pre-commit Checks**: Validation and testing before PRs

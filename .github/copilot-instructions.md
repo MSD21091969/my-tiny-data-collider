@@ -8,12 +8,11 @@
 - Base every response on repository evidence, tool output, or **conceptual context** from toolset resources.
 - Skip fluff, emojis, and management speak; maintain engineering cadence.
 - Work autonomously when the task is clear and the user has delegated ownership.
-- **Leverage conceptual laboratory**: Use FIELD_REFERENCES.md and toolset collections for rich context when concrete data is absent.
+- **Leverage conceptual laboratory**: Use toolset collections for rich context when concrete data is absent.
 
 ### Response Guidelines
 - **Start every session:** Check `MY_FIELD_NOTES.md` for persistent context and previous session state
-- **Session Startup Protocol:** Run "Session Startup" task for comprehensive status check
-- **Context Menu Approach:** After startup, offer focused session options (field notes, knowledge base, branch work, analysis, PR review, web research)
+- **Context Menu Approach:** Suggest focused session options based on field notes and current state
 - **Auto-detect development context** and suggest appropriate tasks without asking:
   - Test `code_analyzer` command → suggest Direct tasks
   - Check for `TINYTOOLSET/` → suggest Legacy setup tasks  
@@ -22,7 +21,7 @@
 - **Run appropriate VS Code tasks** based on detected environment without mentioning task type
 - **Check Git status** and branch protection rules from `.github/BRANCH_PROTECTION.md` for PR workflows
 - Reach for MCP tools, repo utilities, or test runs whenever they yield authoritative answers for CI/CD or workspace state.
-- Unblock the user's immediate question; reference `BRANCH_DEVELOPMENT_PLAN.md` when it anchors context.
+- Unblock the user's immediate question using field notes and current analysis.
 - Prefer file paths, diffs, or command output over prose when they communicate faster.
 - Keep responses tight; produce layered summaries only when the user requests them explicitly.
 - Call out follow-up actions only when they exist and align with the current plan.
@@ -53,21 +52,16 @@
 - `"fix the mapping analyzer"` → Address known toolset issues
 
 ### Conceptual Laboratory Integration
-- **Session Startup:** Always check `MY_FIELD_NOTES.md` first for persistent context from previous sessions
 - **Documentation Access:** Reference README.md for project overview, .github/ docs for workflows
-- **When concrete data is absent**: Reference `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\MY_FIELD_NOTES.md` for domain patterns and architectural guidance
-- **For AI collaboration**: Access personal documentation at `tool-outputs\docs\personal\` (persistent across sessions)
-- **For design decisions**: Use FastAPI configs, Pydantic examples, and schema patterns as reference
-- **For learning/exploration**: Leverage prompt collections and educational resources
-- **Human-relevant context hints**: Always check personal field notes for current guidance approach
-- **Knowledge Base Access**: Use `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\FIELD_REFERENCES.md` and README.md for systematic reference
+- **Personal Context**: Access `C:\Users\HP\Desktop\krabbel\tool-outputs\docs\personal\` for AI collaboration and domain patterns
+- **Design Resources**: Use FastAPI configs, Pydantic examples, schema patterns, and prompt collections
 - **Branch Context**: Check `.github/BRANCH_PROTECTION.md` for workflow requirements and PR rules
 - **Service Documentation**: Reference individual service README files in scripts/, config/, tests/ directories
 
 ### Conversation Flow
 - Reply in sequence and log new decisions or discoveries in the branch plan as they surface.
 - Investigate with tools first, then report back with citations to files or commands.
-- Treat living documents (`BRANCH_DEVELOPMENT_PLAN.md`, subsystem overviews) as the shared ledger for ongoing work.
+- Treat field notes and analysis results as the shared ledger for ongoing work.
 - Advance without transition fluff; no restating prior agreements or conclusions.
 
 ### Documentation
