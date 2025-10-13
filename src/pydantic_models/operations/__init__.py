@@ -11,5 +11,32 @@ These are operation models that work with canonical entities.
 For canonical entities, see pydantic_models.canonical
 """
 
-# Will export specific operations after creating all files
-__all__ = []
+from .casefile_ops import (
+    CreateCasefileRequest,
+    CreateCasefileResponse,
+    CreateCasefilePayload,
+    UpdateCasefileRequest,
+    UpdateCasefileResponse,
+    UpdateCasefilePayload,
+    GetCasefileRequest,
+    GetCasefileResponse,
+    DeleteCasefileRequest,
+    DeleteCasefileResponse,
+    ListCasefilesRequest,
+    ListCasefilesResponse,
+)
+
+__all__ = [
+    "CreateCasefileRequest",
+    "CreateCasefileResponse",
+    "CreateCasefilePayload",
+    "UpdateCasefileRequest",
+    "UpdateCasefileResponse",
+    "UpdateCasefilePayload",
+    "GetCasefileRequest",
+    "GetCasefileResponse",
+    "DeleteCasefileRequest",
+    "DeleteCasefileResponse",
+    "ListCasefilesRequest",
+    "ListCasefilesResponse",
+]

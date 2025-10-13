@@ -17,6 +17,12 @@ Usage:
 """
 
 from .loader import RegistryLoader, get_validation_mode_from_env
+from .parameter_mapping import (
+    ParameterMappingReport,
+    ParameterMappingValidator,
+    ParameterMismatch,
+    validate_parameter_mappings,
+)
 from .types import (
     ConsistencyReport,
     CoverageReport,
@@ -33,4 +39,9 @@ __all__ = [
     "ConsistencyReport",
     "DriftReport",
     "get_validation_mode_from_env",
+    # Parameter mapping validation
+    "ParameterMappingReport",
+    "ParameterMappingValidator",
+    "ParameterMismatch",
+    "validate_parameter_mappings",
 ]

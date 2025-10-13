@@ -40,6 +40,91 @@ After cloning the repository, AI assistant will check field notes for context.
 - **excel_exporter**: Analysis results in Excel format
 - **mapping_analyzer**: Model relationships (needs CLI interface)
 
+## Pydantic Validation Enhancements
+
+### Custom Types Library
+The project includes 20+ reusable Annotated types for consistent validation:
+
+```python
+from src.pydantic_models.base.custom_types import (
+    CasefileId, ToolSessionId, ChatSessionId,
+    ShortString, MediumString, LongString,
+    PositiveInt, NonNegativeInt,
+    IsoTimestamp, EmailAddress, TagList
+)
+
+class MyModel(BaseModel):
+    id: CasefileId              # Auto-validates UUID, converts to lowercase
+    title: ShortString          # 1-200 characters
+    count: PositiveInt          # Must be > 0
+    created_at: IsoTimestamp    # ISO 8601 format validation
+    tags: TagList               # List of non-empty strings
+```
+
+**Available Custom Types:**
+- **IDs**: `CasefileId`, `ToolSessionId`, `ChatSessionId`, `SessionId`
+- **Strings**: `NonEmptyString`, `ShortString` (1-200), `MediumString` (1-1000), `LongString` (1-10000)
+- **Numbers**: `PositiveInt`, `NonNegativeInt`, `PositiveFloat`, `NonNegativeFloat`, `Percentage`, `FileSizeBytes`
+- **Email/URL**: `EmailAddress`, `UrlString`
+- **Timestamps**: `IsoTimestamp` (ISO 8601 format)
+- **Collections**: `TagList`, `EmailList`
+
+### Reusable Validators
+Extract common validation patterns with reusable validators:
+
+```python
+from src.pydantic_models.base.validators import (
+    validate_timestamp_order,
+    validate_at_least_one,
+    validate_mutually_exclusive,
+    validate_conditional_required
+)
+
+@model_validator(mode='after')
+def validate_model(self) -> 'MyModel':
+    # Ensure created_at <= updated_at
+    validate_timestamp_order(self, 'created_at', 'updated_at')
+    
+    # At least one contact method required
+    validate_at_least_one(self, ['email', 'phone', 'address'])
+    
+    # Only one payment method allowed
+    validate_mutually_exclusive(self, ['credit_card', 'paypal', 'bank_transfer'])
+    
+    return self
+```
+
+**Available Validators:**
+- `validate_timestamp_order` - Ensure timestamp ordering
+- `validate_at_least_one` - At least one field required
+- `validate_mutually_exclusive` - Only one field allowed
+- `validate_conditional_required` - Conditional field requirements
+- `validate_list_not_empty` - Non-empty list validation
+- `validate_list_unique` - Unique list items
+- `validate_range` - Numeric range validation
+- `validate_string_length` - String length constraints
+- `validate_depends_on` - Field dependency validation
+
+See `docs/VALIDATION_PATTERNS.md` for detailed usage examples and migration guide.
+
+## Documentation
+
+### Core Documentation
+- **[Documentation Index](docs/README.md)** - Complete documentation guide and navigation ⭐
+- **[Validation Patterns](docs/VALIDATION_PATTERNS.md)** - Custom types and validators guide
+- **[Development Progress](docs/DEVELOPMENT_PROGRESS.md)** - Phase 1 completion tracking (27/32 hours)
+- **[Phase 1 Summary](docs/PHASE1_COMPLETION_SUMMARY.md)** - Comprehensive achievements overview
+
+### Technical References
+- **[Parameter Mapping Results](docs/PARAMETER_MAPPING_RESULTS.md)** - 40 tool-method mismatches discovered
+- **[Pytest Import Issue](docs/PYTEST_IMPORT_ISSUE.md)** - Test collection issue and workarounds
+- **[Parameter Mapping Test Issues](docs/PARAMETER_MAPPING_TEST_ISSUES.md)** - Test creation challenges
+
+### Planning Documents
+- **[Pydantic Enhancement Longlist](docs/PYDANTIC_ENHANCEMENT_LONGLIST.md)** - Original planning (historical reference)
+
+**See [docs/README.md](docs/README.md) for complete documentation index and quick navigation.**
+
 ## Knowledge Base
 
 ### Documentation
@@ -67,18 +152,43 @@ After cloning the repository, AI assistant will check field notes for context.
 
 ### Registry Validation
 ```bash
+# Full validation (coverage, consistency, drift, parameter mapping)
 python scripts/validate_registries.py --strict --verbose
+
+# Skip specific validations
+python scripts/validate_registries.py --no-drift --no-param-mapping
+
+# Detailed parameter mapping validation
+python scripts/validate_parameter_mappings.py --verbose
 ```
+
+**Validation Features:**
+- **Coverage Validation**: Ensures all tools reference valid methods
+- **Consistency Validation**: Checks method/tool configuration consistency
+- **Drift Detection**: Compares YAML definitions with code implementation
+- **Parameter Mapping**: Validates tool-to-method parameter compatibility
 
 ### Test Suites
 ```bash
+# Run all tests
 python -m pytest tests/ -v --tb=short
+
+# Run specific test suites
+python -m pytest tests/pydantic_models/ -v  # Model validation tests
+python -m pytest tests/registry/ -v          # Registry tests
+python -m pytest tests/integration/ -v       # Integration tests
 ```
+
+**Test Coverage:**
+- **Pydantic Models**: 116 tests (custom types, canonical models, validators)
+- **Registry System**: 43 tests (method/tool registration, validation)
+- **Integration**: Service initialization and cross-service patterns
 
 ### Integration Tests
 - Service initialization and configuration
 - Registry validation and drift detection
 - Cross-service communication patterns
+- Parameter mapping and validation
 
 ## Getting Started
 

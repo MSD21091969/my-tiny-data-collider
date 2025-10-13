@@ -41,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.pydantic_ai_integration.registry import RegistryLoader, ValidationMode
+from src.pydantic_ai_integration.registry.parameter_mapping import validate_parameter_mappings
 
 # Configure logging
 logging.basicConfig(
@@ -80,6 +81,12 @@ Examples:
         "--no-drift",
         action="store_true",
         help="Disable drift detection",
+    )
+
+    parser.add_argument(
+        "--no-param-mapping",
+        action="store_true",
+        help="Disable parameter mapping validation",
     )
 
     parser.add_argument(
@@ -142,18 +149,34 @@ def determine_drift_detection(args) -> bool:
     return skip_drift != "true"
 
 
-def print_summary(result):
+def determine_param_mapping_validation(args) -> bool:
+    """
+    Determine if parameter mapping validation should be enabled.
+
+    Priority:
+    1. Command-line argument (--no-param-mapping)
+    2. Environment variable (SKIP_PARAM_MAPPING)
+    3. Default (enabled)
+    """
+    if args.no_param_mapping:
+        return False
+
+    skip_param = os.getenv("SKIP_PARAM_MAPPING", "false").lower()
+    return skip_param != "true"
+
+
+def print_summary(result, param_mapping_report=None):
     """Print validation summary."""
     print("\n" + "=" * 70)
     print("REGISTRY VALIDATION SUMMARY")
     print("=" * 70)
 
     if result.success:
-        print("✅ Status: SUCCESS")
+        print("[OK] Status: SUCCESS")
         print(f"📊 Methods: {result.methods_count}")
         print(f"🔧 Tools: {result.tools_count}")
     else:
-        print("❌ Status: FAILED")
+        print("[FAIL] Status: FAILED")
         if result.error:
             print(f"💥 Error: {result.error}")
 
@@ -161,58 +184,95 @@ def print_summary(result):
     if result.coverage_report:
         print("\n📋 Coverage Validation:")
         if result.coverage_report.has_errors:
-            print(f"  ❌ {result.coverage_report.error_count} issues found")
+            print(f"  [ERROR] {result.coverage_report.error_count} issues found")
             if result.coverage_report.missing_tools:
                 print(f"  - Missing tools: {len(result.coverage_report.missing_tools)}")
             if result.coverage_report.orphaned_tools:
                 print(f"  - Orphaned tools: {len(result.coverage_report.orphaned_tools)}")
         else:
-            print("  ✅ All checks passed")
+            print("  [OK] All checks passed")
 
     # Consistency report
     if result.consistency_report:
-        print("\n🔍 Consistency Validation:")
+        print("\nConsistency Validation:")
         if result.consistency_report.has_errors:
-            print(f"  ❌ {result.consistency_report.error_count} issues found")
+            print(f"  [ERROR] {result.consistency_report.error_count} issues found")
         else:
-            print("  ✅ All checks passed")
+            print("  [OK] All checks passed")
 
     # Drift report
     if result.drift_report:
-        print("\n🔄 Drift Detection:")
+        print("\nDrift Detection:")
         if result.drift_report.has_errors:
-            print(f"  ❌ {result.drift_report.error_count} issues found")
+            print(f"  [ERROR] {result.drift_report.error_count} issues found")
             if result.drift_report.missing_in_yaml:
                 print(f"  - Missing in YAML: {len(result.drift_report.missing_in_yaml)}")
             if result.drift_report.missing_in_code:
                 print(f"  - Missing in code: {len(result.drift_report.missing_in_code)}")
         else:
-            print("  ✅ No drift detected")
+            print("  [OK] No drift detected")
+
+    # Parameter mapping report
+    if param_mapping_report:
+        print("\nParameter Mapping Validation:")
+        if param_mapping_report.has_errors:
+            print(f"  [ERROR] {param_mapping_report.error_count} errors, {param_mapping_report.warning_count} warnings")
+            print(f"  - Tools checked: {param_mapping_report.tools_checked}/{param_mapping_report.total_tools}")
+            print(f"  - Tools with issues: {param_mapping_report.tools_with_mismatches}")
+        else:
+            print(f"  [OK] All parameter mappings valid ({param_mapping_report.tools_checked} tools checked)")
 
     print("=" * 70)
 
 
-def print_detailed_errors(result):
+def print_detailed_errors(result, param_mapping_report=None):
     """Print detailed error information."""
     has_errors = False
 
     # Coverage errors
     if result.coverage_report and result.coverage_report.has_errors:
         has_errors = True
-        print("\n❌ COVERAGE ERRORS:")
+        print("\n[ERROR] COVERAGE ERRORS:")
         print(result.coverage_report)
 
     # Consistency errors
     if result.consistency_report and result.consistency_report.has_errors:
         has_errors = True
-        print("\n❌ CONSISTENCY ERRORS:")
+        print("\n[ERROR] CONSISTENCY ERRORS:")
         print(result.consistency_report)
 
     # Drift errors
     if result.drift_report and result.drift_report.has_errors:
         has_errors = True
-        print("\n❌ DRIFT DETECTED:")
+        print("\n[ERROR] DRIFT DETECTED:")
         print(result.drift_report)
+
+    # Parameter mapping errors
+    if param_mapping_report and param_mapping_report.has_errors:
+        has_errors = True
+        print("\n[ERROR] PARAMETER MAPPING ERRORS:")
+        # Print only first 10 errors to avoid overwhelming output
+        error_mismatches = [m for m in param_mapping_report.mismatches if m.severity == "error"]
+        warning_mismatches = [m for m in param_mapping_report.mismatches if m.severity == "warning"]
+        
+        if error_mismatches:
+            print(f"\nFound {len(error_mismatches)} error(s):")
+            for mismatch in error_mismatches[:10]:
+                print(f"  [ERROR] {mismatch.tool_name} -> {mismatch.method_name}")
+                print(f"          {mismatch.parameter_name}: {mismatch.message}")
+            if len(error_mismatches) > 10:
+                print(f"  ... and {len(error_mismatches) - 10} more errors")
+        
+        if warning_mismatches:
+            print(f"\nFound {len(warning_mismatches)} warning(s):")
+            for mismatch in warning_mismatches[:5]:
+                print(f"  [WARN] {mismatch.tool_name} -> {mismatch.method_name}")
+                print(f"         {mismatch.parameter_name}: {mismatch.message}")
+            if len(warning_mismatches) > 5:
+                print(f"  ... and {len(warning_mismatches) - 5} more warnings")
+        
+        print("\nRun: python scripts/validate_parameter_mappings.py --verbose")
+        print("For complete parameter mapping validation report.")
 
     return has_errors
 
@@ -225,9 +285,11 @@ def main():
     # Determine configuration
     validation_mode = determine_validation_mode(args)
     enable_drift = determine_drift_detection(args)
+    enable_param_mapping = determine_param_mapping_validation(args)
 
     logger.info(f"Validation mode: {validation_mode.value}")
     logger.info(f"Drift detection: {'enabled' if enable_drift else 'disabled'}")
+    logger.info(f"Parameter mapping: {'enabled' if enable_param_mapping else 'disabled'}")
 
     try:
         # Create loader with configuration
@@ -240,12 +302,25 @@ def main():
         logger.info("Starting registry validation...")
         result = loader.load_all_registries()
 
+        # Run parameter mapping validation if enabled
+        param_mapping_report = None
+        if enable_param_mapping and result.success:
+            logger.info("Running parameter mapping validation...")
+            try:
+                param_mapping_report = validate_parameter_mappings()
+                logger.info(f"Parameter mapping: {param_mapping_report.tools_checked} tools checked, "
+                          f"{param_mapping_report.error_count} errors, {param_mapping_report.warning_count} warnings")
+            except Exception as e:
+                logger.error(f"Parameter mapping validation failed: {e}")
+                if args.verbose:
+                    raise
+
         # Print summary
         if not args.quiet:
-            print_summary(result)
+            print_summary(result, param_mapping_report)
 
         # Print detailed errors if any
-        has_errors = print_detailed_errors(result)
+        has_errors = print_detailed_errors(result, param_mapping_report)
 
         # Determine exit code
         if not result.success:
@@ -256,14 +331,14 @@ def main():
             return 1
         else:
             if not args.quiet:
-                logger.info("✅ All validations passed!")
+                logger.info("[OK] All validations passed!")
             return 0
 
     except KeyboardInterrupt:
-        logger.error("\n❌ Validation interrupted by user")
+        logger.error("\n[ERROR] Validation interrupted by user")
         return 2
     except Exception as e:
-        logger.error(f"❌ Script execution error: {e}", exc_info=args.verbose)
+        logger.error(f"[ERROR] Script execution error: {e}", exc_info=args.verbose)
         return 2
 
 

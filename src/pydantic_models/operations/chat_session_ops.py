@@ -12,6 +12,14 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from ..base.custom_types import (
+    ChatSessionId,
+    CasefileId,
+    IsoTimestamp,
+    ShortString,
+    PositiveInt,
+    NonNegativeInt,
+)
 from ..base.envelopes import BaseRequest, BaseResponse
 from ..views.session_views import ChatSessionSummary
 
@@ -21,8 +29,16 @@ from ..views.session_views import ChatSessionSummary
 
 class CreateChatSessionPayload(BaseModel):
     """Payload for creating a new chat session."""
-    casefile_id: Optional[str] = Field(None, description="Optional casefile ID to associate")
-    title: Optional[str] = Field(None, description="Optional session title")
+    casefile_id: Optional[CasefileId] = Field(
+        None,
+        description="Optional casefile ID to associate",
+        json_schema_extra={"examples": ["cf_251013_abc123", "cf_250915_xyz789"]}
+    )
+    title: Optional[ShortString] = Field(
+        None,
+        description="Optional session title",
+        json_schema_extra={"examples": ["Customer Support Chat", "Legal Consultation"]}
+    )
 
 
 class CreateChatSessionRequest(BaseRequest[CreateChatSessionPayload]):
@@ -32,9 +48,21 @@ class CreateChatSessionRequest(BaseRequest[CreateChatSessionPayload]):
 
 class ChatSessionCreatedPayload(BaseModel):
     """Response payload for chat session creation."""
-    session_id: str = Field(..., description="Created session ID (cs_yymmdd_xxx)")
-    casefile_id: Optional[str] = Field(None, description="Associated casefile ID if any")
-    created_at: str = Field(..., description="Session creation timestamp (ISO 8601)")
+    session_id: ChatSessionId = Field(
+        ...,
+        description="Created session ID (cs_yymmdd_xxx)",
+        json_schema_extra={"examples": ["cs_251013_chat001", "cs_250920_conv456"]}
+    )
+    casefile_id: Optional[CasefileId] = Field(
+        None,
+        description="Associated casefile ID if any",
+        json_schema_extra={"examples": ["cf_251013_abc123"]}
+    )
+    created_at: IsoTimestamp = Field(
+        ...,
+        description="Session creation timestamp (ISO 8601)",
+        json_schema_extra={"examples": ["2025-10-13T14:30:00Z", "2025-10-13T09:15:30+00:00"]}
+    )
 
 
 class CreateChatSessionResponse(BaseResponse[ChatSessionCreatedPayload]):
@@ -48,8 +76,16 @@ class CreateChatSessionResponse(BaseResponse[ChatSessionCreatedPayload]):
 
 class GetChatSessionPayload(BaseModel):
     """Payload for retrieving a chat session."""
-    session_id: str = Field(..., description="Session ID to retrieve")
-    include_messages: bool = Field(default=False, description="Include full message history")
+    session_id: ChatSessionId = Field(
+        ...,
+        description="Session ID to retrieve",
+        json_schema_extra={"examples": ["cs_251013_chat001", "cs_250920_conv456"]}
+    )
+    include_messages: bool = Field(
+        default=False,
+        description="Include full message history",
+        json_schema_extra={"examples": [True, False]}
+    )
 
 
 class GetChatSessionRequest(BaseRequest[GetChatSessionPayload]):
@@ -59,16 +95,54 @@ class GetChatSessionRequest(BaseRequest[GetChatSessionPayload]):
 
 class ChatSessionDataPayload(BaseModel):
     """Response payload with full chat session data."""
-    session_id: str = Field(..., description="Session ID")
-    user_id: str = Field(..., description="User who owns the session")
-    casefile_id: Optional[str] = Field(None, description="Associated casefile ID")
-    created_at: str = Field(..., description="Creation timestamp")
-    updated_at: str = Field(..., description="Last update timestamp")
-    active: bool = Field(..., description="Whether session is active")
-    message_count: int = Field(default=0, description="Number of messages in session")
-    event_count: int = Field(default=0, description="Total events in session")
-    messages: List[dict] = Field(default_factory=list, description="Message history if requested")
-    metadata: dict = Field(default_factory=dict, description="Additional session metadata")
+    session_id: ChatSessionId = Field(
+        ...,
+        description="Session ID",
+        json_schema_extra={"examples": ["cs_251013_chat001"]}
+    )
+    user_id: str = Field(
+        ...,
+        description="User who owns the session",
+        json_schema_extra={"examples": ["user@example.com", "admin@company.org"]}
+    )
+    casefile_id: Optional[CasefileId] = Field(
+        None,
+        description="Associated casefile ID",
+        json_schema_extra={"examples": ["cf_251013_abc123"]}
+    )
+    created_at: IsoTimestamp = Field(
+        ...,
+        description="Creation timestamp",
+        json_schema_extra={"examples": ["2025-10-13T14:30:00Z"]}
+    )
+    updated_at: IsoTimestamp = Field(
+        ...,
+        description="Last update timestamp",
+        json_schema_extra={"examples": ["2025-10-13T15:45:00Z"]}
+    )
+    active: bool = Field(
+        ...,
+        description="Whether session is active",
+        json_schema_extra={"examples": [True, False]}
+    )
+    message_count: NonNegativeInt = Field(
+        default=0,
+        description="Number of messages in session",
+        json_schema_extra={"examples": [0, 15, 42]}
+    )
+    event_count: NonNegativeInt = Field(
+        default=0,
+        description="Total events in session",
+        json_schema_extra={"examples": [0, 8, 23]}
+    )
+    messages: List[dict] = Field(
+        default_factory=list,
+        description="Message history if requested"
+    )
+    metadata: dict = Field(
+        default_factory=dict,
+        description="Additional session metadata"
+    )
 
 
 class GetChatSessionResponse(BaseResponse[ChatSessionDataPayload]):
@@ -82,11 +156,34 @@ class GetChatSessionResponse(BaseResponse[ChatSessionDataPayload]):
 
 class ListChatSessionsPayload(BaseModel):
     """Payload for listing chat sessions with filters."""
-    user_id: Optional[str] = Field(None, description="Filter by user ID")
-    casefile_id: Optional[str] = Field(None, description="Filter by casefile ID")
-    active_only: bool = Field(default=True, description="Only return active sessions")
-    limit: int = Field(default=50, ge=1, le=100, description="Maximum results to return")
-    offset: int = Field(default=0, ge=0, description="Offset for pagination")
+    user_id: Optional[str] = Field(
+        None,
+        description="Filter by user ID",
+        json_schema_extra={"examples": ["user@example.com"]}
+    )
+    casefile_id: Optional[CasefileId] = Field(
+        None,
+        description="Filter by casefile ID",
+        json_schema_extra={"examples": ["cf_251013_abc123"]}
+    )
+    active_only: bool = Field(
+        default=True,
+        description="Only return active sessions",
+        json_schema_extra={"examples": [True, False]}
+    )
+    limit: PositiveInt = Field(
+        default=50,
+        ge=1,
+        le=100,
+        description="Maximum results to return",
+        json_schema_extra={"examples": [10, 25, 50, 100]}
+    )
+    offset: NonNegativeInt = Field(
+        default=0,
+        ge=0,
+        description="Offset for pagination",
+        json_schema_extra={"examples": [0, 50, 100]}
+    )
 
 
 class ListChatSessionsRequest(BaseRequest[ListChatSessionsPayload]):
@@ -96,10 +193,25 @@ class ListChatSessionsRequest(BaseRequest[ListChatSessionsPayload]):
 
 class ChatSessionListPayload(BaseModel):
     """Response payload with list of chat sessions."""
-    sessions: List[ChatSessionSummary] = Field(default_factory=list, description="List of sessions")
-    total_count: int = Field(..., description="Total matching sessions")
-    offset: int = Field(..., description="Current offset")
-    limit: int = Field(..., description="Current limit")
+    sessions: List[ChatSessionSummary] = Field(
+        default_factory=list,
+        description="List of sessions"
+    )
+    total_count: NonNegativeInt = Field(
+        ...,
+        description="Total matching sessions",
+        json_schema_extra={"examples": [0, 5, 42, 156]}
+    )
+    offset: NonNegativeInt = Field(
+        ...,
+        description="Current offset",
+        json_schema_extra={"examples": [0, 50, 100]}
+    )
+    limit: PositiveInt = Field(
+        ...,
+        description="Current limit",
+        json_schema_extra={"examples": [10, 25, 50]}
+    )
 
 
 class ListChatSessionsResponse(BaseResponse[ChatSessionListPayload]):
@@ -113,7 +225,11 @@ class ListChatSessionsResponse(BaseResponse[ChatSessionListPayload]):
 
 class CloseChatSessionPayload(BaseModel):
     """Payload for closing a chat session."""
-    session_id: str = Field(..., description="Session ID to close")
+    session_id: ChatSessionId = Field(
+        ...,
+        description="Session ID to close",
+        json_schema_extra={"examples": ["cs_251013_chat001", "cs_250920_conv456"]}
+    )
 
 
 class CloseChatSessionRequest(BaseRequest[CloseChatSessionPayload]):
@@ -123,11 +239,31 @@ class CloseChatSessionRequest(BaseRequest[CloseChatSessionPayload]):
 
 class ChatSessionClosedPayload(BaseModel):
     """Response payload for closed chat session."""
-    session_id: str = Field(..., description="Closed session ID")
-    closed_at: str = Field(..., description="Session close timestamp")
-    total_messages: int = Field(..., description="Total messages in session")
-    total_events: int = Field(..., description="Total events generated")
-    duration_seconds: Optional[int] = Field(None, description="Session duration in seconds")
+    session_id: ChatSessionId = Field(
+        ...,
+        description="Closed session ID",
+        json_schema_extra={"examples": ["cs_251013_chat001"]}
+    )
+    closed_at: IsoTimestamp = Field(
+        ...,
+        description="Session close timestamp",
+        json_schema_extra={"examples": ["2025-10-13T16:00:00Z"]}
+    )
+    total_messages: NonNegativeInt = Field(
+        ...,
+        description="Total messages in session",
+        json_schema_extra={"examples": [0, 15, 42]}
+    )
+    total_events: NonNegativeInt = Field(
+        ...,
+        description="Total events generated",
+        json_schema_extra={"examples": [0, 8, 23]}
+    )
+    duration_seconds: Optional[NonNegativeInt] = Field(
+        None,
+        description="Session duration in seconds",
+        json_schema_extra={"examples": [300, 1800, 3600]}
+    )
 
 
 class CloseChatSessionResponse(BaseResponse[ChatSessionClosedPayload]):

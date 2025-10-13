@@ -12,6 +12,11 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, computed_field, field_validator
 
+from ..base.custom_types import (
+    ChatSessionId,
+    CasefileId,
+    ShortString,
+)
 from ..base.envelopes import BaseRequest, BaseResponse
 from ..canonical.chat_session import MessageType
 
@@ -21,11 +26,31 @@ from ..canonical.chat_session import MessageType
 
 class ToolRequestPayload(BaseModel):
     """Payload for a tool execution request."""
-    tool_name: str = Field(..., description="Name of the tool to execute")
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="Parameters for the tool")
-    prompt: Optional[str] = Field(None, description="Optional prompt for AI-assisted tool execution")
-    casefile_id: Optional[str] = Field(None, description="Optional casefile context")
-    session_request_id: Optional[str] = Field(None, description="Client-provided session request ID for tracking")
+    tool_name: ShortString = Field(
+        ...,
+        description="Name of the tool to execute",
+        json_schema_extra={"examples": ["create_casefile_tool", "list_messages_tool", "search_drive_tool"]}
+    )
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Parameters for the tool",
+        json_schema_extra={"examples": [{"title": "New Case", "tags": ["urgent"]}, {"query": "contract", "max_results": 10}]}
+    )
+    prompt: Optional[str] = Field(
+        None,
+        description="Optional prompt for AI-assisted tool execution",
+        json_schema_extra={"examples": ["Find all emails from last week about the project", "Create a casefile for this investigation"]}
+    )
+    casefile_id: Optional[CasefileId] = Field(
+        None,
+        description="Optional casefile context",
+        json_schema_extra={"examples": ["cf_251013_abc123"]}
+    )
+    session_request_id: Optional[ShortString] = Field(
+        None,
+        description="Client-provided session request ID for tracking",
+        json_schema_extra={"examples": ["req_001", "exec_abc123"]}
+    )
     
     @field_validator('tool_name')
     @classmethod
@@ -45,9 +70,21 @@ class ToolRequestPayload(BaseModel):
 
 class ToolResponsePayload(BaseModel):
     """Payload for a tool execution response."""
-    result: Dict[str, Any] = Field(..., description="Result of the tool execution")
-    events: List[Dict[str, Any]] = Field(default_factory=list, description="Events generated during execution")
-    session_request_id: Optional[str] = Field(None, description="Client-provided session request ID for tracking")
+    result: Dict[str, Any] = Field(
+        ...,
+        description="Result of the tool execution",
+        json_schema_extra={"examples": [{"casefile_id": "cf_251013_abc123", "status": "created"}, {"messages": [], "count": 0}]}
+    )
+    events: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Events generated during execution",
+        json_schema_extra={"examples": [[{"event_type": "tool_execution_started", "timestamp": "2025-10-13T14:30:00Z"}]]}
+    )
+    session_request_id: Optional[ShortString] = Field(
+        None,
+        description="Client-provided session request ID for tracking",
+        json_schema_extra={"examples": ["req_001"]}
+    )
 
 
 class ToolRequest(BaseRequest[ToolRequestPayload]):
@@ -72,26 +109,72 @@ class ToolResponse(BaseResponse[ToolResponsePayload]):
 
 class ChatMessagePayload(BaseModel):
     """Canonical chat message structure (data entity, not request payload)."""
-    content: str = Field(..., description="Message content")
-    message_type: MessageType = Field(..., description="Type of message")
-    tool_calls: List[Dict[str, Any]] = Field(default_factory=list, description="Tool calls in this message")
-    session_request_id: Optional[str] = Field(None, description="Client-provided session request ID")
-    casefile_id: Optional[str] = Field(None, description="Associated casefile ID")
+    content: str = Field(
+        ...,
+        description="Message content",
+        json_schema_extra={"examples": ["Hello, how can I help you?", "I found 5 messages matching your query."]}
+    )
+    message_type: MessageType = Field(
+        ...,
+        description="Type of message",
+        json_schema_extra={"examples": ["user", "assistant", "tool", "system"]}
+    )
+    tool_calls: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Tool calls in this message",
+        json_schema_extra={"examples": [[{"tool": "create_casefile_tool", "parameters": {"title": "New Case"}}]]}
+    )
+    session_request_id: Optional[ShortString] = Field(
+        None,
+        description="Client-provided session request ID",
+        json_schema_extra={"examples": ["req_001"]}
+    )
+    casefile_id: Optional[CasefileId] = Field(
+        None,
+        description="Associated casefile ID",
+        json_schema_extra={"examples": ["cf_251013_abc123"]}
+    )
 
 
 class ChatRequestPayload(BaseModel):
     """Payload for chat message request (operation parameters)."""
-    message: str = Field(..., description="User message content")
-    session_id: str = Field(..., description="Chat session ID")
-    casefile_id: Optional[str] = Field(None, description="Optional casefile context")
-    session_request_id: Optional[str] = Field(None, description="Client-provided session request ID for tracking")
+    message: str = Field(
+        ...,
+        description="User message content",
+        json_schema_extra={"examples": ["Find all emails from last week", "Create a casefile for the Smith investigation"]}
+    )
+    session_id: ChatSessionId = Field(
+        ...,
+        description="Chat session ID",
+        json_schema_extra={"examples": ["cs_251013_chat001", "cs_250920_conv456"]}
+    )
+    casefile_id: Optional[CasefileId] = Field(
+        None,
+        description="Optional casefile context",
+        json_schema_extra={"examples": ["cf_251013_abc123"]}
+    )
+    session_request_id: Optional[ShortString] = Field(
+        None,
+        description="Client-provided session request ID for tracking",
+        json_schema_extra={"examples": ["req_001"]}
+    )
 
 
 class ChatResultPayload(BaseModel):
     """Payload for chat message response (operation result)."""
-    message: ChatMessagePayload = Field(..., description="Assistant's response message")
-    related_messages: List[ChatMessagePayload] = Field(default_factory=list, description="Related messages in conversation")
-    events: List[Dict[str, Any]] = Field(default_factory=list, description="Events generated during processing")
+    message: ChatMessagePayload = Field(
+        ...,
+        description="Assistant's response message"
+    )
+    related_messages: List[ChatMessagePayload] = Field(
+        default_factory=list,
+        description="Related messages in conversation"
+    )
+    events: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Events generated during processing",
+        json_schema_extra={"examples": [[{"event_type": "chat_message_processed", "timestamp": "2025-10-13T14:30:00Z"}]]}
+    )
 
 
 class ChatRequest(BaseRequest[ChatRequestPayload]):
