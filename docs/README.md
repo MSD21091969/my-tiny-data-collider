@@ -18,10 +18,11 @@
 4. **PARAMETER_MAPPING_RESULTS.md** (175 lines) - 40 mismatches to fix ⚠️
 5. **PYTEST_IMPORT_ISSUE.md** (280 lines) - 9 test files, workarounds
 6. **PARAMETER_MAPPING_TEST_ISSUES.md** (310 lines) - Test challenges
+7. **FIELD_RESEARCH_SUGGESTIONS.md** (570 lines) - Tool Engineering & RAG/Tuning research 🔬
 
 ## Historical
 
-7. **PYDANTIC_ENHANCEMENT_LONGLIST.md** (1135 lines) - Original plan (not updated)
+8. **PYDANTIC_ENHANCEMENT_LONGLIST.md** (1135 lines) - Original plan (not updated)
 
 ---
 
@@ -30,6 +31,7 @@
 **New Developers** → VALIDATION_PATTERNS.md  
 **PR Reviewers** → PHASE1_COMPLETION_SUMMARY.md  
 **Maintainers** → PARAMETER_MAPPING_RESULTS.md (action items)  
+**Researchers** → FIELD_RESEARCH_SUGGESTIONS.md (RAG/Tool Engineering)  
 **Planners** → PYDANTIC_ENHANCEMENT_LONGLIST.md (historical)
 
 ---
