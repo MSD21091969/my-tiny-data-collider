@@ -1,149 +1,335 @@
 # AI Instructions - Tiny Data Collider
 
+**Last Updated:** 2025-10-14
+
 ## 0. Session Startup Protocol
 
-**Multi-repo workspace (recommended):**
-```powershell
-# Open both repos together
-code .github\my-tiny-toolset.code-workspace
-```
-This gives access to both collider code and toolset documentation in one workspace.
-
-**Single-repo mode (current):**
-
-**Every new session, run this sequence:**
+**Every new session:**
 
 1. **Set environment:** `$env:MY_TOOLSET = "C:\Users\HP\my-tiny-toolset\TOOLSET"`
-2. **Check branch:** `git status` - Confirm you're on correct branch
-3. **Quick Analysis:** Run VS Code task "Quick Analysis" (Ctrl+Shift+P → Tasks: Run Task)
-4. **Review outputs:** Check `.tool-outputs/analysis/` for context
-5. **Report status:** Summarize branch, models count, known issues
+2. **Read toolset context:** Check `C:\Users\HP\my-tiny-toolset\.github\copilot-instructions.md` for toolset usage patterns
+3. **Check branch:** `git status` - Confirm correct branch
+4. **Run tests:** `python -m pytest tests/ -v --tb=short` - Verify 159/159 passing
+5. **Verify test outputs:** Check test artifacts exist:
+   - `tests/reports/` - Excel report (1 file: `test_validation_report.xlsx`)
+   - `tests/reports/` - JSON files (2 files: `test_results.json`, `test_validation_summary.json`)
+   - `tests/reports/` - CSV files (4 files: `models.csv`, `methods.csv`, `tools.csv`, `validation_errors.csv`)
+6. **Check registry validation:** `python scripts/validate_registries.py --strict` (expect 40 parameter mapping issues)
+7. **Review context:** Read `ROUNDTRIP_ANALYSIS.md` for current system state
+8. **Report status:** Branch, tests (159/159), validation (40 issues), artifacts verified
 
-**Standard opening message:**
+**Standard opening:**
 ```
 Branch: <branch-name>
-Models: <count> | Functions: <count> | Mappings: <count>
-Status: <clean|modified files>
+Tests: 159/159 passing ✓
+Artifacts: Excel (1), JSON (2), CSV (4) ✓
+Validation: 40 parameter mapping issues (expected)
+Action Items: Fix tool YAMLs in config/methodtools_v1/ (HIGH PRIORITY)
 Ready. What are we working on?
 ```
+
+**Note:** Skip mapping_analyzer during startup (not needed for validation workflow).
 
 ---
 
 ## 1. What is "Tiny Data Collider"
 
 **What:**
-- Application repository: FastAPI-based data integration and API orchestration platform
-- Tech stack: FastAPI, Python 3.13+, Pydantic, Google Cloud (Firestore, Cloud Run)
-- Analysis toolset: Uses my-tiny-toolset for code inspection and documentation
+- FastAPI data integration platform with Pydantic validation
+- Google Workspace integration (Gmail, Drive, Sheets)
+- Casefile management, tool execution orchestration
+- Phase 1 complete: 20+ custom types, 9 validators, 159 tests
 
-**Who:**
-- Developed by: AI coding assistants (Copilot, agents) + human oversight
-- Maintained by: MSD21091969
-- Toolset: MSD21091969/my-tiny-toolset
+**Ultimate Purpose:**
+- **Tool Engineering Platform**: Build written/generated scripts for simple to advanced problem-solving
+- **YAML-Driven Architecture**: Generate code/models/tools/parameters from Pydantic models
+- **Agent Toolchain**: Premium agent tools + user tools for data workflows
+- **Data Cycle**: Transfer → Transformation → Analysis → RAG → Tuning (iterative)
+- **Session Management**: Structured chat sessions with context, goals, audit trail
 
-**Where:**
-- Repository: https://github.com/MSD21091969/my-tiny-data-collider.git
-- Toolset: https://github.com/MSD21091969/my-tiny-toolset.git
-- Workspace: `.github/my-tiny-toolset.code-workspace` (opens both repos)
-- Outputs: `.tool-outputs/` (gitignored, local only)
+**Current State:**
+- Branch: `feature/develop` (post-PR #34 merge)
+- Phase 1: 84% complete (27/32 hours)
+- MVP Goal: First working iteration of tool engineering framework
+- Tests: 159/159 passing (116 pydantic + 43 registry)
+- Action Items: 40 tool YAML mismatches (HIGH PRIORITY)
 
-**How:**
-- AI assistants use toolset to analyze code structure before/after changes
-- Tools run from this directory, outputs appear in `.tool-outputs/`
-- Environment variable: `$env:MY_TOOLSET` points to toolset location
+**Key Documents:**
+- `README.md` - Project overview, quick start (558 lines)
+- `ROUNDTRIP_ANALYSIS.md` - Complete system state + action items ⭐ GO-TO FILE
+- `docs/VALIDATION_PATTERNS.md` - Custom types & validators guide (769 lines)
+- `docs/PARAMETER_MAPPING_RESULTS.md` - 40 mismatches to fix
+
+**Two-Repository Context:**
+- **This repo (my-tiny-data-collider)**: Application code, models, services, tests
+- **Toolset repo (my-tiny-toolset)**: Analysis tools + knowledge base (REFERENCE/, WORKSPACE/, CONFIGS/)
+- **Toolset instructions**: `C:\Users\HP\my-tiny-toolset\.github\copilot-instructions.md` - Read for tool usage patterns
+- **Integration**: Application uses toolset for code analysis, not vice versa
+- **Knowledge Flow**: Patterns discovered here → Captured in toolset REFERENCE/ folders
 
 ---
 
 ## 2. Practices
 
 **Communication:**
-- Chat responses: Short, dry, no emojis (developers, not managers)
-- Report analysis results in chat when making significant changes
-- Update existing documents, do not create new ones without approval
+- Short, dry, no emojis (developers, not managers)
+- Report during work, summarize at completion
+- Update existing documents only (no new files without approval)
 
 **Code Maintenance:**
-- Run analysis before major changes (baseline)
-- Re-run analysis after changes (verification)
-- Include analysis summary in PR descriptions
-- Maintain backward compatibility in API changes
+- Use custom types from `src/pydantic_models/base/custom_types.py`
+- Use validators from `src/pydantic_models/base/validators.py`
+- Run validation: `python scripts/validate_registries.py --strict`
+- Run tests: `python -m pytest tests/pydantic_models/ -v`
 
 **Documentation:**
-- Keep README.md current with architectural changes
-- Update API documentation when endpoints change
-- Single source of truth: avoid duplicate information
+- Single source of truth: No duplicate information
+- Update README.md for architectural changes
+- Date stamp all major docs: `**Last Updated:** YYYY-MM-DD`
 
 ---
 
-## 3. Toolset Usage
+## 3. Validation Framework
 
-**Available tools** via `$env:MY_TOOLSET`:
+### Custom Types (20+ types)
 
-| Tool | Purpose | When to Use |
-|------|---------|-------------|
-| `version_tracker.py` | Full analysis + Git history | Before PR, after refactoring |
-| `code_analyzer.py` | Quick structure check | During development |
-| `mapping_analyzer.py` | Model relationships | When changing data models |
-| `excel_exporter.py` | Stakeholder reports | For documentation/review |
+**Location:** `src/pydantic_models/base/custom_types.py`
 
-**Common commands:**
-```powershell
-# Quick analysis
-python $env:MY_TOOLSET\version_tracker.py . --version 1.0.0 --json
+```python
+from src.pydantic_models.base.custom_types import (
+    CasefileId, ShortString, IsoTimestamp, PositiveInt
+)
 
-# Full report for PR
-python $env:MY_TOOLSET\version_tracker.py . --version PR-123 --json --yaml --html
-
-# Model relationships
-python $env:MY_TOOLSET\mapping_analyzer.py . --html
-
-# Excel report
-python $env:MY_TOOLSET\excel_exporter.py . --output analysis.xlsx
+class MyModel(BaseModel):
+    id: CasefileId              # UUID validation + lowercase
+    title: ShortString          # 1-200 characters
+    created_at: IsoTimestamp    # ISO 8601 format
 ```
 
----
+**Categories:** IDs, Strings, Numbers, Email/URL, Timestamps, Collections
 
-## 4. AI Workflow
+### Reusable Validators (9 functions)
 
-**Before coding:**
-1. Run baseline analysis: `python $env:MY_TOOLSET\version_tracker.py . --version baseline --json`
-2. Review current structure in `.tool-outputs/analysis/version_analysis.json`
-3. Understand existing models, endpoints, relationships
+**Location:** `src/pydantic_models/base/validators.py`
 
-**During coding:**
-1. Make changes based on requirements
-2. Quick checks: `python $env:MY_TOOLSET\code_analyzer.py .`
-3. Verify changes don't break existing patterns
+```python
+from src.pydantic_models.base.validators import validate_timestamp_order
 
-**After coding:**
-1. Run full analysis: `python $env:MY_TOOLSET\version_tracker.py . --version current --json`
-2. Compare with baseline
-3. Generate mapping report: `python $env:MY_TOOLSET\mapping_analyzer.py . --html`
-4. Review outputs in `.tool-outputs/`
+@model_validator(mode='after')
+def validate_model(self) -> 'MyModel':
+    validate_timestamp_order(self, 'created_at', 'updated_at')
+    return self
+```
 
-**Before PR:**
-1. Full analysis with all formats
-2. Include summary in PR description
-3. Highlight breaking changes if any
+**Functions:** timestamp_order, at_least_one, mutually_exclusive, conditional_required, list_not_empty, list_unique, range, string_length, depends_on
+
+**Full Guide:** `docs/VALIDATION_PATTERNS.md`
 
 ---
 
-## 5. Output Structure
+## 4. Testing & Validation
 
-**`.tool-outputs/` contains:**
-- `analysis/` - JSON/YAML analysis data (models, functions, endpoints)
-- `mappings/` - Relationship diagrams (HTML dashboards)
-- `docs/` - Generated documentation (HTML reports)
-- `excel/` - Spreadsheet reports
-- `README.md` - Explains contents (auto-generated)
+### Registry Validation
+```powershell
+# Full validation
+python scripts/validate_registries.py --strict --verbose
 
-**All gitignored** - copy what you need before cleanup.
+# Parameter mapping only
+python scripts/validate_parameter_mappings.py --verbose
+```
+
+### Test Suites
+```powershell
+# All tests (159)
+python -m pytest tests/ -v
+
+# Pydantic tests (116)
+python -m pytest tests/pydantic_models/ -v
+
+# Registry tests (43)
+python -m pytest tests/registry/ -v
+```
+
+### VS Code Tasks
+- **Quick Analysis** - Fast code structure check
+- **Full Analysis** - Comprehensive analysis + mappings
+- **Validate Registries** - CI/CD validation
+- **Run Tests** - Execute test suite
+- **Pre-commit Checks** - Full validation pipeline
+
+---
+
+## 5. Toolset Usage
+
+**Environment:** `$env:MY_TOOLSET = "C:\Users\HP\my-tiny-toolset\TOOLSET"`
+
+| Tool | Purpose | Command |
+|------|---------|---------|
+| `code_analyzer.py` | Quick structure | `python $env:MY_TOOLSET\code_analyzer.py . --json` |
+| `version_tracker.py` | Full analysis | `python $env:MY_TOOLSET\version_tracker.py . --version X` |
+| `mapping_analyzer.py` | Relationships | `python $env:MY_TOOLSET\mapping_analyzer.py . --html` |
+
+**Outputs:** `.tool-outputs/` (gitignored)
 
 ---
 
 ## 6. Quick Reference
 
-**When user asks "what models do we have?"** → Run code_analyzer, check `.tool-outputs/analysis/`  
-**When user asks "how are things connected?"** → Run mapping_analyzer, open dashboard  
-**When user asks "document this"** → Run version_tracker with --html  
-**Before committing major changes** → Run full analysis, verify outputs  
-**If unclear about structure** → Check existing analysis in `.tool-outputs/`
+**Session startup** → Run tests, verify artifacts (Excel 1, JSON 2, CSV 4), skip mapping  
+**User asks about validation** → Point to `docs/VALIDATION_PATTERNS.md`  
+**User asks about action items** → Check `ROUNDTRIP_ANALYSIS.md` Part 10  
+**User wants to fix YAMLs** → Start with `docs/PARAMETER_MAPPING_RESULTS.md`  
+**User asks about tests** → 159/159 passing, artifacts in `tests/reports/`  
+**Before major changes** → Read `ROUNDTRIP_ANALYSIS.md` for full context  
+**Creating new models** → Use custom types from `base/custom_types.py`  
+**Verify outputs** → Excel (1 .xlsx), JSON (2 .json), CSV (4 .csv) in tests/reports/
+
+---
+
+## 7. Session Management & Knowledge Capture
+
+### Chat Session Best Practices
+
+**Structured Sessions:**
+1. Start with clear goal (from ROUNDTRIP_ANALYSIS.md or Git issue)
+2. Break into subtasks
+3. Validate after each subtask
+4. Document decisions in WORKSPACE/FIELDNOTES.md
+5. Update formal docs when pattern validated
+
+**Effective Context:**
+- Always reference ROUNDTRIP_ANALYSIS.md for current state
+- Check Git status before starting work
+- Run tests to establish baseline
+- Verify artifacts exist (Excel, JSON, CSV)
+
+**Continuity Between Sessions:**
+- Git commits preserve code state
+- ROUNDTRIP_ANALYSIS.md preserves system state
+- WORKSPACE/FIELDNOTES.md preserves decisions/discoveries
+- Git issues provide formal tracking
+
+### Session Goals Hierarchy
+
+**1. Branch Goals** (feature/develop in this case)
+- Read: `ROUNDTRIP_ANALYSIS.md` - Current system state, action items
+- Track: Git issues linked to current branch
+- Update: Progress in ROUNDTRIP_ANALYSIS.md as work completes
+
+**2. Immediate Goals** (current work)
+- Fix 40 tool YAML parameter mappings (HIGH PRIORITY)
+- Validate after each fix: `python scripts/validate_parameter_mappings.py --strict`
+- Track progress: 40 → 0 mismatches
+
+**3. Session Context** (multi-session continuity)
+- Chat sessions structured around specific goals
+- Context preserved in WORKSPACE/FIELDNOTES.md (toolset repo)
+- Git issues provide formal tracking
+- Folder workspace field notes capture informal progress
+
+### Tool Engineering Focus
+
+**YAML-Driven Development:**
+- Models defined in Pydantic → Exported to YAML
+- Tools defined in YAML → Validated against methods
+- Parameters mapped automatically → Type-checked
+- Changes in code → Registry drift detection
+
+**Custom Tool Functions:**
+- Build reusable validators (9 functions so far)
+- Create custom types (20+ types so far)
+- Generic helpers for audit, session management
+- All validated with comprehensive tests
+
+**Problem-Solving Workflow:**
+1. Define problem (Git issue or ROUNDTRIP_ANALYSIS.md action item)
+2. Check existing solutions (REFERENCE/SUBJECTS/)
+3. Implement solution using custom types/validators
+4. Validate with tests (159 tests framework)
+5. Document pattern if reusable (WORKSPACE/ → REFERENCE/)
+6. Update tool YAMLs if new parameters added
+
+### Knowledge Capture Protocol
+
+**When to update toolset REFERENCE/ folders:**
+
+1. **Discover a pattern** → Document in `WORKSPACE/FIELDNOTES.md` first
+2. **Validate pattern** → Test across multiple use cases
+3. **Extract to REFERENCE/** → Move validated knowledge to proper subject folder
+4. **Update folder README** → Date stamp + add to curated index
+
+**What goes where in toolset:**
+
+| Discovery | Capture Location | Final Destination |
+|-----------|------------------|-------------------|
+| Quick note, command, link | `WORKSPACE/FIELDNOTES.md` | Stay there (ephemeral) |
+| Validated solution | `WORKSPACE/FIELDNOTES.md` | `REFERENCE/SUBJECTS/<domain>/` |
+| Best practice | Test in application | `REFERENCE/SUBJECTS/<domain>/` |
+| Architecture pattern | `REFERENCE/SYSTEM/architecture/` | Update existing docs |
+| Configuration example | Test first | `CONFIGS/<type>/` |
+| Useful prompt | `WORKSPACE/FIELDNOTES.md` | `PROMPTS/` (if reusable) |
+
+**Knowledge Flow:**
+```
+Application Work → Pattern Discovery → WORKSPACE/FIELDNOTES.md
+                                            ↓
+                                    Validation & Testing
+                                            ↓
+                                    REFERENCE/SUBJECTS/<domain>/
+                                            ↓
+                                    Update folder README.md (dated)
+```
+
+### AI Alignment Principles
+
+**Code Base Understanding:**
+1. **Go-to file**: `ROUNDTRIP_ANALYSIS.md` - Complete system state
+2. **Related docs**: `/docs` folder - Domain-specific knowledge
+3. **Toolset knowledge**: `C:\Users\HP\my-tiny-toolset\REFERENCE/` - Best practices, solutions
+
+**Identify Best Practices:**
+- During work, note patterns that work well
+- Check if pattern already exists in REFERENCE/SUBJECTS/
+- If new pattern, document in WORKSPACE/FIELDNOTES.md
+- After validation, propose moving to REFERENCE/
+
+**Update Knowledge Base:**
+- **REFERENCE/SUBJECTS/**: Domain expertise (data-engineering, mlops, api-design)
+- **REFERENCE/SYSTEM/**: Architecture, guides, specifications
+- **WORKSPACE/**: Research notes, experiments, drafts
+- **CONFIGS/**: Configuration templates
+- **PROMPTS/**: Reusable prompt patterns
+
+**Relevant Sources at Any Time:**
+- Check toolset README files for curated indexes
+- Cross-reference REFERENCE/INDEX.md for navigation
+- External sources documented in WORKSPACE/FIELDNOTES.md
+- Always date stamp when updating capital folders
+
+### Data Workflow Cycle (RAG/Tuning)
+
+**Transfer:**
+- Gmail/Drive/Sheets → Casefile storage
+- Structured data models (GmailMessage, DriveFile, SheetData)
+- Audit trail: session_id → casefile_id hierarchy
+
+**Transformation:**
+- Pydantic validation ensures data quality
+- Custom types enforce constraints
+- Validators check business rules
+
+**Analysis:**
+- Code analysis tools from toolset
+- Parameter mapping validation
+- Registry drift detection
+
+**RAG Integration:**
+- Casefile as context storage
+- Session management for conversation continuity
+- Tool execution history for learning
+
+**Tuning Cycle:**
+- Validation errors → Improve models
+- Parameter mismatches → Update tool YAMLs
+- Test failures → Refine validation logic
+- Repeat cycle iteratively
