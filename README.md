@@ -87,14 +87,6 @@ python $env:MY_TOOLSET\code_analyzer.py . --json        # Quick analysis
 
 ---
 
-## ⚠️ Current Action Items
-
-**HIGH:** Fix 8 Google Workspace parameter extraction warnings (2-3 hours)  
-**MEDIUM:** Apply custom types to ~60 remaining models (6-8 hours)  
-**LOW:** Pre-existing ChatResponsePayload import (cosmetic)
-
----
-
 ## 🔄 Phase Progress
 
 **Phase 1** ✅ (32h) - Validation foundation, custom types, validators  
@@ -453,11 +445,11 @@ AuthService → JWT Tokens → Firestore
 - Token extended with casefile_id for request routing
 - Casefile persisted to Firestore, retrievable by ID
 
-### Journey 2: Tool Execution in Context ⚠️
+### Journey 2: Tool Execution in Context ✅
 - Create tool session → session_id, linked to casefile (audit trail)
 - Submit tool request with parameters → Tool executes, results returned
 - Session lifecycle: active → executing → completed/failed
-- **Issue**: 32 tool YAML mismatches (HIGH PRIORITY to fix)
+- **Status**: Parameter mapping validated, 16 minor warnings (type mismatches)
 
 ### Journey 3: Permission Management ✅
 - Grant "read" permission to collaborator (casefile ACL)

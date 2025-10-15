@@ -5,12 +5,12 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from casefileservice.repository import CasefileRepository
+from src.casefileservice.repository import CasefileRepository
 from src.pydantic_models.canonical.casefile import CasefileMetadata, CasefileModel
 from src.pydantic_models.workspace import CasefileGmailData
 
 
-def _make_casefile(created_by: str = "user_123") -> CasefileModel:
+def _make_casefile(created_by: str = "user123@example.com") -> CasefileModel:
     metadata = CasefileMetadata(
         title="Test Casefile",
         description="Memory repository test",
@@ -52,12 +52,12 @@ async def test_memory_repository_crud_cycle(monkeypatch: pytest.MonkeyPatch) -> 
                 "title": "Test Casefile" if call_count[0] == 1 else "Updated Title",
                 "description": "Memory repository test", 
                 "tags": ["test"],
-                "created_by": "user_123",
+                "created_by": "user123@example.com",
                 "created_at": "2025-01-01T00:00:00",
                 "updated_at": "2025-01-01T00:00:00"
             },
             "acl": {
-                "owner_id": "user_123",
+                "owner_id": "user123@example.com",
                 "permissions": [],
                 "public_access": "none"
             },
@@ -93,12 +93,12 @@ async def test_memory_repository_crud_cycle(monkeypatch: pytest.MonkeyPatch) -> 
             "title": "Updated Title",
             "description": "Memory repository test", 
             "tags": ["test"],
-            "created_by": "user_123",
+            "created_by": "user123@example.com",
             "created_at": "2025-01-01T00:00:00",
             "updated_at": "2025-01-01T00:00:00"
         },
         "acl": {
-            "owner_id": "user_123",
+            "owner_id": "user123@example.com",
             "permissions": [],
             "public_access": "none"
         },
@@ -154,12 +154,12 @@ async def test_memory_repository_crud_cycle(monkeypatch: pytest.MonkeyPatch) -> 
                     "title": "Test Casefile" if call_count[0] == 1 else "Updated Title",
                     "description": "Memory repository test", 
                     "tags": ["test"],
-                    "created_by": "user_123",
+                    "created_by": "user123@example.com",
                     "created_at": "2025-01-01T00:00:00",
                     "updated_at": "2025-01-01T00:00:00"
                 },
                 "acl": {
-                    "owner_id": "user_123",
+                    "owner_id": "user123@example.com",
                     "permissions": [],
                     "public_access": "none"
                 },
