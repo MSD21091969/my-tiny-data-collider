@@ -19,7 +19,7 @@
 **Key Documents:**
 - `README.md` - Project overview, quick start
 - `ROUNDTRIP_ANALYSIS.md` - Complete system state + action items ⭐ GO-TO FILE
-- `docs/VALIDATION_PATTERNS.md` - Custom types & validators guide
+- `docs/VALIDATION_PATTERNS.md` - Custom types & validators reference (Phase 1)
 - `scripts/generate_method_tools.py` - YAML tool generator (411 lines)
 
 **Two-Repository Context:**
@@ -97,7 +97,7 @@ def validate_model(self) -> 'MyModel':
 
 **Functions:** timestamp_order, at_least_one, mutually_exclusive, conditional_required, list_not_empty, list_unique, range, string_length, depends_on
 
-**Full Guide:** `docs/VALIDATION_PATTERNS.md`
+**Full Guide:** `docs/VALIDATION_PATTERNS.md` (Phase 1 reference)
 
 ---
 
@@ -184,8 +184,9 @@ python -c "from pydantic_ai_integration.tool_decorator import register_tools_fro
 6. Run tests: `python -m pytest tests/ -v --tb=short` (263 passing)
 
 **Phase Status:**
-- ✅ Phase 1 Complete: Custom types, validators, generator script, all tests passing
-- 🚀 Ready for Phase 2: Google Workspace warnings (8) + Apply custom types (~60 models)
+- ✅ Phase 1 Complete: Custom types, validators, test suite (32h - Oct 13, 2025)
+- ✅ Phase 2 Complete: Decorator registration, custom types application (20h - Oct 15, 2025)
+- 🚀 Phase 3 Planned: OpenAPI enhancement (19h)
 
 ---
 

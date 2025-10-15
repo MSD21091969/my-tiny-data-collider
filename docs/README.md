@@ -1,38 +1,38 @@
 # Documentation Index
 
-**Last Updated:** 2025-10-14
+**Last Updated:** 2025-10-15
 
 ---
 
-## Start Here
+## Current Documents
 
-- **[VALIDATION_PATTERNS.md](VALIDATION_PATTERNS.md)** - Custom types & validators guide (769 lines) ⭐
+1. **VALIDATION_PATTERNS.md** (769 lines) - Custom types & validators guide
+   - 20+ custom types (IDs, strings, numbers, timestamps)
+   - 9 reusable validators
+   - Usage examples and migration patterns
+   - **Status:** Phase 1 reference (will be refactored)
 
 ---
 
-## Active Documents
+## Project Documentation
 
-1. **VALIDATION_PATTERNS.md** (769 lines) - Developer guide, custom types, validators
-2. **DEVELOPMENT_PROGRESS.md** (474 lines) - Phase 1 tracking, 27/32 hours (84%)
-3. **PHASE1_COMPLETION_SUMMARY.md** (305 lines) - Achievements overview
-4. **PARAMETER_MAPPING_RESULTS.md** (175 lines) - 40 mismatches to fix ⚠️
-5. **PYTEST_IMPORT_ISSUE.md** (280 lines) - 9 test files, workarounds
-6. **PARAMETER_MAPPING_TEST_ISSUES.md** (310 lines) - Test challenges
+**System State:**
+- [ROUNDTRIP_ANALYSIS.md](../ROUNDTRIP_ANALYSIS.md) - Complete system state, phase tracking ⭐
 
-## Historical
+**Phase History:**
+- Phase 1: Custom types, validators (32h) - ✅ Complete
+- Phase 2: Decorator registration, custom types application (20h) - ✅ Complete
+- Phase 3: OpenAPI enhancement (19h) - Planned
 
-7. **PYDANTIC_ENHANCEMENT_LONGLIST.md** (1135 lines) - Original plan (not updated)
+**Development:**
+- [README.md](../README.md) - Project overview, setup, quick start
+- Test suites: `tests/pydantic_models/` (126 tests passing)
+- Validation: `scripts/validate_registries.py`
 
 ---
 
 ## By Audience
 
-**New Developers** → VALIDATION_PATTERNS.md  
-**PR Reviewers** → PHASE1_COMPLETION_SUMMARY.md  
-**Maintainers** → PARAMETER_MAPPING_RESULTS.md (action items)  
-**Planners** → PYDANTIC_ENHANCEMENT_LONGLIST.md (historical)
-
----
-
-**Parent:** [../README.md](../README.md) - Project README  
-**Analysis:** [../ROUNDTRIP_ANALYSIS.md](../ROUNDTRIP_ANALYSIS.md) - Complete system state
+**New Developers** → VALIDATION_PATTERNS.md (patterns reference)  
+**Current Status** → ../ROUNDTRIP_ANALYSIS.md (phase tracking)  
+**Integration** → ../.github/copilot-instructions.md (AI context)
