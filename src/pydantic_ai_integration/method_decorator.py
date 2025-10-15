@@ -156,13 +156,19 @@ def register_service_method(
         if params and params[0].name == "self":
             params = params[1:]
 
-        # First parameter should be request model
+        # First parameter should be request model (only if it's a BaseModel subclass)
         if params and params[0].annotation != inspect.Parameter.empty:
-            request_model = params[0].annotation
+            param_type = params[0].annotation
+            # Only use if it's a BaseModel subclass
+            if isinstance(param_type, type) and issubclass(param_type, BaseModel):
+                request_model = param_type
 
-        # Return annotation should be response model
+        # Return annotation should be response model (only if it's a BaseModel subclass)
         if sig.return_annotation != inspect.Signature.empty:
-            response_model = sig.return_annotation
+            return_type = sig.return_annotation
+            # Only use if it's a BaseModel subclass
+            if isinstance(return_type, type) and issubclass(return_type, BaseModel):
+                response_model = return_type
 
         # Create slim method definition (flat 16 fields)
         method_def = ManagedMethodDefinition(

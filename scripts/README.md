@@ -1,6 +1,15 @@
 # Scripts
 
+**Last updated:** 2025-10-15
+
 Development and maintenance scripts organized by function.
+
+## Recent Changes
+
+**Phase 10 (Oct 15, 2025):** Decorator-based method registration eliminates manual YAML editing.
+- Service methods now auto-register via `@register_service_method` decorators
+- `validate_registries.py` updated to handle decorator-registered methods
+- 34 methods across 7 services now auto-populate MANAGED_METHODS at startup
 
 ## Categories
 

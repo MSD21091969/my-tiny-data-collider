@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from pydantic_ai_integration.method_decorator import register_service_method
 from src.coreservice.config import get_config
 from src.pydantic_models.workspace import (
     CasefileDriveData,
@@ -45,6 +46,26 @@ class GmailClient:
         self.user_id = user_id
         self._use_mock = config.get("enable_mock_gmail", True) if use_mock is None else use_mock
 
+    @register_service_method(
+        name="list_messages",
+        description="List Gmail messages",
+        service_name="GmailClient",
+        service_module="src.pydantic_ai_integration.integrations.google_workspace.clients",
+        classification={
+            "domain": "communication",
+            "subdomain": "gmail",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "beta",
+            "integration_tier": "external"
+        },
+        required_permissions=["workspace:gmail:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def list_messages(
         self,
         request: Optional[GmailListMessagesRequest] = None,
@@ -98,6 +119,26 @@ class GmailClient:
 
         raise NotImplementedError("Real Gmail API integration not yet implemented")
 
+    @register_service_method(
+        name="send_message",
+        description="Send Gmail message",
+        service_name="GmailClient",
+        service_module="src.pydantic_ai_integration.integrations.google_workspace.clients",
+        classification={
+            "domain": "communication",
+            "subdomain": "gmail",
+            "capability": "create",
+            "complexity": "atomic",
+            "maturity": "beta",
+            "integration_tier": "external"
+        },
+        required_permissions=["workspace:gmail:write"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def send_message(
         self,
         request: Optional[GmailSendMessageRequest] = None,
@@ -119,6 +160,26 @@ class GmailClient:
 
         raise NotImplementedError("Real Gmail API integration not yet implemented")
 
+    @register_service_method(
+        name="search_messages",
+        description="Search Gmail messages by query",
+        service_name="GmailClient",
+        service_module="src.pydantic_ai_integration.integrations.google_workspace.clients",
+        classification={
+            "domain": "communication",
+            "subdomain": "gmail",
+            "capability": "search",
+            "complexity": "atomic",
+            "maturity": "beta",
+            "integration_tier": "external"
+        },
+        required_permissions=["workspace:gmail:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def search_messages(
         self,
         request: Optional[GmailSearchMessagesRequest] = None,
@@ -160,6 +221,26 @@ class GmailClient:
 
         raise NotImplementedError("Real Gmail API integration not yet implemented")
 
+    @register_service_method(
+        name="get_message",
+        description="Get single Gmail message by ID",
+        service_name="GmailClient",
+        service_module="src.pydantic_ai_integration.integrations.google_workspace.clients",
+        classification={
+            "domain": "communication",
+            "subdomain": "gmail",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "beta",
+            "integration_tier": "external"
+        },
+        required_permissions=["workspace:gmail:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def get_message(
         self,
         request: Optional[GmailGetMessageRequest] = None,
@@ -211,6 +292,26 @@ class DriveClient:
         self.user_id = user_id
         self._use_mock = config.get("enable_mock_drive", True) if use_mock is None else use_mock
 
+    @register_service_method(
+        name="list_files",
+        description="List Google Drive files",
+        service_name="DriveClient",
+        service_module="src.pydantic_ai_integration.integrations.google_workspace.clients",
+        classification={
+            "domain": "workspace",
+            "subdomain": "google_drive",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "beta",
+            "integration_tier": "external"
+        },
+        required_permissions=["workspace:drive:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def list_files(
         self,
         request: Optional[DriveListFilesRequest] = None,
@@ -289,6 +390,26 @@ class SheetsClient:
         self.user_id = user_id
         self._use_mock = config.get("enable_mock_sheets", True) if use_mock is None else use_mock
 
+    @register_service_method(
+        name="batch_get",
+        description="Batch get Google Sheets data",
+        service_name="SheetsClient",
+        service_module="src.pydantic_ai_integration.integrations.google_workspace.clients",
+        classification={
+            "domain": "workspace",
+            "subdomain": "google_sheets",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "beta",
+            "integration_tier": "external"
+        },
+        required_permissions=["workspace:sheets:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def batch_get(
         self,
         request: Optional[SheetsBatchGetRequest] = None,

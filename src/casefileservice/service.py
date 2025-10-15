@@ -58,6 +58,7 @@ from pydantic_models.workspace import (
 
 from .repository import CasefileRepository
 from coreservice.context_aware_service import ContextAwareService
+from pydantic_ai_integration.method_decorator import register_service_method
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,26 @@ class CasefileService(ContextAwareService):
             logger.warning(f"Failed to auto-register CasefileService: {e}")
             # Don't fail service initialization if registry is unavailable
 
+    @register_service_method(
+        name="create_casefile",
+        description="Create new casefile with metadata",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile",
+            "capability": "create",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:write"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def create_casefile(self, request: CreateCasefileRequest) -> CreateCasefileResponse:
         """Create a new casefile.
         
@@ -172,6 +193,27 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="get_casefile",
+        description="Retrieve casefile by ID",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:read"],
+        requires_casefile=True,
+        casefile_permission_level="read",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def get_casefile(self, request: GetCasefileRequest) -> GetCasefileResponse:
         """Get a casefile by ID.
         
@@ -215,6 +257,27 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="update_casefile",
+        description="Update casefile metadata",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile",
+            "capability": "update",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:write"],
+        requires_casefile=True,
+        casefile_permission_level="write",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def update_casefile(self, request: UpdateCasefileRequest) -> UpdateCasefileResponse:
         """Update a casefile.
         
@@ -286,6 +349,26 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="list_casefiles",
+        description="List casefiles with optional filters",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile",
+            "capability": "search",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def list_casefiles(self, request: ListCasefilesRequest) -> ListCasefilesResponse:
         """List casefiles, optionally filtered by user.
         
@@ -325,6 +408,27 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="delete_casefile",
+        description="Delete casefile permanently",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile",
+            "capability": "delete",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:delete"],
+        requires_casefile=True,
+        casefile_permission_level="owner",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def delete_casefile(self, request: DeleteCasefileRequest) -> DeleteCasefileResponse:
         """Delete a casefile.
         
@@ -387,6 +491,27 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="add_session_to_casefile",
+        description="Link tool/chat session to casefile",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile",
+            "capability": "update",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:write"],
+        requires_casefile=True,
+        casefile_permission_level="write",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def add_session_to_casefile(self, request: AddSessionToCasefileRequest) -> AddSessionToCasefileResponse:
         """Add a session to a casefile.
         
@@ -445,6 +570,28 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="store_gmail_messages",
+        description="Store Gmail messages in casefile",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "google_workspace",
+            "capability": "update",
+            "complexity": "composite",
+            "maturity": "beta",
+            "integration_tier": "hybrid"
+        },
+        required_permissions=["casefiles:write", "workspace:gmail:read"],
+        requires_casefile=True,
+        casefile_permission_level="write",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=60,
+        version="1.0.0",
+        dependencies=["GmailClient"]
+    )
     async def store_gmail_messages(
         self,
         request: StoreGmailMessagesRequest
@@ -540,6 +687,28 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="store_drive_files",
+        description="Store Google Drive files in casefile",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "google_workspace",
+            "capability": "update",
+            "complexity": "composite",
+            "maturity": "beta",
+            "integration_tier": "hybrid"
+        },
+        required_permissions=["casefiles:write", "workspace:drive:read"],
+        requires_casefile=True,
+        casefile_permission_level="write",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=60,
+        version="1.0.0",
+        dependencies=["DriveClient"]
+    )
     async def store_drive_files(
         self,
         request: StoreDriveFilesRequest
@@ -612,6 +781,28 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="store_sheet_data",
+        description="Store Google Sheets data in casefile",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "google_workspace",
+            "capability": "update",
+            "complexity": "composite",
+            "maturity": "beta",
+            "integration_tier": "hybrid"
+        },
+        required_permissions=["casefiles:write", "workspace:sheets:read"],
+        requires_casefile=True,
+        casefile_permission_level="write",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=60,
+        version="1.0.0",
+        dependencies=["SheetsClient"]
+    )
     async def store_sheet_data(
         self,
         request: StoreSheetDataRequest
@@ -692,6 +883,27 @@ class CasefileService(ContextAwareService):
     # ACL (Access Control List) Methods
     # ============================================================================
 
+    @register_service_method(
+        name="grant_permission",
+        description="Grant user permission on casefile",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile_acl",
+            "capability": "update",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:share"],
+        requires_casefile=True,
+        casefile_permission_level="admin",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def grant_permission(self, request: GrantPermissionRequest) -> GrantPermissionResponse:
         """Grant permission to a user on a casefile.
         
@@ -785,6 +997,27 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="revoke_permission",
+        description="Revoke user permission on casefile",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile_acl",
+            "capability": "delete",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:share"],
+        requires_casefile=True,
+        casefile_permission_level="admin",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def revoke_permission(self, request: RevokePermissionRequest) -> RevokePermissionResponse:
         """Revoke permission from a user on a casefile.
         
@@ -897,6 +1130,27 @@ class CasefileService(ContextAwareService):
             }
         )
 
+    @register_service_method(
+        name="list_permissions",
+        description="List all permissions for casefile",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile_acl",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:read"],
+        requires_casefile=True,
+        casefile_permission_level="read",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def list_permissions(self, casefile_id: str, requesting_user_id: str) -> CasefileACL:
         """List all permissions for a casefile.
         
@@ -928,6 +1182,27 @@ class CasefileService(ContextAwareService):
 
         return casefile.acl
 
+    @register_service_method(
+        name="check_permission",
+        description="Check if user has specific permission",
+        service_name="CasefileService",
+        service_module="src.casefileservice.service",
+        classification={
+            "domain": "workspace",
+            "subdomain": "casefile_acl",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["casefiles:read"],
+        requires_casefile=True,
+        casefile_permission_level="read",
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def check_permission(
         self,
         casefile_id: str,

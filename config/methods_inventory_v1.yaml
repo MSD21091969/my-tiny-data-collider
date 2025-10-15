@@ -1,20 +1,34 @@
 # ============================================================
-# METHODS INVENTORY v1.0.0
+# METHODS INVENTORY v1.0.0 - DOCUMENTATION ONLY
 # ============================================================
-# Service methods registry with classification and metadata
-#
-# SYNCHRONIZATION STATUS: ✅ UP TO DATE
-# Last synchronized: October 10, 2025 - Parameter Separation Sync
-# Registry status: 34 methods loaded into MANAGED_METHODS at startup
-# Sync reference: CONFIG_AUDIT_REPORT.md (October 10, 2025)
+# ⚠️  DO NOT EDIT - AUTO-GENERATED DOCUMENTATION
 # 
-# IMPLEMENTATION:
+# This file is DOCUMENTATION ONLY as of Phase 10 (October 15, 2025)
+# 
+# METHOD REGISTRATION FLOW (Phase 10+):
+# 1. Methods registered via @register_service_method decorators in code
+# 2. Decorators trigger on module import (src/__init__.py)
+# 3. MANAGED_METHODS registry populated automatically
+# 4. This YAML serves as reference documentation only
+#
+# TO UPDATE THIS FILE:
+# 1. Modify service method code + @register_service_method decorator
+# 2. Method auto-registers at application startup
+# 3. (Optional) Regenerate this YAML from MANAGED_METHODS for docs:
+#    python scripts/export_registry_to_yaml.py > config/methods_inventory_v1.yaml
+#
+# LEGACY FLOW (Pre-Phase 10):
 # - Methods loaded via register_methods_from_yaml() in src/__init__.py
-# - Populates MANAGED_METHODS registry at application startup
-# - Tools inherit parameters from registered methods
+# - This was manual and prone to drift
+# - Replaced by decorator-based auto-registration
+#
+# SYNCHRONIZATION STATUS: ✅ DECORATOR-BASED (Phase 10)
+# Last updated: October 15, 2025 - Phase 10 Completion
+# Registry status: 34 methods auto-registered via decorators at startup
 # 
 # VERSION HISTORY:
 # - v1.0.0 (2025-10-06): Initial baseline release with 34 methods
+# - Phase 10 (2025-10-15): Converted to decorator-based registration
 #
 # VERSIONING RULES:
 # - MAJOR: Breaking changes (signature modifications, renamed methods)
@@ -38,9 +52,9 @@
 # - R-A-R pattern execution layer
 #
 # This YAML serves as:
-# 1. Source of truth for method metadata during registration
-# 2. Reference documentation for policy requirements
-# 3. Input for tool generation (tools may inherit these as reference)
+# 1. Reference documentation for method metadata
+# 2. Documentation for policy requirements
+# 3. Historical reference for tool generation patterns
 #
 # See: docs/registry/versioning-guide.md
 # Changelog: docs/registry/CHANGELOG.md
@@ -49,7 +63,7 @@
 version: "1.0.0"
 schema_version: "1.0"
 created_at: "2025-10-06"
-updated_at: "2025-10-10"
+updated_at: "2025-10-15"
 changelog: "docs/registry/CHANGELOG.md"
 versioning_guide: "docs/registry/versioning-guide.md"
 

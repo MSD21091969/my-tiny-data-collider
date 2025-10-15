@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
+from pydantic_ai_integration.method_decorator import register_service_method
 from coreservice.service_container import ServiceManager
 from pydantic_models.base.envelopes import BaseRequest, BaseResponse
 from pydantic_models.base.types import RequestStatus
@@ -912,6 +913,26 @@ class RequestHub:
             response.metadata.setdefault("audit_log", context["audit_log"])
 
 
+@register_service_method(
+    name="execute_casefile",
+    description="Create casefile through RequestHub with hook support",
+    service_name="RequestHubService",
+    service_module="src.coreservice.request_hub",
+    classification={
+        "domain": "workspace",
+        "subdomain": "casefile",
+        "capability": "create",
+        "complexity": "atomic",
+        "maturity": "beta",
+        "integration_tier": "internal"
+    },
+    required_permissions=["casefiles:write"],
+    requires_casefile=False,
+    enabled=True,
+    requires_auth=True,
+    timeout_seconds=30,
+    version="1.0.0"
+)
 async def execute_casefile(request: CreateCasefileRequest) -> CreateCasefileResponse:
     """Module-level helper to execute simple casefile creation via RequestHub."""
     hub = RequestHub()
@@ -921,6 +942,26 @@ async def execute_casefile(request: CreateCasefileRequest) -> CreateCasefileResp
     return response
 
 
+@register_service_method(
+    name="execute_casefile_with_session",
+    description="Composite workflow creating a casefile and tool session",
+    service_name="RequestHubService",
+    service_module="src.coreservice.request_hub",
+    classification={
+        "domain": "workspace",
+        "subdomain": "casefile",
+        "capability": "create",
+        "complexity": "composite",
+        "maturity": "beta",
+        "integration_tier": "internal"
+    },
+    required_permissions=["casefiles:write", "tool_sessions:write"],
+    requires_casefile=False,
+    enabled=True,
+    requires_auth=True,
+    timeout_seconds=60,
+    version="1.0.0"
+)
 async def execute_casefile_with_session(
     request: CreateCasefileWithSessionRequest,
 ) -> CreateCasefileWithSessionResponse:
@@ -932,6 +973,28 @@ async def execute_casefile_with_session(
     return response
 
 
+@register_service_method(
+    name="create_session_with_casefile",
+    description="Create tool session and link to existing casefile",
+    service_name="RequestHubService",
+    service_module="src.coreservice.request_hub",
+    classification={
+        "domain": "automation",
+        "subdomain": "tool_session",
+        "capability": "create",
+        "complexity": "composite",
+        "maturity": "beta",
+        "integration_tier": "internal"
+    },
+    required_permissions=["tools:execute", "casefiles:write"],
+    requires_casefile=True,
+    casefile_permission_level="write",
+    enabled=True,
+    requires_auth=True,
+    timeout_seconds=60,
+    version="1.0.0",
+    dependencies=["ToolSessionService.create_session", "CasefileService.add_session_to_casefile"]
+)
 async def create_session_with_casefile(
     request: CreateSessionWithCasefileRequest,
 ) -> CreateSessionWithCasefileResponse:

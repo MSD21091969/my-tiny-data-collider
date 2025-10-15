@@ -1,54 +1,111 @@
 # Tiny Data Collider
 
-**Last Updated:** 2025-10-14
+**Last Updated:** 2025-10-15
 
-A FastAPI-based data integration and API orchestration platform with comprehensive Pydantic validation, featuring Google Workspace integration (Gmail, Drive, Sheets), casefile management, and tool execution orchestration.
+FastAPI data integration platform with Pydantic validation, Google Workspace integration, casefile management, and decorator-based tool orchestration.
 
 ---
 
 ## 🎯 Quick Start
 
-### For Developers
-1. **Read**: [`docs/VALIDATION_PATTERNS.md`](docs/VALIDATION_PATTERNS.md) - Learn custom types and validators
-2. **Install**: `pip install -r requirements.txt`
-3. **Validate**: `python scripts/validate_registries.py --strict`
-4. **Test**: `python -m pytest tests/pydantic_models/ -v`
-
-### For AI Assistants
-1. **Session Startup**: Check `ROUNDTRIP_ANALYSIS.md` for current system state
-2. **Check Branch**: `git status` - Confirm you're on correct branch
-3. **Run Analysis**: Use VS Code task "Quick Analysis" or `python $env:MY_TOOLSET\code_analyzer.py .`
-4. **Review Context**: `.tool-outputs/analysis/` for baseline understanding
-
-### For Reviewers
-- **Start**: [`docs/PHASE1_COMPLETION_SUMMARY.md`](docs/PHASE1_COMPLETION_SUMMARY.md) - What was accomplished
-- **Details**: [`docs/DEVELOPMENT_PROGRESS.md`](docs/DEVELOPMENT_PROGRESS.md) - 27/32 hours (84% complete)
-- **Issues**: [`docs/PARAMETER_MAPPING_RESULTS.md`](docs/PARAMETER_MAPPING_RESULTS.md) - 40 mismatches to fix
+**Developers:** `pip install -r requirements.txt` → `python -m pytest tests/ -v`  
+**AI Assistants:** Check `ROUNDTRIP_ANALYSIS.md` → `git status` → Run analysis  
+**Reviewers:** Read `docs/PHASE1_COMPLETION_SUMMARY.md` → Check test results
 
 ---
 
-## 📋 System Overview
+## 📋 Status (Oct 15, 2025)
 
-### Core Services
-- **AuthService**: JWT authentication, user/service tokens, session management
-- **CasefileService**: Document/case management, ACL permissions, data source storage
-- **CommunicationService**: Tool session lifecycle, Gmail/Drive/Sheets client wrappers
-- **CoreService**: Request orchestration, autonomous execution, session coordination
-- **ToolSessionService**: Tool execution, parameter validation, audit trail
+**Phase 1:** ✅ Complete - 20+ custom types, 9 validators, 263 tests passing  
+**Phase 10:** ✅ Complete - Decorator-based method registration (34 methods)  
+**Phase 2:** 🔄 In progress - Custom type rollout, parameter extraction fixes
 
-### Pydantic Enhancement (Phase 1 Complete)
-- **Custom Types**: 20+ reusable Annotated types (CasefileId, ShortString, IsoTimestamp, etc.)
-- **Validators**: 9 reusable validation functions (timestamp_order, at_least_one, etc.)
-- **Enhanced Models**: 13 files (8 canonical, 4 operation, 1 workspace)
-- **Parameter Mapping**: Validator system with CI/CD integration
-- **Test Suite**: 159 tests passing (116 pydantic + 43 registry)
+### Recent: Phase 10 Decorator Registration
+- All 34 methods auto-register via `@register_service_method` decorators
+- No manual YAML editing required for new methods
+- `methods_inventory_v1.yaml` now documentation-only (DO NOT EDIT)
+- Eliminates drift between code and registry
 
-### Current Status
-- **Branch**: `feature/develop` (post-PR #34 merge)
-- **Phase 1**: 84% complete (27/32 hours)
-- **Tests**: 159/159 passing (100%)
-- **Known Issues**: 40 tool-method parameter mismatches (HIGH PRIORITY to fix)
-- **Code Quality**: 62% validation code reduction, DRY principles enforced
+---
+
+## � Core Features
+
+### Services (7)
+- **CasefileService**: 13 methods (CRUD, ACL, workspace sync)
+- **ToolSessionService**: 6 methods (session lifecycle, tool execution)
+- **CommunicationService**: 6 methods (chat session, LLM interaction)
+- **RequestHubService**: 3 methods (composite workflows)
+- **Google Workspace**: 6 client methods (Gmail, Drive, Sheets)
+
+### Validation Framework
+- **Custom Types**: 20+ reusable (CasefileId, ShortString, IsoTimestamp)
+- **Validators**: 9 functions (timestamp_order, at_least_one, mutually_exclusive)
+- **Code Reduction**: 62% less validation code
+- **Guide**: `docs/VALIDATION_PATTERNS.md`
+
+### Method Registration (Phase 10)
+```python
+@register_service_method(
+    name="create_casefile",
+    service_name="CasefileService",
+    classification={"domain": "workspace", "capability": "create"},
+    required_permissions=["casefiles:write"]
+)
+async def create_casefile(self, request: CreateCasefileRequest):
+    # Auto-registers at import, no YAML needed
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+python -m pytest tests/ -v                              # All tests (263)
+python scripts/validate_registries.py --strict          # Registry validation
+python $env:MY_TOOLSET\code_analyzer.py . --json        # Quick analysis
+```
+
+**Status:** 263/263 passing (116 pydantic + 43 registry + 104 integration)
+
+---
+
+## 📚 Documentation
+
+**Primary:**
+- `ROUNDTRIP_ANALYSIS.md` - System state, action items ⭐
+- `docs/VALIDATION_PATTERNS.md` - Custom types guide ⭐
+- `.github/copilot-instructions.md` - AI session startup ⭐
+
+**Development:**
+- `docs/PHASE1_COMPLETION_SUMMARY.md` - Phase 1 achievements
+- `docs/PARAMETER_MAPPING_RESULTS.md` - Known issues (18 warnings)
+
+**Structure:**
+- `src/README.md` - Source code architecture
+- `config/README.md` - Configuration files (YAML status)
+- `scripts/README.md` - Development scripts
+
+---
+
+## ⚠️ Current Action Items
+
+**HIGH:** Fix 8 Google Workspace parameter extraction warnings (2-3 hours)  
+**MEDIUM:** Apply custom types to ~60 remaining models (6-8 hours)  
+**LOW:** Pre-existing ChatResponsePayload import (cosmetic)
+
+---
+
+## 🔄 Phase Progress
+
+**Phase 1** ✅ (32h) - Validation foundation, custom types, validators  
+**Phase 10** ✅ (6h) - Decorator-based registration, eliminates manual YAML  
+**Phase 2** 🔄 (10h) - Custom type rollout, parameter extraction  
+**Phase 3-5** 📋 (61h) - OpenAPI, advanced features, migration
+
+---
+
+**Repository:** https://github.com/MSD21091969/my-tiny-data-collider.git  
+**Tests:** 263/263 passing | **Methods:** 34 auto-registered | **Models:** 294
 
 ---
 

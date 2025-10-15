@@ -40,6 +40,7 @@ from pydantic_models.views.session_views import ChatSessionSummary
 from tool_sessionservice.service import ToolSessionService
 
 from .repository import ChatSessionRepository
+from pydantic_ai_integration.method_decorator import register_service_method
 
 # TODO: Re-enable when agents module is implemented
 # import_tools()
@@ -56,6 +57,27 @@ class CommunicationService:
         self.tool_service = tool_service or ToolSessionService()
         self.id_service = id_service or get_id_service()
 
+    @register_service_method(
+        name="create_session",
+        description="Create chat session with linked tool session",
+        service_name="CommunicationService",
+        service_module="src.communicationservice.service",
+        classification={
+            "domain": "communication",
+            "subdomain": "chat_session",
+            "capability": "create",
+            "complexity": "composite",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["chat:create"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0",
+        dependencies=["ToolSessionService.create_session"]
+    )
     async def create_session(self, request: CreateChatSessionRequest) -> CreateChatSessionResponse:
         """Create a new chat session and its linked tool session."""
         start_time = datetime.now()
@@ -104,6 +126,27 @@ class CommunicationService:
             },
         )
 
+    @register_service_method(
+        name="process_chat_request",
+        description="Parse message, call LLM, handle tool calls",
+        service_name="CommunicationService",
+        service_module="src.communicationservice.service",
+        classification={
+            "domain": "communication",
+            "subdomain": "chat_processing",
+            "capability": "process",
+            "complexity": "pipeline",
+            "maturity": "stable",
+            "integration_tier": "hybrid"
+        },
+        required_permissions=["chat:write"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=120,
+        version="1.0.0",
+        dependencies=["ToolSessionService.process_tool_request", "LLM provider"]
+    )
     async def process_chat_request(self, request: ChatRequest) -> ChatResponse:
         """Process a chat request and run any associated tool calls."""
 
@@ -294,6 +337,26 @@ class CommunicationService:
 
         return response
 
+    @register_service_method(
+        name="get_session",
+        description="Retrieve chat session by ID",
+        service_name="CommunicationService",
+        service_module="src.communicationservice.service",
+        classification={
+            "domain": "communication",
+            "subdomain": "chat_session",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["chat:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def get_session(self, request: GetChatSessionRequest) -> GetChatSessionResponse:
         """Return a chat session by ID."""
         start_time = datetime.now()
@@ -361,6 +424,26 @@ class CommunicationService:
             },
         )
 
+    @register_service_method(
+        name="list_sessions",
+        description="List chat sessions with filters",
+        service_name="CommunicationService",
+        service_module="src.communicationservice.service",
+        classification={
+            "domain": "communication",
+            "subdomain": "chat_session",
+            "capability": "search",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["chat:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def list_sessions(self, request: ListChatSessionsRequest) -> ListChatSessionsResponse:
         """List chat sessions, optionally filtered by user or casefile."""
         start_time = datetime.now()
@@ -414,6 +497,26 @@ class CommunicationService:
             },
         )
 
+    @register_service_method(
+        name="close_session",
+        description="Close chat session",
+        service_name="CommunicationService",
+        service_module="src.communicationservice.service",
+        classification={
+            "domain": "communication",
+            "subdomain": "chat_session",
+            "capability": "update",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["chat:write"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def close_session(self, request: CloseChatSessionRequest) -> CloseChatSessionResponse:
         """Close a chat session and any linked tool session."""
         start_time = datetime.now()
@@ -506,6 +609,27 @@ class CommunicationService:
             },
         )
 
+    @register_service_method(
+        name="_ensure_tool_session",
+        description="Internal: ensure tool session exists for chat",
+        service_name="CommunicationService",
+        service_module="src.communicationservice.service",
+        classification={
+            "domain": "communication",
+            "subdomain": "chat_session",
+            "capability": "process",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=[],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0",
+        visibility="private"
+    )
     async def _ensure_tool_session(self, session: ChatSession) -> str:
         """Ensure the chat session has a corresponding tool session."""
 

@@ -1,0 +1,71 @@
+name: batch_get_tool
+description: Tool wrapper for SheetsClient.batch_get with validation and execution control
+category: workspace_management
+version: 1.0.0
+tags:
+- workspace
+- google_sheets
+- read
+method_reference:
+  service: SheetsClient
+  method: batch_get
+  classification:
+    domain: workspace
+    subdomain: google_sheets
+    capability: read
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+method_params: []
+tool_params:
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: SheetsClient.batch_get
+    parameter_mapping:
+      method_params: []
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions:
+  - workspace:sheets:read
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic batch_get operation
+  input: {}
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: SheetsBatchGetRequest
+  response_model: SheetsBatchGetResponse
+  canonical_models: []
+  module: src.pydantic_ai_integration.integrations.google_workspace.models
+dependencies:
+  methods:
+  - batch_get
+  models:
+  - SheetsBatchGetRequest
+  - SheetsBatchGetResponse
+  services:
+  - SheetsClient
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

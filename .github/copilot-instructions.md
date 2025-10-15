@@ -7,6 +7,7 @@
 - Google Workspace integration (Gmail, Drive, Sheets)
 - Casefile management, tool execution orchestration
 - Phase 1 complete: 20+ custom types, 9 validators, 263 tests
+- Phase 10 complete: Decorator-based method registration (34 methods)
 
 **Ultimate Purpose:**
 - **Tool Engineering Platform**: Build written/generated scripts for simple to advanced problem-solving
@@ -47,6 +48,12 @@
 - Use validators from `src/pydantic_models/base/validators.py`
 - Run validation: `python scripts/validate_registries.py --strict`
 - Run tests: `python -m pytest tests/pydantic_models/ -v`
+
+**Method Registration (Phase 10):**
+- Add `@register_service_method` decorator to new service methods
+- Methods auto-register at import (no YAML edits needed)
+- YAML (`config/methods_inventory_v1.yaml`) is documentation-only
+- Decorator extracts classification from decorator parameters, models from signature
 
 **Knowledge Capture:**
 - Pattern discovery → Document in toolset `WORKSPACE/FIELDNOTES.md`

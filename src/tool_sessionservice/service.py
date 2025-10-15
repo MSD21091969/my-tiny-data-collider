@@ -40,6 +40,7 @@ from pydantic_models.operations.tool_session_ops import (
 from pydantic_models.views.session_views import SessionSummary
 
 from .repository import ToolSessionRepository
+from pydantic_ai_integration.method_decorator import register_service_method
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,27 @@ class ToolSessionService:
     def __init__(self, repository: ToolSessionRepository | None = None, id_service=None):
         self.repository = repository or ToolSessionRepository()
         self.id_service = id_service or get_id_service()
-        
+
+    @register_service_method(
+        name="create_session",
+        description="Create new tool execution session",
+        service_name="ToolSessionService",
+        service_module="src.tool_sessionservice.service",
+        classification={
+            "domain": "automation",
+            "subdomain": "tool_session",
+            "capability": "create",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["tools:execute"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def create_session(self, request: CreateSessionRequest) -> CreateSessionResponse:
         """Create a new tool session.
         
@@ -305,6 +326,26 @@ class ToolSessionService:
         
         return response
     
+    @register_service_method(
+        name="get_session",
+        description="Retrieve tool session by ID",
+        service_name="ToolSessionService",
+        service_module="src.tool_sessionservice.service",
+        classification={
+            "domain": "automation",
+            "subdomain": "tool_session",
+            "capability": "read",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["tools:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def get_session(self, request: GetSessionRequest) -> GetSessionResponse:
         """Get a session by ID.
         
@@ -388,6 +429,26 @@ class ToolSessionService:
             }
         )
     
+    @register_service_method(
+        name="list_sessions",
+        description="List tool sessions with filters",
+        service_name="ToolSessionService",
+        service_module="src.tool_sessionservice.service",
+        classification={
+            "domain": "automation",
+            "subdomain": "tool_session",
+            "capability": "search",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["tools:read"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def list_sessions(self, request: ListSessionsRequest) -> ListSessionsResponse:
         """List sessions, optionally filtered by user or casefile.
         
@@ -452,6 +513,26 @@ class ToolSessionService:
             }
         )
     
+    @register_service_method(
+        name="close_session",
+        description="Close tool execution session",
+        service_name="ToolSessionService",
+        service_module="src.tool_sessionservice.service",
+        classification={
+            "domain": "automation",
+            "subdomain": "tool_session",
+            "capability": "update",
+            "complexity": "atomic",
+            "maturity": "stable",
+            "integration_tier": "internal"
+        },
+        required_permissions=["tools:execute"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=30,
+        version="1.0.0"
+    )
     async def close_session(self, request: CloseSessionRequest) -> CloseSessionResponse:
         """Close a session.
         
@@ -534,7 +615,28 @@ class ToolSessionService:
                 "casefile_id": session.casefile_id
             }
         )
-    
+
+    @register_service_method(
+        name="process_tool_request_with_session_management",
+        description="Process tool request with automatic session management",
+        service_name="ToolSessionService",
+        service_module="src.tool_sessionservice.service",
+        classification={
+            "domain": "automation",
+            "subdomain": "tool_execution",
+            "capability": "process",
+            "complexity": "composite",
+            "maturity": "stable",
+            "integration_tier": "hybrid"
+        },
+        required_permissions=["tools:execute"],
+        requires_casefile=False,
+        enabled=True,
+        requires_auth=True,
+        timeout_seconds=60,
+        version="1.0.0",
+        dependencies=["MANAGED_TOOLS registry", "SessionManager"]
+    )
     async def process_tool_request_with_session_management(
         self,
         user_id: str,
