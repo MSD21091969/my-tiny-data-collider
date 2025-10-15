@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, computed_field
 
+from .custom_types import IsoTimestamp, SessionId
 from .types import RequestStatus
 
 # Generic type variables for payloads
@@ -23,11 +24,11 @@ ResponsePayloadT = TypeVar('ResponsePayloadT')
 class BaseRequest(BaseModel, Generic[RequestPayloadT]):
     """Base model for all requests in the system."""
     request_id: UUID = Field(default_factory=uuid4, description="Unique request identifier")
-    session_id: Optional[str] = Field(None, description="Optional session identifier")
+    session_id: Optional[SessionId] = Field(None, description="Optional session identifier")
     user_id: str = Field(..., description="User making the request")
     operation: str = Field(..., description="Operation being requested")
     payload: RequestPayloadT = Field(..., description="Request payload")
-    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Request timestamp")
+    timestamp: IsoTimestamp = Field(default_factory=lambda: datetime.now().isoformat(), description="Request timestamp")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata for the request")
     context_requirements: List[str] = Field(
         default_factory=list,
@@ -57,7 +58,7 @@ class BaseResponse(BaseModel, Generic[ResponsePayloadT]):
     request_id: UUID = Field(..., description="ID of the originating request")
     status: RequestStatus = Field(..., description="Request processing status")
     payload: ResponsePayloadT = Field(..., description="Response payload")
-    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Response timestamp")
+    timestamp: IsoTimestamp = Field(default_factory=lambda: datetime.now().isoformat(), description="Response timestamp")
     error: Optional[str] = Field(None, description="Error message if status is FAILED")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata for the response")
 
