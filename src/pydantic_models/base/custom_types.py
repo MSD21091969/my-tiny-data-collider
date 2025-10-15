@@ -5,7 +5,7 @@ This module provides Annotated types with built-in validation constraints
 to ensure consistency across all models and reduce code duplication.
 
 Usage:
-    from pydantic_models.base.custom_types import CasefileId, PositiveInt
+    from src.pydantic_models.base.custom_types import CasefileId, PositiveInt
     
     class MyModel(BaseModel):
         casefile_id: CasefileId  # Automatically validated with regex pattern

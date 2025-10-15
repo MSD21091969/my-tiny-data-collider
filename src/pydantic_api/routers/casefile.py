@@ -8,9 +8,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from authservice import get_current_user
 from coreservice.request_hub import RequestHub
-from pydantic_models.base.envelopes import BaseResponse
-from pydantic_models.base.types import RequestStatus
-from pydantic_models.operations.casefile_ops import (
+from src.pydantic_models.base.envelopes import BaseResponse
+from src.pydantic_models.base.types import RequestStatus
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Query
+
+from src.pydantic_models.base.envelopes import BaseResponse
+from src.pydantic_models.base.types import RequestStatus
+from src.pydantic_models.operations.casefile_ops import (
     CheckPermissionPayload,
     CheckPermissionRequest,
     CheckPermissionResponse,

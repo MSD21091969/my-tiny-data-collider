@@ -15,15 +15,15 @@ from pydantic_ai_integration.tool_decorator import (
     get_tool_names,
     validate_tool_exists,
 )
-from pydantic_models.base.types import RequestStatus
-from pydantic_models.canonical.tool_session import ToolEvent, ToolSession
-from pydantic_models.operations.tool_execution_ops import (
+from src.pydantic_models.base.types import RequestStatus
+from src.pydantic_models.canonical.tool_session import ToolEvent, ToolSession
+from src.pydantic_models.operations.tool_execution_ops import (
     ToolRequest,
     ToolRequestPayload,
     ToolResponse,
     ToolResponsePayload,
 )
-from pydantic_models.operations.tool_session_ops import (
+from src.pydantic_models.operations.tool_session_ops import (
     CloseSessionRequest,
     CloseSessionResponse,
     CreateSessionRequest,
@@ -37,7 +37,7 @@ from pydantic_models.operations.tool_session_ops import (
     SessionDataPayload,
     SessionListPayload,
 )
-from pydantic_models.views.session_views import SessionSummary
+from src.pydantic_models.views.session_views import SessionSummary
 
 from .repository import ToolSessionRepository
 from pydantic_ai_integration.method_decorator import register_service_method

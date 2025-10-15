@@ -20,6 +20,6 @@ def test_tool_session_service_import():
 
 def test_pydantic_models_import():
     """Test that pydantic models can be imported."""
-    from pydantic_models.operations.casefile_ops import CreateCasefileRequest
+    from src.pydantic_models.operations.casefile_ops import CreateCasefileRequest
     assert CreateCasefileRequest is not None
     print("✓ Pydantic models imported successfully")

@@ -99,8 +99,8 @@ async def send_message(
     message_data = request.request
     message_data["session_id"] = session_id
 
-    from pydantic_models.canonical.chat_session import MessageType
-    from pydantic_models.operations.tool_execution_ops import ChatMessagePayload, ChatRequest
+    from src.pydantic_models.canonical.chat_session import MessageType
+    from src.pydantic_models.operations.tool_execution_ops import ChatMessagePayload, ChatRequest
 
     try:
         # Construct the chat request

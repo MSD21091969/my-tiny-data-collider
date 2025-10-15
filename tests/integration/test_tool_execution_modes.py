@@ -16,7 +16,7 @@ from uuid import uuid4
 from coreservice.id_service import get_id_service
 from pydantic_ai_integration.dependencies import MDSContext
 from src.pydantic_ai_integration.tools import MANAGED_TOOLS
-from pydantic_models.base.types import RequestStatus
+from src.pydantic_models.base.types import RequestStatus
 
 
 @pytest.fixture
@@ -128,7 +128,7 @@ class TestToolExecutionViaRequestDTO:
         This demonstrates the full flow:
         Tool params → Request DTO → Service → Response
         """
-        from pydantic_models.operations.casefile_ops import CreateCasefileRequest
+        from src.pydantic_models.operations.casefile_ops import CreateCasefileRequest
         
         tool = MANAGED_TOOLS.get("create_casefile_tool")
         if not tool:

@@ -18,7 +18,7 @@ from coreservice.test_autonomous import (
     AutonomousTestResultPayload,
     execute_autonomous_test,
 )
-from pydantic_models.base.types import RequestStatus
+from src.pydantic_models.base.types import RequestStatus
 
 
 class TestAutonomousExecution:

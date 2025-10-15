@@ -7,7 +7,9 @@ import logging
 from persistence.base_repository import BaseRepository
 from persistence.firestore_pool import FirestoreConnectionPool
 from persistence.redis_cache import RedisCacheService
-from pydantic_models.canonical.chat_session import ChatSession
+from typing import Dict, List, Optional
+
+from src.pydantic_models.canonical.chat_session import ChatSession
 
 logger = logging.getLogger(__name__)
 

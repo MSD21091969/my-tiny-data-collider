@@ -6,10 +6,10 @@ import logging
 import os
 from datetime import datetime
 
-from pydantic_models.base.types import RequestStatus
-from pydantic_models.canonical.acl import CasefileACL, PermissionEntry
-from pydantic_models.canonical.casefile import CasefileMetadata, CasefileModel
-from pydantic_models.operations.casefile_ops import (
+from src.pydantic_models.base.types import RequestStatus
+from src.pydantic_models.canonical.acl import CasefileACL, PermissionEntry
+from src.pydantic_models.canonical.casefile import CasefileMetadata, CasefileModel
+from src.pydantic_models.operations.casefile_ops import (
     AddSessionToCasefileRequest,
     AddSessionToCasefileResponse,
     CasefileCreatedPayload,
@@ -45,7 +45,7 @@ from pydantic_models.operations.casefile_ops import (
     UpdateCasefileRequest,
     UpdateCasefileResponse,
 )
-from pydantic_models.workspace import (
+from src.pydantic_models.workspace import (
     CasefileDriveData,
     CasefileGmailData,
     CasefileSheetsData,

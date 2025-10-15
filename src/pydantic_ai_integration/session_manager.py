@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Tuple
 
 from pydantic_ai_integration.dependencies import MDSContext
-from pydantic_models.base.types import RequestStatus
-from pydantic_models.operations.tool_session_ops import CreateSessionRequest, GetSessionRequest
+from src.pydantic_models.base.types import RequestStatus
+from src.pydantic_models.operations.tool_session_ops import CreateSessionRequest, GetSessionRequest
 from tool_sessionservice.service import ToolSessionService
 
 logger = logging.getLogger(__name__)

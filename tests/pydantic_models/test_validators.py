@@ -19,7 +19,7 @@ if str(src_path) not in sys.path:
 import pytest
 from datetime import datetime
 
-from pydantic_models.base.validators import (
+from src.pydantic_models.base.validators import (
     validate_timestamp_order,
     validate_at_least_one,
     validate_mutually_exclusive,

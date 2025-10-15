@@ -7,8 +7,8 @@ import os
 
 from google.cloud.firestore import AsyncClient
 
-from pydantic_models.canonical.casefile import CasefileModel
-from pydantic_models.views.casefile_views import CasefileSummary
+from src.pydantic_models.canonical.casefile import CasefileModel
+from src.pydantic_models.views.casefile_views import CasefileSummary
 
 logger = logging.getLogger(__name__)
 

@@ -7,8 +7,8 @@ import logging
 from persistence.base_repository import BaseRepository
 from persistence.firestore_pool import FirestoreConnectionPool
 from persistence.redis_cache import RedisCacheService
-from pydantic_models.canonical.casefile import CasefileModel
-from pydantic_models.views.casefile_views import CasefileSummary
+from src.pydantic_models.canonical.casefile import CasefileModel
+from src.pydantic_models.views.casefile_views import CasefileSummary
 
 logger = logging.getLogger(__name__)
 

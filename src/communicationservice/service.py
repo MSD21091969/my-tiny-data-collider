@@ -11,9 +11,9 @@ from uuid import uuid4
 # from pydantic_ai_integration.agents.base import import_tools
 from coreservice.id_service import get_id_service
 from pydantic_ai_integration.dependencies import MDSContext
-from pydantic_models.base.types import RequestStatus
-from pydantic_models.canonical.chat_session import ChatSession, MessageType
-from pydantic_models.operations.chat_session_ops import (
+from src.pydantic_models.base.types import RequestStatus
+from src.pydantic_models.canonical.chat_session import ChatSession, MessageType
+from src.pydantic_models.operations.chat_session_ops import (
     ChatSessionClosedPayload,
     ChatSessionCreatedPayload,
     ChatSessionDataPayload,
@@ -27,7 +27,7 @@ from pydantic_models.operations.chat_session_ops import (
     ListChatSessionsRequest,
     ListChatSessionsResponse,
 )
-from pydantic_models.operations.tool_execution_ops import (
+from src.pydantic_models.operations.tool_execution_ops import (
     ChatMessagePayload,
     ChatRequest,
     ChatResponse,
@@ -35,8 +35,8 @@ from pydantic_models.operations.tool_execution_ops import (
     ToolRequest,
     ToolRequestPayload,
 )
-from pydantic_models.operations.tool_session_ops import CreateSessionRequest
-from pydantic_models.views.session_views import ChatSessionSummary
+from src.pydantic_models.operations.tool_session_ops import CreateSessionRequest
+from src.pydantic_models.views.session_views import ChatSessionSummary
 from tool_sessionservice.service import ToolSessionService
 
 from .repository import ChatSessionRepository

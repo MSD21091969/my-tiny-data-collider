@@ -12,8 +12,8 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from pydantic_models.base.envelopes import BaseRequest, BaseResponse
-from pydantic_models.base.types import RequestStatus
+from src.pydantic_models.base.envelopes import BaseRequest, BaseResponse
+from src.pydantic_models.base.types import RequestStatus
 
 
 # L1: Payload (business data)

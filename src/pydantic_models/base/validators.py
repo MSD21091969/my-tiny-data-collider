@@ -9,7 +9,7 @@ This module contains common validation patterns that can be reused across multip
 - Business rule enforcement
 
 Usage:
-    from pydantic_models.base.validators import validate_timestamp_order
+    from src.pydantic_models.base.validators import validate_timestamp_order
     
     class MyModel(BaseModel):
         created_at: str

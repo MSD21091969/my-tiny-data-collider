@@ -14,8 +14,8 @@ from pydantic_ai_integration.tool_decorator import (
     get_tool_definition,
     list_tools_by_category,
 )
-from pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
-from pydantic_models.operations.tool_session_ops import (
+from src.pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
+from src.pydantic_models.operations.tool_session_ops import (
     CloseSessionRequest,
     CloseSessionResponse,
     CreateSessionRequest,
