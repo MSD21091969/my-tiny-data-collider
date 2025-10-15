@@ -1,11 +1,10 @@
 name: create_casefile_tool
-description: Tool wrapper for CasefileService.create_casefile with validation and
-  execution control
+description: Tool wrapper for CasefileService.create_casefile with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
-- create
+- casefile
 - create
 method_reference:
   service: CasefileService
@@ -21,16 +20,38 @@ method_params:
 - name: title
   type: string
   required: true
-  description: Title of the casefile
+  description: Casefile title
+  min_length: 1
+  max_length: 200
 - name: description
   type: string
   required: false
-  description: Optional description
+  description: Casefile description
+  min_length: 1
+  max_length: 2000
+  default: ''
 - name: tags
   type: array
   required: false
   description: Tags for categorization
 tool_params:
+- name: title
+  type: string
+  required: true
+  description: Casefile title
+  min_length: 1
+  max_length: 200
+- name: description
+  type: string
+  required: false
+  description: Casefile description
+  min_length: 1
+  max_length: 2000
+  default: ''
+- name: tags
+  type: array
+  required: false
+  description: Tags for categorization
 - name: timeout_seconds
   type: integer
   required: false

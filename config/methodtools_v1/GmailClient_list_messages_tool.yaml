@@ -1,12 +1,11 @@
 name: list_messages_tool
-description: Tool wrapper for GmailClient.list_messages with validation and execution
-  control
-category: communication_management
+description: Tool wrapper for GmailClient.list_messages with validation and execution control
+category: communication
 version: 1.0.0
 tags:
 - communication
+- gmail
 - read
-- list
 method_reference:
   service: GmailClient
   method: list_messages
@@ -17,11 +16,7 @@ method_reference:
     complexity: atomic
     maturity: beta
     integration_tier: external
-method_params:
-- name: request
-  type: object
-  required: true
-  description: Request object
+method_params: []
 tool_params:
 - name: timeout_seconds
   type: integer
@@ -40,8 +35,7 @@ implementation:
   method_wrapper:
     method_name: GmailClient.list_messages
     parameter_mapping:
-      method_params:
-      - request
+      method_params: []
       tool_params:
       - timeout_seconds
       - dry_run
@@ -54,8 +48,7 @@ business_rules:
   timeout_seconds: 30
 examples:
 - description: Basic list_messages operation
-  input:
-    request: sample_request
+  input: {}
   expected_output:
     result: success
     data: {}

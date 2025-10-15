@@ -1,11 +1,10 @@
 name: process_chat_request_tool
-description: Tool wrapper for CommunicationService.process_chat_request with validation
-  and execution control
-category: communication_management
+description: Tool wrapper for CommunicationService.process_chat_request with validation and execution control
+category: communication
 version: 1.0.0
 tags:
 - communication
-- process
+- chat_processing
 - process
 method_reference:
   service: CommunicationService
@@ -18,16 +17,44 @@ method_reference:
     maturity: stable
     integration_tier: hybrid
 method_params:
-- name: request
-  type: object
+- name: message
+  type: string
   required: true
-  description: Request object
+  description: User message content
+- name: session_id
+  type: string
+  required: true
+  description: Chat session ID
+- name: casefile_id
+  type: string
+  required: false
+  description: Optional casefile context
+- name: session_request_id
+  type: string
+  required: false
+  description: Client-provided session request ID for tracking
 tool_params:
+- name: message
+  type: string
+  required: true
+  description: User message content
+- name: session_id
+  type: string
+  required: true
+  description: Chat session ID
+- name: casefile_id
+  type: string
+  required: false
+  description: Optional casefile context
+- name: session_request_id
+  type: string
+  required: false
+  description: Client-provided session request ID for tracking
 - name: timeout_seconds
   type: integer
   required: false
   description: Maximum execution time in seconds
-  default: 120
+  default: 30
   min_value: 5
   max_value: 300
 - name: dry_run
@@ -41,7 +68,10 @@ implementation:
     method_name: CommunicationService.process_chat_request
     parameter_mapping:
       method_params:
-      - request
+      - message
+      - session_id
+      - casefile_id
+      - session_request_id
       tool_params:
       - timeout_seconds
       - dry_run
@@ -55,7 +85,8 @@ business_rules:
 examples:
 - description: Basic process_chat_request operation
   input:
-    request: sample_request
+    message: sample_message
+    session_id: sample_session_id
   expected_output:
     result: success
     data: {}

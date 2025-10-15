@@ -1,12 +1,11 @@
 name: execute_casefile_with_session_tool
-description: Tool wrapper for RequestHubService.execute_casefile_with_session with
-  validation and execution control
+description: Tool wrapper for RequestHubService.execute_casefile_with_session with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
+- casefile
 - create
-- execute
 method_reference:
   service: RequestHubService
   method: execute_casefile_with_session
@@ -18,16 +17,68 @@ method_reference:
     maturity: beta
     integration_tier: internal
 method_params:
-- name: request
-  type: object
+- name: title
+  type: string
   required: true
-  description: Request object
+  description: Casefile title
+  min_length: 1
+  max_length: 200
+- name: description
+  type: string
+  required: false
+  description: Casefile description
+  max_length: 2000
+- name: tags
+  type: array
+  required: false
+  description: Tags for categorization
+- name: auto_start_session
+  type: boolean
+  required: false
+  description: Whether a tool session should be created
+  default: true
+- name: session_title
+  type: string
+  required: false
+  description: Optional explicit session title
+- name: hook_channels
+  type: array
+  required: false
+  description: Optional hook identifiers to activate for this workflow.
 tool_params:
+- name: title
+  type: string
+  required: true
+  description: Casefile title
+  min_length: 1
+  max_length: 200
+- name: description
+  type: string
+  required: false
+  description: Casefile description
+  max_length: 2000
+- name: tags
+  type: array
+  required: false
+  description: Tags for categorization
+- name: auto_start_session
+  type: boolean
+  required: false
+  description: Whether a tool session should be created
+  default: true
+- name: session_title
+  type: string
+  required: false
+  description: Optional explicit session title
+- name: hook_channels
+  type: array
+  required: false
+  description: Optional hook identifiers to activate for this workflow.
 - name: timeout_seconds
   type: integer
   required: false
   description: Maximum execution time in seconds
-  default: 60
+  default: 30
   min_value: 5
   max_value: 300
 - name: dry_run
@@ -41,7 +92,12 @@ implementation:
     method_name: RequestHubService.execute_casefile_with_session
     parameter_mapping:
       method_params:
-      - request
+      - title
+      - description
+      - tags
+      - auto_start_session
+      - session_title
+      - hook_channels
       tool_params:
       - timeout_seconds
       - dry_run
@@ -56,7 +112,8 @@ business_rules:
 examples:
 - description: Basic execute_casefile_with_session operation
   input:
-    request: sample_request
+    title: sample_title
+    description: sample_description
   expected_output:
     result: success
     data: {}

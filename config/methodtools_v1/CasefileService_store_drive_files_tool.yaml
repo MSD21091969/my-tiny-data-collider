@@ -1,12 +1,11 @@
 name: store_drive_files_tool
-description: Tool wrapper for CasefileService.store_drive_files with validation and
-  execution control
+description: Tool wrapper for CasefileService.store_drive_files with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
+- google_workspace
 - update
-- store
 method_reference:
   service: CasefileService
   method: store_drive_files
@@ -18,16 +17,46 @@ method_reference:
     maturity: beta
     integration_tier: hybrid
 method_params:
-- name: request
-  type: object
+- name: casefile_id
+  type: string
   required: true
-  description: Request object
+  description: Casefile ID
+- name: files
+  type: array
+  required: true
+  description: Drive files (DriveFile dicts)
+- name: sync_token
+  type: string
+  required: false
+  description: Incremental sync token from Drive API
+- name: overwrite
+  type: boolean
+  required: false
+  description: Replace existing cache instead of merging
+  default: false
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID
+- name: files
+  type: array
+  required: true
+  description: Drive files (DriveFile dicts)
+- name: sync_token
+  type: string
+  required: false
+  description: Incremental sync token from Drive API
+- name: overwrite
+  type: boolean
+  required: false
+  description: Replace existing cache instead of merging
+  default: false
 - name: timeout_seconds
   type: integer
   required: false
   description: Maximum execution time in seconds
-  default: 60
+  default: 30
   min_value: 5
   max_value: 300
 - name: dry_run
@@ -41,7 +70,10 @@ implementation:
     method_name: CasefileService.store_drive_files
     parameter_mapping:
       method_params:
-      - request
+      - casefile_id
+      - files
+      - sync_token
+      - overwrite
       tool_params:
       - timeout_seconds
       - dry_run
@@ -52,12 +84,12 @@ business_rules:
   - casefiles:write
   - workspace:drive:read
   requires_casefile: true
-  casefile_permission_level: write
   timeout_seconds: 60
 examples:
 - description: Basic store_drive_files operation
   input:
-    request: sample_request
+    casefile_id: sample_casefile_id
+    files: sample_files
   expected_output:
     result: success
     data: {}

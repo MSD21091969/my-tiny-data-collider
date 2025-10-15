@@ -1,12 +1,11 @@
 name: list_permissions_tool
-description: Tool wrapper for CasefileService.list_permissions with validation and
-  execution control
+description: Tool wrapper for CasefileService.list_permissions with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
+- casefile_acl
 - read
-- list
 method_reference:
   service: CasefileService
   method: list_permissions
@@ -18,11 +17,15 @@ method_reference:
     maturity: stable
     integration_tier: internal
 method_params:
-- name: request
-  type: object
+- name: casefile_id
+  type: string
   required: true
-  description: Request object
+  description: Casefile ID
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID
 - name: timeout_seconds
   type: integer
   required: false
@@ -41,7 +44,7 @@ implementation:
     method_name: CasefileService.list_permissions
     parameter_mapping:
       method_params:
-      - request
+      - casefile_id
       tool_params:
       - timeout_seconds
       - dry_run
@@ -51,12 +54,11 @@ business_rules:
   required_permissions:
   - casefiles:read
   requires_casefile: true
-  casefile_permission_level: read
   timeout_seconds: 30
 examples:
 - description: Basic list_permissions operation
   input:
-    request: sample_request
+    casefile_id: sample_casefile_id
   expected_output:
     result: success
     data: {}

@@ -1,11 +1,11 @@
 name: process_tool_request_with_session_management_tool
-description: Tool wrapper for ToolSessionService.process_tool_request_with_session_management
-  with validation and execution control
-category: automation_management
+description: Tool wrapper for ToolSessionService.process_tool_request_with_session_management with validation and execution
+  control
+category: automation
 version: 1.0.0
 tags:
 - automation
-- process
+- tool_execution
 - process
 method_reference:
   service: ToolSessionService
@@ -17,17 +17,13 @@ method_reference:
     complexity: composite
     maturity: stable
     integration_tier: hybrid
-method_params:
-- name: request
-  type: object
-  required: true
-  description: Request object
+method_params: []
 tool_params:
 - name: timeout_seconds
   type: integer
   required: false
   description: Maximum execution time in seconds
-  default: 60
+  default: 30
   min_value: 5
   max_value: 300
 - name: dry_run
@@ -40,8 +36,7 @@ implementation:
   method_wrapper:
     method_name: ToolSessionService.process_tool_request_with_session_management
     parameter_mapping:
-      method_params:
-      - request
+      method_params: []
       tool_params:
       - timeout_seconds
       - dry_run
@@ -54,8 +49,7 @@ business_rules:
   timeout_seconds: 60
 examples:
 - description: Basic process_tool_request_with_session_management operation
-  input:
-    request: sample_request
+  input: {}
   expected_output:
     result: success
     data: {}

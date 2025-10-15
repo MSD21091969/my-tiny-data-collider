@@ -1,11 +1,10 @@
 name: delete_casefile_tool
-description: Tool wrapper for CasefileService.delete_casefile with validation and
-  execution control
+description: Tool wrapper for CasefileService.delete_casefile with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
-- delete
+- casefile
 - delete
 method_reference:
   service: CasefileService
@@ -18,11 +17,25 @@ method_reference:
     maturity: stable
     integration_tier: internal
 method_params:
-- name: request
-  type: object
+- name: casefile_id
+  type: string
   required: true
-  description: Request object
+  description: Casefile ID to delete
+- name: confirm
+  type: boolean
+  required: false
+  description: Confirmation flag for deletion
+  default: false
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID to delete
+- name: confirm
+  type: boolean
+  required: false
+  description: Confirmation flag for deletion
+  default: false
 - name: timeout_seconds
   type: integer
   required: false
@@ -41,7 +54,8 @@ implementation:
     method_name: CasefileService.delete_casefile
     parameter_mapping:
       method_params:
-      - request
+      - casefile_id
+      - confirm
       tool_params:
       - timeout_seconds
       - dry_run
@@ -51,12 +65,12 @@ business_rules:
   required_permissions:
   - casefiles:delete
   requires_casefile: true
-  casefile_permission_level: owner
   timeout_seconds: 30
 examples:
 - description: Basic delete_casefile operation
   input:
-    request: sample_request
+    casefile_id: sample_casefile_id
+    confirm: sample_confirm
   expected_output:
     result: success
     data: {}

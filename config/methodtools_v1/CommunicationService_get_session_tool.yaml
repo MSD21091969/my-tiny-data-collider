@@ -1,12 +1,11 @@
 name: get_session_tool
-description: Tool wrapper for CommunicationService.get_session with validation and
-  execution control
-category: communication_management
+description: Tool wrapper for CommunicationService.get_session with validation and execution control
+category: communication
 version: 1.0.0
 tags:
 - communication
+- chat_session
 - read
-- get
 method_reference:
   service: CommunicationService
   method: get_session
@@ -18,11 +17,25 @@ method_reference:
     maturity: stable
     integration_tier: internal
 method_params:
-- name: request
-  type: object
+- name: session_id
+  type: string
   required: true
-  description: Request object
+  description: Session ID to retrieve
+- name: include_messages
+  type: boolean
+  required: false
+  description: Include full message history
+  default: false
 tool_params:
+- name: session_id
+  type: string
+  required: true
+  description: Session ID to retrieve
+- name: include_messages
+  type: boolean
+  required: false
+  description: Include full message history
+  default: false
 - name: timeout_seconds
   type: integer
   required: false
@@ -41,7 +54,8 @@ implementation:
     method_name: CommunicationService.get_session
     parameter_mapping:
       method_params:
-      - request
+      - session_id
+      - include_messages
       tool_params:
       - timeout_seconds
       - dry_run
@@ -55,7 +69,8 @@ business_rules:
 examples:
 - description: Basic get_session operation
   input:
-    request: sample_request
+    session_id: sample_session_id
+    include_messages: sample_include_messages
   expected_output:
     result: success
     data: {}

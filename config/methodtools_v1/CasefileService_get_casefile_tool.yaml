@@ -1,12 +1,11 @@
 name: get_casefile_tool
-description: Tool wrapper for CasefileService.get_casefile with validation and execution
-  control
+description: Tool wrapper for CasefileService.get_casefile with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
+- casefile
 - read
-- get
 method_reference:
   service: CasefileService
   method: get_casefile
@@ -21,8 +20,12 @@ method_params:
 - name: casefile_id
   type: string
   required: true
-  description: Casefile identifier
+  description: Casefile ID to retrieve
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID to retrieve
 - name: timeout_seconds
   type: integer
   required: false
@@ -51,7 +54,6 @@ business_rules:
   required_permissions:
   - casefiles:read
   requires_casefile: true
-  casefile_permission_level: read
   timeout_seconds: 30
 examples:
 - description: Basic get_casefile operation

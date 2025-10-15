@@ -1,13 +1,11 @@
 name: close_session_tool
-description:
-  Tool wrapper for ToolSessionService.close_session with validation and
-  execution control
-category: automation_management
+description: Tool wrapper for ToolSessionService.close_session with validation and execution control
+category: automation
 version: 1.0.0
 tags:
-  - automation
-  - update
-  - close
+- automation
+- tool_session
+- update
 method_reference:
   service: ToolSessionService
   method: close_session
@@ -19,47 +17,51 @@ method_reference:
     maturity: stable
     integration_tier: internal
 method_params:
-  - name: session_id
-    type: string
-    required: true
-    description: Session ID to close
+- name: session_id
+  type: string
+  required: true
+  description: Session ID to close
 tool_params:
-  - name: timeout_seconds
-    type: integer
-    required: false
-    description: Maximum execution time in seconds
-    default: 30
-    min_value: 5
-    max_value: 300
-  - name: dry_run
-    type: boolean
-    required: false
-    description: Preview mode without actual execution
-    default: false
+- name: session_id
+  type: string
+  required: true
+  description: Session ID to close
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
 implementation:
   type: method_wrapper
   method_wrapper:
     method_name: ToolSessionService.close_session
     parameter_mapping:
       method_params:
-        - session_id
+      - session_id
       tool_params:
-        - timeout_seconds
-        - dry_run
+      - timeout_seconds
+      - dry_run
 business_rules:
   enabled: true
   requires_auth: true
   required_permissions:
-    - tools:execute
+  - tools:execute
   requires_casefile: false
   timeout_seconds: 30
 examples:
-  - description: Basic close_session operation
-    input:
-      request: sample_request
-    expected_output:
-      result: success
-      data: {}
+- description: Basic close_session operation
+  input:
+    session_id: sample_session_id
+  expected_output:
+    result: success
+    data: {}
 data_contracts:
   request_model: CloseSessionRequest
   response_model: CloseSessionResponse
@@ -67,13 +69,13 @@ data_contracts:
   module: src.pydantic_models.operations.tool_session_ops
 dependencies:
   methods:
-    - close_session
+  - close_session
   models:
-    - CloseSessionRequest
-    - CloseSessionResponse
+  - CloseSessionRequest
+  - CloseSessionResponse
   services:
-    - ToolSessionService
+  - ToolSessionService
 compatibility:
   method_version: 1.0.0
-  schema_version: "1.0"
+  schema_version: '1.0'
   requires_auth: true

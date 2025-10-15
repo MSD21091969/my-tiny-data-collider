@@ -1,12 +1,11 @@
 name: store_gmail_messages_tool
-description: Tool wrapper for CasefileService.store_gmail_messages with validation
-  and execution control
+description: Tool wrapper for CasefileService.store_gmail_messages with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
+- google_workspace
 - update
-- store
 method_reference:
   service: CasefileService
   method: store_gmail_messages
@@ -18,16 +17,62 @@ method_reference:
     maturity: beta
     integration_tier: hybrid
 method_params:
-- name: request
-  type: object
+- name: casefile_id
+  type: string
   required: true
-  description: Request object
+  description: Casefile ID
+- name: messages
+  type: array
+  required: true
+  description: Gmail messages (GmailMessage dicts)
+- name: sync_token
+  type: string
+  required: false
+  description: Incremental sync token from Gmail API
+- name: overwrite
+  type: boolean
+  required: false
+  description: Replace existing cache instead of merging
+  default: false
+- name: threads
+  type: string
+  required: false
+  description: Gmail thread metadata
+- name: labels
+  type: string
+  required: false
+  description: Gmail label metadata
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID
+- name: messages
+  type: array
+  required: true
+  description: Gmail messages (GmailMessage dicts)
+- name: sync_token
+  type: string
+  required: false
+  description: Incremental sync token from Gmail API
+- name: overwrite
+  type: boolean
+  required: false
+  description: Replace existing cache instead of merging
+  default: false
+- name: threads
+  type: string
+  required: false
+  description: Gmail thread metadata
+- name: labels
+  type: string
+  required: false
+  description: Gmail label metadata
 - name: timeout_seconds
   type: integer
   required: false
   description: Maximum execution time in seconds
-  default: 60
+  default: 30
   min_value: 5
   max_value: 300
 - name: dry_run
@@ -41,7 +86,12 @@ implementation:
     method_name: CasefileService.store_gmail_messages
     parameter_mapping:
       method_params:
-      - request
+      - casefile_id
+      - messages
+      - sync_token
+      - overwrite
+      - threads
+      - labels
       tool_params:
       - timeout_seconds
       - dry_run
@@ -52,12 +102,12 @@ business_rules:
   - casefiles:write
   - workspace:gmail:read
   requires_casefile: true
-  casefile_permission_level: write
   timeout_seconds: 60
 examples:
 - description: Basic store_gmail_messages operation
   input:
-    request: sample_request
+    casefile_id: sample_casefile_id
+    messages: sample_messages
   expected_output:
     result: success
     data: {}

@@ -1,12 +1,11 @@
 name: revoke_permission_tool
-description: Tool wrapper for CasefileService.revoke_permission with validation and
-  execution control
+description: Tool wrapper for CasefileService.revoke_permission with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
+- casefile_acl
 - delete
-- revoke
 method_reference:
   service: CasefileService
   method: revoke_permission
@@ -18,11 +17,23 @@ method_reference:
     maturity: stable
     integration_tier: internal
 method_params:
-- name: request
-  type: object
+- name: casefile_id
+  type: string
   required: true
-  description: Request object
+  description: Casefile ID
+- name: target_user_id
+  type: string
+  required: true
+  description: User to revoke permission from
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID
+- name: target_user_id
+  type: string
+  required: true
+  description: User to revoke permission from
 - name: timeout_seconds
   type: integer
   required: false
@@ -41,7 +52,8 @@ implementation:
     method_name: CasefileService.revoke_permission
     parameter_mapping:
       method_params:
-      - request
+      - casefile_id
+      - target_user_id
       tool_params:
       - timeout_seconds
       - dry_run
@@ -51,12 +63,12 @@ business_rules:
   required_permissions:
   - casefiles:share
   requires_casefile: true
-  casefile_permission_level: admin
   timeout_seconds: 30
 examples:
 - description: Basic revoke_permission operation
   input:
-    request: sample_request
+    casefile_id: sample_casefile_id
+    target_user_id: sample_target_user_id
   expected_output:
     result: success
     data: {}

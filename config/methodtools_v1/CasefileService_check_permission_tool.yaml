@@ -1,12 +1,11 @@
 name: check_permission_tool
-description: Tool wrapper for CasefileService.check_permission with validation and
-  execution control
+description: Tool wrapper for CasefileService.check_permission with validation and execution control
 category: workspace_management
 version: 1.0.0
 tags:
 - workspace
+- casefile_acl
 - read
-- check
 method_reference:
   service: CasefileService
   method: check_permission
@@ -18,11 +17,31 @@ method_reference:
     maturity: stable
     integration_tier: internal
 method_params:
-- name: request
-  type: object
+- name: casefile_id
+  type: string
   required: true
-  description: Request object
+  description: Casefile ID
+- name: user_id
+  type: string
+  required: true
+  description: User ID to check
+- name: required_permission
+  type: string
+  required: true
+  description: Required permission level
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID
+- name: user_id
+  type: string
+  required: true
+  description: User ID to check
+- name: required_permission
+  type: string
+  required: true
+  description: Required permission level
 - name: timeout_seconds
   type: integer
   required: false
@@ -41,7 +60,9 @@ implementation:
     method_name: CasefileService.check_permission
     parameter_mapping:
       method_params:
-      - request
+      - casefile_id
+      - user_id
+      - required_permission
       tool_params:
       - timeout_seconds
       - dry_run
@@ -51,12 +72,12 @@ business_rules:
   required_permissions:
   - casefiles:read
   requires_casefile: true
-  casefile_permission_level: read
   timeout_seconds: 30
 examples:
 - description: Basic check_permission operation
   input:
-    request: sample_request
+    casefile_id: sample_casefile_id
+    user_id: sample_user_id
   expected_output:
     result: success
     data: {}

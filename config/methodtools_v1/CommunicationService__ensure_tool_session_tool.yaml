@@ -1,12 +1,11 @@
 name: _ensure_tool_session_tool
-description: Tool wrapper for CommunicationService._ensure_tool_session with validation
-  and execution control
-category: communication_management
+description: Tool wrapper for CommunicationService._ensure_tool_session with validation and execution control
+category: communication
 version: 1.0.0
 tags:
 - communication
+- chat_session
 - process
-- ''
 method_reference:
   service: CommunicationService
   method: _ensure_tool_session
@@ -17,11 +16,7 @@ method_reference:
     complexity: atomic
     maturity: stable
     integration_tier: internal
-method_params:
-- name: request
-  type: object
-  required: true
-  description: Request object
+method_params: []
 tool_params:
 - name: timeout_seconds
   type: integer
@@ -40,8 +35,7 @@ implementation:
   method_wrapper:
     method_name: CommunicationService._ensure_tool_session
     parameter_mapping:
-      method_params:
-      - request
+      method_params: []
       tool_params:
       - timeout_seconds
       - dry_run
@@ -53,8 +47,7 @@ business_rules:
   timeout_seconds: 30
 examples:
 - description: Basic _ensure_tool_session operation
-  input:
-    request: sample_request
+  input: {}
   expected_output:
     result: success
     data: {}

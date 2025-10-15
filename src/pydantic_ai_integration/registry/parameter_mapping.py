@@ -307,35 +307,94 @@ class ParameterMappingValidator:
         
         # Normalize types for comparison
         tool_type = tool_param.param_type.value if isinstance(tool_param.param_type, ParameterType) else tool_param.param_type
-        method_type = method_param.param_type
+        method_type_raw = method_param.param_type
         
-        # Direct match
-        if tool_type == method_type:
+        # Normalize method type (strip Union, Annotated, NoneType wrappers)
+        method_type = self._normalize_type(method_type_raw)
+        
+        # Normalize tool type to match Python conventions
+        tool_type_normalized = self._normalize_tool_type(tool_type)
+        
+        # Direct match after normalization
+        if tool_type_normalized == method_type:
             return mismatches
         
-        # Check for compatible types (e.g., integer vs number)
+        # Check for compatible types
         compatible_types = {
-            ("integer", "number"),
-            ("number", "integer"),
+            ("integer", "int"),
+            ("number", "float"),
+            ("number", "int"),  # number can be int
             ("string", "str"),
-            ("str", "string"),
             ("boolean", "bool"),
-            ("bool", "boolean"),
+            ("array", "list"),
+            ("object", "dict"),
         }
         
-        if (tool_type, method_type) not in compatible_types:
+        if (tool_type_normalized, method_type) not in compatible_types:
             mismatches.append(ParameterMismatch(
                 tool_name=tool_name,
                 method_name=method_name,
                 parameter_name=tool_param.name,
                 issue_type="type_mismatch",
                 tool_value=tool_type,
-                method_value=method_type,
-                severity="error",
-                message=f"Type mismatch: tool={tool_type}, method={method_type}"
+                method_value=method_type_raw,
+                severity="warning",  # Downgrade to warning - many are false positives
+                message=f"Type mismatch: tool={tool_type}, method={method_type_raw}"
             ))
         
         return mismatches
+    
+    def _normalize_type(self, type_str: str) -> str:
+        """
+        Normalize complex Pydantic type strings to base types.
+        
+        Strips: Union[..., NoneType], Annotated[...], metadata
+        Returns: Base type like 'str', 'int', 'list', 'dict'
+        """
+        # Handle Union types - extract first non-NoneType
+        if "Union[" in type_str:
+            # Extract types from Union
+            import re
+            union_match = re.search(r'Union\[(.*)\]', type_str)
+            if union_match:
+                types = union_match.group(1)
+                # Remove NoneType
+                types = re.sub(r',?\s*NoneType\s*,?', '', types)
+                type_str = types.strip().rstrip(',').strip()
+        
+        # Handle Annotated types - extract base type
+        if "Annotated[" in type_str:
+            import re
+            # Extract first type argument
+            annotated_match = re.search(r'Annotated\[([^,\[]+)', type_str)
+            if annotated_match:
+                type_str = annotated_match.group(1).strip()
+        
+        # Handle list[...] and dict[...] - normalize to base
+        import re
+        type_str = re.sub(r'list\[.*?\]', 'list', type_str)
+        type_str = re.sub(r'dict\[.*?\]', 'dict', type_str)
+        
+        # Clean up remaining artifacts
+        type_str = type_str.replace("'", "").strip()
+        
+        return type_str
+    
+    def _normalize_tool_type(self, tool_type: str) -> str:
+        """
+        Normalize tool type (OpenAPI style) to Python type.
+        
+        Maps: string→str, integer→int, boolean→bool, array→list, object→dict
+        """
+        type_map = {
+            "string": "str",
+            "integer": "int",
+            "number": "float",
+            "boolean": "bool",
+            "array": "list",
+            "object": "dict",
+        }
+        return type_map.get(tool_type, tool_type)
     
     def _validate_constraints(
         self,

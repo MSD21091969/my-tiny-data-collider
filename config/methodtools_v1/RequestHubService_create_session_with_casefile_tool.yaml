@@ -1,11 +1,10 @@
 name: create_session_with_casefile_tool
-description: Tool wrapper for RequestHubService.create_session_with_casefile with
-  validation and execution control
-category: automation_management
+description: Tool wrapper for RequestHubService.create_session_with_casefile with validation and execution control
+category: automation
 version: 1.0.0
 tags:
 - automation
-- create
+- tool_session
 - create
 method_reference:
   service: RequestHubService
@@ -18,16 +17,38 @@ method_reference:
     maturity: beta
     integration_tier: internal
 method_params:
-- name: request
-  type: object
+- name: casefile_id
+  type: string
   required: true
-  description: Request object
+  description: Existing casefile ID to link session to
+- name: title
+  type: string
+  required: false
+  description: Optional session title
+- name: session_type
+  type: string
+  required: false
+  description: Type of session to create (tool or chat)
+  default: tool
 tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Existing casefile ID to link session to
+- name: title
+  type: string
+  required: false
+  description: Optional session title
+- name: session_type
+  type: string
+  required: false
+  description: Type of session to create (tool or chat)
+  default: tool
 - name: timeout_seconds
   type: integer
   required: false
   description: Maximum execution time in seconds
-  default: 60
+  default: 30
   min_value: 5
   max_value: 300
 - name: dry_run
@@ -41,7 +62,9 @@ implementation:
     method_name: RequestHubService.create_session_with_casefile
     parameter_mapping:
       method_params:
-      - request
+      - casefile_id
+      - title
+      - session_type
       tool_params:
       - timeout_seconds
       - dry_run
@@ -52,12 +75,12 @@ business_rules:
   - tools:execute
   - casefiles:write
   requires_casefile: true
-  casefile_permission_level: write
   timeout_seconds: 60
 examples:
 - description: Basic create_session_with_casefile operation
   input:
-    request: sample_request
+    casefile_id: sample_casefile_id
+    title: sample_title
   expected_output:
     result: success
     data: {}
