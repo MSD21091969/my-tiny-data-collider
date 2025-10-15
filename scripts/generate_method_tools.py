@@ -28,19 +28,20 @@ from pydantic.fields import FieldInfo
 # Project root for relative paths
 project_root = Path(__file__).parent.parent
 
-# Import from installed package (editable install handles path)
-from pydantic_ai_integration.method_registry import extract_parameters_from_request_model
+# NOTE: Do NOT import from pydantic_ai_integration here!
+# Importing triggers decorators which fail to import Google Workspace models.
+# Script has standalone extraction logic below (extract_tool_parameters function).
 
 
 def load_methods_inventory(yaml_path: str = "config/methods_inventory_v1.yaml") -> Dict:
     """Load methods inventory from YAML."""
-    with open(yaml_path, "r") as f:
+    with open(yaml_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def load_tool_schema(schema_path: str = "config/tool_schema_v2.yaml") -> Dict:
     """Load tool schema for validation."""
-    with open(schema_path, "r") as f:
+    with open(schema_path, "r", encoding="utf-8") as f:
         content = f.read()
         # Schema is documented in comments, extract validation rules
         # For now, return empty dict - schema is documentation only
@@ -66,14 +67,20 @@ def import_request_model(module_path: str, model_name: str) -> type[BaseModel] |
         import_path = module_path[4:] if module_path.startswith("src.") else module_path
         
         module = __import__(import_path, fromlist=[model_name])
-        return getattr(module, model_name, None)
+        model_class = getattr(module, model_name, None)
+        if model_class is None:
+            print(f"  ⚠ Could not find {model_name} in {import_path}")
+        return model_class
         
-    except (ImportError, AttributeError, UnicodeEncodeError):
-        # Silently skip - some models may not be available yet
+    except (ImportError, AttributeError, UnicodeEncodeError) as e:
+        # Log import failures with full error
+        print(f"  ⚠ Could not import {model_name} from {module_path}: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
     except Exception as e:
         # Unexpected error - log it
-        print(f"  ! Unexpected error importing {model_name} from {module_path}: {type(e).__name__}")
+        print(f"  ! Unexpected error importing {model_name} from {module_path}: {type(e).__name__}: {e}")
         return None
 
 
@@ -306,10 +313,15 @@ def generate_tool_yaml(
         if verbose:
             print(f"  Importing {request_model_name} from {module_path}")
         request_model_class = import_request_model(module_path, request_model_name)
+        if verbose:
+            print(f"  Model imported: {request_model_class}")
         if request_model_class:
             method_params = extract_tool_parameters(request_model_class)
-            if verbose and method_params:
-                print(f"  Extracted {len(method_params)} parameters")
+            if verbose:
+                print(f"  Extracted {len(method_params)} parameters for {method_name}")
+                if method_params:
+                    for p in method_params:
+                        print(f"    - {p['name']}: {p['type']}")
     
     # Build tool_params: method params + execution controls
     tool_params = []

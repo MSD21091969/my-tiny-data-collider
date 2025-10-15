@@ -15,7 +15,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from ..base.custom_types import IsoTimestamp
+from ..base.custom_types import EmailAddress, IsoTimestamp, MediumString
 
 
 class PermissionLevel(str, Enum):
@@ -29,7 +29,7 @@ class PermissionLevel(str, Enum):
 
 class PermissionEntry(BaseModel):
     """Single permission entry for a user on a casefile."""
-    user_id: str = Field(
+    user_id: EmailAddress = Field(
         ...,
         description="User ID granted permission",
         json_schema_extra={"example": "user123@example.com"}
@@ -39,7 +39,7 @@ class PermissionEntry(BaseModel):
         description="Level of access granted",
         json_schema_extra={"example": "editor"}
     )
-    granted_by: str = Field(
+    granted_by: EmailAddress = Field(
         ...,
         description="User who granted this permission",
         json_schema_extra={"example": "admin@example.com"}
@@ -54,17 +54,16 @@ class PermissionEntry(BaseModel):
         description="Optional expiration timestamp (ISO 8601)",
         json_schema_extra={"example": "2025-12-31T23:59:59"}
     )
-    notes: Optional[str] = Field(
+    notes: Optional[MediumString] = Field(
         None,
         description="Optional notes about this permission",
-        max_length=500,
         json_schema_extra={"example": "Temporary access for project collaboration"}
     )
 
 
 class CasefileACL(BaseModel):
     """Access Control List for a casefile."""
-    owner_id: str = Field(
+    owner_id: EmailAddress = Field(
         ...,
         description="Casefile owner (has all permissions)",
         json_schema_extra={"example": "owner@example.com"}
