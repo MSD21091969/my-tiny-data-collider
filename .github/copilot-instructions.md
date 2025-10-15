@@ -6,7 +6,7 @@
 - FastAPI data integration platform with Pydantic validation
 - Google Workspace integration (Gmail, Drive, Sheets)
 - Casefile management, tool execution orchestration
-- Phase 1 complete: 20+ custom types, 9 validators, 234 tests
+- Phase 1 complete: 20+ custom types, 9 validators, 263 tests
 
 **Ultimate Purpose:**
 - **Tool Engineering Platform**: Build written/generated scripts for simple to advanced problem-solving
@@ -19,6 +19,7 @@
 - `README.md` - Project overview, quick start
 - `ROUNDTRIP_ANALYSIS.md` - Complete system state + action items ⭐ GO-TO FILE
 - `docs/VALIDATION_PATTERNS.md` - Custom types & validators guide
+- `scripts/generate_method_tools.py` - YAML tool generator (411 lines)
 
 **Two-Repository Context:**
 - **This repo (my-tiny-data-collider)**: Application code, models, services, tests
@@ -120,7 +121,7 @@ python scripts/validate_parameter_mappings.py --verbose
 
 ### Test Suites
 ```powershell
-# All tests (234)
+# All tests (263)
 python -m pytest tests/ -v
 
 # Pydantic tests (116)
@@ -128,11 +129,43 @@ python -m pytest tests/pydantic_models/ -v
 
 # Registry tests (43)
 python -m pytest tests/registry/ -v
+
+# Integration tests (104)
+python -m pytest tests/integration/ -v
 ```
 
 ---
 
-## 6. Session Startup & Quick Reference
+## 6. Tool Generation & YAML Workflow
+
+### Generate Tool YAMLs
+```powershell
+# Generate all 34 tool YAMLs from methods inventory
+python scripts/generate_method_tools.py
+
+# Dry-run (show what would be generated)
+python scripts/generate_method_tools.py --dry-run
+
+# Verbose output
+python scripts/generate_method_tools.py --verbose
+```
+
+**Pattern:** R-A-R (Request-Action-Response) - Parameters extracted from `payload` field  
+**Output:** `config/methodtools_v1/*.yaml` (34 files)  
+**Validation:** Type normalization, generic detection (list[str] → array)
+
+### Test YAML Tools
+```powershell
+# Load and inspect tool
+python -c "from pydantic_ai_integration.tool_decorator import register_tools_from_yaml, MANAGED_TOOLS; register_tools_from_yaml(); tool = MANAGED_TOOLS.get('create_casefile_tool'); print(f'Tool: {tool.name}, Method: {tool.method_name}')"
+```
+
+**Proven:** YAMLs work for actual CRUD (dry-run execution successful)  
+**Runtime:** Requires Firestore/Redis infrastructure for live execution
+
+---
+
+## 7. Session Startup & Quick Reference
 
 **Every new session:**
 
@@ -140,9 +173,12 @@ python -m pytest tests/registry/ -v
 2. Check toolset context: `C:\Users\HP\my-tiny-toolset\.github\copilot-instructions.md`
 3. Check branch: `git status`
 4. Read context: `ROUNDTRIP_ANALYSIS.md` for current system state
-5. Quick validation: `python scripts/validate_registries.py --strict` (expect ~34 issues - NORMAL)
-6. Run tests: `python -m pytest tests/ -v --tb=short` (235 passing)
-7. Verify artifacts in `tests/reports/`: Excel (1), JSON (2), CSV (4)
+5. Quick validation: `python scripts/validate_registries.py --strict`
+6. Run tests: `python -m pytest tests/ -v --tb=short` (263 passing)
+
+**Phase Status:**
+- ✅ Phase 1 Complete: Custom types, validators, generator script, all tests passing
+- 🚀 Ready for Phase 2: Google Workspace warnings (8) + Apply custom types (~60 models)
 
 ---
 

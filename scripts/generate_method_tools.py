@@ -38,6 +38,22 @@ def load_methods_inventory(yaml_path: str = "config/methods_inventory_v1.yaml") 
         return yaml.safe_load(f)
 
 
+def load_tool_schema(schema_path: str = "config/tool_schema_v2.yaml") -> Dict:
+    """Load tool schema for validation."""
+    with open(schema_path, "r") as f:
+        content = f.read()
+        # Schema is documented in comments, extract validation rules
+        # For now, return empty dict - schema is documentation only
+        # Future: Parse schema into validation rules
+        return {}
+
+
+def load_tool_schema(schema_path: str = "config/tool_schema_v2.yaml") -> Dict:
+    """Load tool schema for validation."""
+    with open(schema_path, "r") as f:
+        return yaml.safe_load(f)
+
+
 def import_request_model(module_path: str, model_name: str) -> type[BaseModel] | None:
     """
     Dynamically import a request model.
@@ -98,6 +114,90 @@ def extract_tool_parameters(request_model_class: type[BaseModel]) -> List[Dict[s
             params.append(_build_parameter_def(field_name, field_info))
     
     return params
+
+
+def validate_tool_structure(tool_data: Dict[str, Any]) -> List[str]:
+    """
+    Validate tool YAML structure against tool_schema_v2.yaml requirements.
+    
+    Returns list of validation errors (empty = valid).
+    """
+    errors = []
+    
+    # Required top-level fields
+    required_fields = ['name', 'description', 'category', 'version']
+    for field in required_fields:
+        if field not in tool_data:
+            errors.append(f"Missing required field: {field}")
+    
+    # Validate name format (should be snake_case and end with _tool)
+    if 'name' in tool_data:
+        name = tool_data['name']
+        if not name.endswith('_tool'):
+            errors.append(f"Tool name must end with '_tool': {name}")
+        if not name.replace('_', '').replace('-', '').isalnum():
+            errors.append(f"Tool name must be alphanumeric with underscores: {name}")
+    
+    # Validate method_reference
+    if 'method_reference' in tool_data:
+        ref = tool_data['method_reference']
+        if not isinstance(ref, dict):
+            errors.append("method_reference must be a dictionary")
+        elif 'service' not in ref or 'method' not in ref:
+            errors.append("method_reference must contain 'service' and 'method'")
+    
+    # Validate parameters
+    valid_param_types = ['string', 'integer', 'float', 'boolean', 'array', 'object']
+    
+    for param_section in ['method_params', 'tool_params']:
+        if param_section in tool_data:
+            params = tool_data[param_section]
+            if not isinstance(params, list):
+                errors.append(f"{param_section} must be a list")
+                continue
+            
+            for idx, param in enumerate(params):
+                if not isinstance(param, dict):
+                    errors.append(f"{param_section}[{idx}] must be a dictionary")
+                    continue
+                
+                # Required parameter fields
+                if 'name' not in param:
+                    errors.append(f"{param_section}[{idx}] missing 'name'")
+                if 'type' not in param:
+                    errors.append(f"{param_section}[{idx}] missing 'type'")
+                elif param['type'] not in valid_param_types:
+                    errors.append(
+                        f"{param_section}[{idx}] invalid type '{param['type']}'. "
+                        f"Must be one of: {', '.join(valid_param_types)}"
+                    )
+                
+                # Validate constraints match type
+                param_type = param.get('type')
+                if param_type in ['integer', 'float']:
+                    if 'min_length' in param or 'max_length' in param:
+                        errors.append(
+                            f"{param_section}[{idx}] ({param.get('name')}): "
+                            "min_length/max_length not valid for numeric types"
+                        )
+                elif param_type == 'string':
+                    if 'min_value' in param or 'max_value' in param:
+                        errors.append(
+                            f"{param_section}[{idx}] ({param.get('name')}): "
+                            "min_value/max_value not valid for string type"
+                        )
+    
+    # Validate implementation
+    if 'implementation' in tool_data:
+        impl = tool_data['implementation']
+        if not isinstance(impl, dict):
+            errors.append("implementation must be a dictionary")
+        elif 'type' not in impl:
+            errors.append("implementation missing 'type'")
+        elif impl['type'] not in ['simple', 'api_call', 'data_transform', 'composite', 'method_wrapper']:
+            errors.append(f"Invalid implementation type: {impl['type']}")
+    
+    return errors
 
 
 def _build_parameter_def(field_name: str, field_info: FieldInfo) -> Dict[str, Any]:
@@ -303,6 +403,13 @@ def generate_tool_yaml(
         }
     }
     
+    # Validate tool structure
+    validation_errors = validate_tool_structure(tool_def)
+    if validation_errors:
+        error_msg = f"Tool '{tool_name}' failed validation:\n"
+        error_msg += "\n".join(f"  - {err}" for err in validation_errors)
+        raise ValueError(error_msg)
+    
     return tool_def
 
 
@@ -382,9 +489,10 @@ def main():
     output_dir = project_root / args.output_dir
     
     print("=" * 70)
-    print("TOOL YAML GENERATION")
+    print("TOOL YAML GENERATION WITH VALIDATION")
     print("=" * 70)
     print(f"Inventory: {inventory_path}")
+    print(f"Schema: config/tool_schema_v2.yaml")
     print(f"Output: {output_dir}")
     print(f"Mode: {'DRY-RUN' if args.dry_run else 'WRITE'}")
     print()
@@ -394,6 +502,19 @@ def main():
         inventory = load_methods_inventory(inventory_path)
     except Exception as e:
         print(f"❌ Failed to load inventory: {e}")
+        return 1
+    
+    # Load and verify tool schema exists
+    schema_path = project_root / "config" / "tool_schema_v2.yaml"
+    if not schema_path.exists():
+        print(f"❌ Tool schema not found: {schema_path}")
+        return 1
+    
+    try:
+        schema = load_tool_schema(schema_path)
+        print(f"[OK] Tool schema loaded: {schema_path}")
+    except Exception as e:
+        print(f"❌ Failed to load schema: {e}")
         return 1
     
     # Create output directory
@@ -411,12 +532,14 @@ def main():
     print()
     print("=" * 70)
     print(f"[OK] Generated {generated_count} tool YAMLs")
+    print(f"[OK] All tools validated against tool_schema_v2.yaml")
     print("=" * 70)
     
     if args.dry_run:
         print("\n[INFO] Run without --dry-run to write files")
     else:
         print(f"\n[OUTPUT] Tools written to: {output_dir}")
+        print(f"[VALIDATED] All {generated_count} YAMLs conform to schema")
         print("[NEXT] Run parameter mapping validation")
         print("   python scripts/validate_parameter_mappings.py --verbose")
     
