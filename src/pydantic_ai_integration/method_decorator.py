@@ -159,6 +159,14 @@ def register_service_method(
         # First parameter should be request model (only if it's a BaseModel subclass)
         if params and params[0].annotation != inspect.Parameter.empty:
             param_type = params[0].annotation
+            
+            # Unwrap Optional[] types (e.g., Optional[GmailListMessagesRequest] → GmailListMessagesRequest)
+            if hasattr(param_type, "__args__"):
+                # Get the first argument from Union types (Optional is Union[T, None])
+                unwrapped = param_type.__args__[0]
+                if isinstance(unwrapped, type) and issubclass(unwrapped, BaseModel):
+                    param_type = unwrapped
+            
             # Only use if it's a BaseModel subclass
             if isinstance(param_type, type) and issubclass(param_type, BaseModel):
                 request_model = param_type
@@ -421,7 +429,7 @@ def load_methods_from_yaml(yaml_path: str) -> Dict[str, ManagedMethodDefinition]
         logger.warning(f"Methods YAML file not found: {yaml_path}")
         return {}
 
-    with open(yaml_file, "r") as f:
+    with open(yaml_file, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     methods = {}

@@ -163,60 +163,67 @@ def extract_parameters_from_payload(payload_class: Type[BaseModel]) -> List[Meth
 
 def extract_parameters_from_request_model(request_model_class: Type[BaseModel]) -> List[MethodParameterDef]:
     """
-    Extract parameters from Request DTO by inspecting its payload type.
+    Extract parameters from Request DTO by inspecting its payload type or fields.
     
-    Handles BaseRequest[PayloadT] generics - extracts PayloadT and then
-    extracts parameters from that payload class.
+    Handles two patterns:
+    1. R-A-R pattern: BaseRequest[PayloadT] with 'payload' field (CasefileService, ToolSessionService)
+    2. Direct parameters: All fields are parameters (Google Workspace clients)
     
     Args:
-        request_model_class: Request DTO class (e.g., CreateCasefileRequest)
+        request_model_class: Request DTO class (e.g., CreateCasefileRequest, GmailListMessagesRequest)
         
     Returns:
-        List of MethodParameterDef extracted from payload
+        List of MethodParameterDef extracted from payload or model fields
         
     Example:
+        >>> # R-A-R pattern
         >>> params = extract_parameters_from_request_model(CreateCasefileRequest)
         >>> # Extracts from CreateCasefilePayload automatically
+        >>> 
+        >>> # Direct parameters
+        >>> params = extract_parameters_from_request_model(GmailListMessagesRequest)
+        >>> # Extracts from GmailListMessagesRequest fields directly
     """
-    # Get the payload type from model_fields directly (Pydantic v2)
-    if 'payload' not in request_model_class.model_fields:
-        logger.warning(
-            f"Request model {request_model_class.__name__} has no 'payload' field, "
-            "cannot extract parameters"
-        )
-        return []
-    
-    payload_field = request_model_class.model_fields['payload']
-    payload_type = payload_field.annotation
-    
-    # Handle Optional/Union types
-    origin = get_origin(payload_type)
-    if origin:
-        args = get_args(payload_type)
-        # For Optional[X] or Union[X, None], get first non-None type
-        if args:
-            payload_class = None
-            for arg in args:
-                if arg is not type(None) and hasattr(arg, 'model_fields'):
-                    payload_class = arg
-                    break
-            if not payload_class:
-                payload_class = args[0]
+    # Check for R-A-R pattern (has 'payload' field)
+    if 'payload' in request_model_class.model_fields:
+        payload_field = request_model_class.model_fields['payload']
+        payload_type = payload_field.annotation
+        
+        # Handle Optional/Union types
+        origin = get_origin(payload_type)
+        if origin:
+            args = get_args(payload_type)
+            # For Optional[X] or Union[X, None], get first non-None type
+            if args:
+                payload_class = None
+                for arg in args:
+                    if arg is not type(None) and hasattr(arg, 'model_fields'):
+                        payload_class = arg
+                        break
+                if not payload_class:
+                    payload_class = args[0]
+            else:
+                payload_class = payload_type
         else:
             payload_class = payload_type
-    else:
-        payload_class = payload_type
+        
+        # Validate it's a Pydantic model
+        if not hasattr(payload_class, 'model_fields'):
+            logger.warning(
+                f"Could not determine payload class for {request_model_class.__name__}, "
+                f"got {payload_class}"
+            )
+            return []
+        
+        # Extract from payload class
+        return extract_parameters_from_payload(payload_class)
     
-    # Validate it's a Pydantic model
-    if not hasattr(payload_class, 'model_fields'):
-        logger.warning(
-            f"Could not determine payload class for {request_model_class.__name__}, "
-            f"got {payload_class}"
-        )
-        return []
-    
-    # Extract from payload class
-    return extract_parameters_from_payload(payload_class)
+    # Direct parameter model (no payload field) - extract from model itself
+    logger.debug(
+        f"Request model {request_model_class.__name__} has no 'payload' field, "
+        "extracting parameters directly from model fields"
+    )
+    return extract_parameters_from_payload(request_model_class)
 
 
 # ==============================================================================
