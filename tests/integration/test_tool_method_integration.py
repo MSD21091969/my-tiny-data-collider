@@ -8,16 +8,17 @@ import pytest
 from uuid import uuid4
 
 from pydantic_ai_integration.dependencies import MDSContext
-from pydantic_ai_integration.tool_decorator import MANAGED_TOOLS
+from src.pydantic_ai_integration.tools import MANAGED_TOOLS
 from coreservice.id_service import get_id_service
 
 
 @pytest.fixture
 def test_context():
     """Create a test context for tool execution."""
+    user_id = f"user_{uuid4().hex[:8]}"
     ctx = MDSContext(
-        user_id=f"user_{uuid4().hex[:8]}",
-        session_id=get_id_service().new_tool_session_id(),
+        user_id=user_id,
+        session_id=get_id_service().new_tool_session_id(user_id=user_id, casefile_id=None),
         casefile_id=None  # Some tools don't require casefile
     )
     return ctx
@@ -38,6 +39,11 @@ class TestCasefileServiceTools:
         3. Verify actual service method was called
         4. Verify result structure
         """
+        # Ensure registries are initialized
+        if len(MANAGED_TOOLS) == 0:
+            from src.pydantic_ai_integration import initialize_registries
+            initialize_registries()
+        
         # Get tool
         tool_name = "create_casefile_tool"
         tool_def = MANAGED_TOOLS.get(tool_name)
@@ -94,6 +100,11 @@ class TestCasefileServiceTools:
         
         Dry run should return execution plan without calling service.
         """
+        # Ensure registries are initialized
+        if len(MANAGED_TOOLS) == 0:
+            from src.pydantic_ai_integration import initialize_registries
+            initialize_registries()
+        
         tool_name = "create_casefile_tool"
         tool_def = MANAGED_TOOLS.get(tool_name)
         
@@ -126,6 +137,11 @@ class TestCasefileServiceTools:
         - Method params (title, description, tags) are extracted
         - Tool params (dry_run, timeout_seconds) are separated
         """
+        # Ensure registries are initialized
+        if len(MANAGED_TOOLS) == 0:
+            from src.pydantic_ai_integration import initialize_registries
+            initialize_registries()
+        
         tool_name = "create_casefile_tool"
         tool_def = MANAGED_TOOLS.get(tool_name)
         
@@ -167,6 +183,11 @@ class TestToolErrorHandling:
     
     async def test_invalid_method_name(self, test_context):
         """Test handling of invalid method name on valid service."""
+        # Ensure registries are initialized
+        if len(MANAGED_TOOLS) == 0:
+            from src.pydantic_ai_integration import initialize_registries
+            initialize_registries()
+        
         # Get a tool and modify to call non-existent method
         tool_name = "create_casefile_tool"
         tool_def = MANAGED_TOOLS.get(tool_name)
@@ -185,6 +206,11 @@ class TestToolRegistry:
     
     async def test_tools_registered_from_yaml(self):
         """Verify tools were registered from YAML files."""
+        # Ensure registries are initialized
+        if len(MANAGED_TOOLS) == 0:
+            from src.pydantic_ai_integration import initialize_registries
+            initialize_registries()
+        
         assert len(MANAGED_TOOLS) > 0, "No tools registered"
         
         print(f"\n✓ Total tools registered: {len(MANAGED_TOOLS)}")
@@ -206,6 +232,11 @@ class TestToolRegistry:
     
     async def test_tool_parameter_models(self):
         """Verify tools have parameter models for validation."""
+        # Ensure registries are initialized
+        if len(MANAGED_TOOLS) == 0:
+            from src.pydantic_ai_integration import initialize_registries
+            initialize_registries()
+        
         for tool_name, tool_def in MANAGED_TOOLS.items():
             assert tool_def.params_model is not None, f"{tool_name} has no params_model"
             

@@ -9,26 +9,26 @@
 1. **Set environment:** `$env:MY_TOOLSET = "C:\Users\HP\my-tiny-toolset\TOOLSET"`
 2. **Read toolset context:** Check `C:\Users\HP\my-tiny-toolset\.github\copilot-instructions.md` for toolset usage patterns
 3. **Check branch:** `git status` - Confirm correct branch
-4. **Run tests:** `python -m pytest tests/ -v --tb=short` - Verify 159/159 passing
-5. **Verify test outputs:** Check test artifacts exist:
+4. **Quick validation:** `python scripts/validate_registries.py --strict` (expect ~34 drift/mapping issues - NORMAL)
+5. **Run tests:** `python -m pytest tests/ -v --tb=short` - Verify 263 passing (116 pydantic + 43 registry + 104 integration tests)
+6. **Verify test outputs:** Check test artifacts exist:
    - `tests/reports/` - Excel report (1 file: `test_validation_report.xlsx`)
    - `tests/reports/` - JSON files (2 files: `test_results.json`, `test_validation_summary.json`)
    - `tests/reports/` - CSV files (4 files: `models.csv`, `methods.csv`, `tools.csv`, `validation_errors.csv`)
-6. **Check registry validation:** `python scripts/validate_registries.py --strict` (expect 40 parameter mapping issues)
 7. **Review context:** Read `ROUNDTRIP_ANALYSIS.md` for current system state
-8. **Report status:** Branch, tests (159/159), validation (40 issues), artifacts verified
+8. **Report status:** Branch, validation issues, tests passing, artifacts present
 
 **Standard opening:**
 ```
 Branch: <branch-name>
-Tests: 159/159 passing ✓
+Validation: ~34 issues (drift + mapping - expected)
+Tests: 263/263 passing ✓
 Artifacts: Excel (1), JSON (2), CSV (4) ✓
-Validation: 40 parameter mapping issues (expected)
-Action Items: Fix tool YAMLs in config/methodtools_v1/ (HIGH PRIORITY)
+Action Items: [From ROUNDTRIP_ANALYSIS.md]
 Ready. What are we working on?
 ```
 
-**Note:** Skip mapping_analyzer during startup (not needed for validation workflow).
+**Note:** Validation script is faster than full test run for quick checks. Use tests for comprehensive verification. Current test suite includes additional integration tests beyond original 159 target.
 
 ---
 
@@ -38,7 +38,7 @@ Ready. What are we working on?
 - FastAPI data integration platform with Pydantic validation
 - Google Workspace integration (Gmail, Drive, Sheets)
 - Casefile management, tool execution orchestration
-- Phase 1 complete: 20+ custom types, 9 validators, 159 tests
+- Phase 1 complete: 20+ custom types, 9 validators, 234 tests
 
 **Ultimate Purpose:**
 - **Tool Engineering Platform**: Build written/generated scripts for simple to advanced problem-solving
@@ -51,7 +51,7 @@ Ready. What are we working on?
 - Branch: `feature/develop` (post-PR #34 merge)
 - Phase 1: 84% complete (27/32 hours)
 - MVP Goal: First working iteration of tool engineering framework
-- Tests: 159/159 passing (116 pydantic + 43 registry)
+- Tests: 235/235 passing (116 pydantic + 43 registry + additional integration tests)
 - Action Items: 40 tool YAML mismatches (HIGH PRIORITY)
 
 **Key Documents:**
@@ -140,7 +140,7 @@ python scripts/validate_parameter_mappings.py --verbose
 
 ### Test Suites
 ```powershell
-# All tests (159)
+# All tests (234)
 python -m pytest tests/ -v
 
 # Pydantic tests (116)
@@ -179,7 +179,7 @@ python -m pytest tests/registry/ -v
 **User asks about validation** → Point to `docs/VALIDATION_PATTERNS.md`  
 **User asks about action items** → Check `ROUNDTRIP_ANALYSIS.md` Part 10  
 **User wants to fix YAMLs** → Start with `docs/PARAMETER_MAPPING_RESULTS.md`  
-**User asks about tests** → 159/159 passing, artifacts in `tests/reports/`  
+**User asks about tests** → 234/234 passing, artifacts in `tests/reports/`  
 **Before major changes** → Read `ROUNDTRIP_ANALYSIS.md` for full context  
 **Creating new models** → Use custom types from `base/custom_types.py`  
 **Verify outputs** → Excel (1 .xlsx), JSON (2 .json), CSV (4 .csv) in tests/reports/

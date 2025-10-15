@@ -67,7 +67,11 @@ class _FakeCasefileService:
 
     async def create_casefile(self, request: CreateCasefileRequest) -> CreateCasefileResponse:
         self.created_requests.append(request)
-        casefile_id = f"cf_{len(self.created_requests):03d}"
+        # Generate proper casefile ID format: cf_YYMMDD_code
+        from datetime import datetime
+        date_part = datetime.now().strftime("%y%m%d")
+        counter = len(self.created_requests)
+        casefile_id = f"cf_{date_part}_{counter:06x}"
         payload = CasefileCreatedPayload(
             casefile_id=casefile_id,
             title=request.payload.title,

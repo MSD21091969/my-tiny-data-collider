@@ -5,7 +5,23 @@ import pytest
 import sys
 from pathlib import Path
 
-# Add src to Python path
+
+def pytest_configure(config):
+    """
+    Pytest hook that runs BEFORE test collection.
+    This ensures src/ is in sys.path before any test imports happen.
+    """
+    project_root = Path(__file__).parent.parent
+    src_path = project_root / "src"
+    src_str = str(src_path)
+    
+    # Add to sys.path if not already present
+    if src_str not in sys.path:
+        sys.path.insert(0, src_str)
+        print(f"✓ Added {src_str} to sys.path")
+
+
+# Also set at module level for backwards compatibility
 project_root = Path(__file__).parent.parent
 src_path = project_root / "src"
 if str(src_path) not in sys.path:
@@ -42,13 +58,7 @@ def methods_yaml_path(config_path):
     return config_path / "methods_inventory_v1.yaml"
 
 
-@pytest.fixture(autouse=True)
-def add_src_to_path(src_path):
-    """Automatically add src to Python path for all tests."""
-    if str(src_path) not in sys.path:
-        sys.path.insert(0, str(src_path))
-    yield
-    # Cleanup if needed (though pytest handles this)
+
 
 
 # Test environment fixtures for YAML scenario testing

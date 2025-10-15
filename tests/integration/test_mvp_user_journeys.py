@@ -78,8 +78,8 @@ class TestMVPUserJourney:
         )
 
         casefile_response = await mock_casefile_service.create_casefile(casefile_request)
-        assert casefile_response.success is True
-        assert casefile_response.payload.user_id == user_id
+        assert casefile_response.status.value == "completed"
+        assert casefile_response.payload.created_by == user_id
         assert casefile_response.payload.title == "MVP Test Casefile"
 
         # Step 3: Create tool session using mock service
@@ -97,16 +97,16 @@ class TestMVPUserJourney:
         )
 
         session_response = await mock_tool_session_service.create_session(session_request)
-        assert session_response.success is True
-        assert session_response.payload.status == "active"
-        assert session_response.payload.user_id == user_id
+        assert session_response.status.value == "completed"
+        assert session_response.payload.session_id.startswith("ts_")
+        assert session_response.payload.created_at == "2025-10-14T13:00:00+00:00"
 
         # Step 4: Execute tool with proper authorization
         tool_request = ToolRequest(
             request_id=uuid4(),
             user_id=user_id,
             payload={
-                "tool_name": "create_casefile",
+                "tool_name": "create_casefile_tool",  # Use valid registered tool
                 "parameters": {
                     "title": "Nested Test Casefile",
                     "description": "Created via tool",
@@ -124,9 +124,12 @@ class TestMVPUserJourney:
         tool_response = await mock_tool_session_service.process_tool_request(
             tool_request, auth_context={"user_id": user_id}
         )
-        assert tool_response.success is True
-        assert tool_response.payload["tool_name"] == "create_casefile"
-        assert tool_response.payload["result"] == "success"
+        assert tool_response.status.value == "completed"
+        # payload is a Pydantic model, use attribute access
+        result_data = tool_response.payload.result if hasattr(tool_response.payload, 'result') else tool_response.payload
+        # For dict access, convert to dict or access directly
+        assert result_data["tool_name"] == "create_casefile_tool"
+        assert result_data["status"] == "completed"
 
         # MVP Success Criteria:
         # ✓ Token carries routing metadata (session_request_id, casefile_id, session_id)
@@ -208,7 +211,7 @@ class TestMVPUserJourney:
 
         # Verify all operations succeeded
         for response in responses:
-            assert response.success is True
+            assert response.status.value == "completed"
 
 
 class TestMVPAuthFlowValidation:
@@ -265,11 +268,11 @@ class TestMVPRequestContextFlow:
             payload={
                 "tool_name": "create_casefile_tool",  # Use valid registered tool
                 "parameters": {"title": "Test", "description": "Test"},
-                "casefile_id": "casefile_123",
+                "casefile_id": "cf_241013_123456",
                 "session_request_id": "req_123",
             },
             metadata={
-                "casefile_id": "casefile_123",
+                "casefile_id": "cf_241013_123456",
                 "session_request_id": "req_123",
                 "session_id": "session_123",
             },
@@ -288,7 +291,7 @@ class TestMVPRequestContextFlow:
 
         request_id = uuid4()
         user_id = "test_user"
-        casefile_id = "casefile_123"
+        casefile_id = "cf_241013_123456"
         session_request_id = "req_123"
 
         request = CreateSessionRequest(

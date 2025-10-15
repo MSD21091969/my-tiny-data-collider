@@ -25,9 +25,10 @@ async def test_tool_execution():
     print("="*70 + "\n")
     
     # Create test context
+    user_id = f"test_user_{uuid4().hex[:8]}"
     ctx = MDSContext(
-        user_id=f"test_user_{uuid4().hex[:8]}",
-        session_id=get_id_service().new_tool_session_id(),
+        user_id=user_id,
+        session_id=get_id_service().new_tool_session_id(user_id=user_id, casefile_id=None),
         casefile_id=None
     )
     

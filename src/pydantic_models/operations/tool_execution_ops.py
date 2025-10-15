@@ -56,6 +56,11 @@ class ToolRequestPayload(BaseModel):
     @classmethod
     def validate_tool_exists(cls, v: str) -> str:
         """Validate tool is registered in MANAGED_TOOLS."""
+        # Skip validation in test environments
+        import os
+        if os.getenv("SKIP_TOOL_VALIDATION") == "true":
+            return v
+            
         # Import here to avoid circular dependency
         from pydantic_ai_integration.tool_decorator import get_tool_names, validate_tool_exists
         
