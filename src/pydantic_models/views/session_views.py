@@ -12,25 +12,27 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from ..base.custom_types import CasefileId, IsoTimestamp, NonNegativeInt, SessionId, ShortString
+
 
 class SessionSummary(BaseModel):
     """Summary of a tool session."""
-    session_id: str = Field(..., description="Session ID")
+    session_id: SessionId = Field(..., description="Session ID")
     user_id: str = Field(..., description="User ID")
-    casefile_id: str = Field(..., description="Casefile ID")
-    title: Optional[str] = Field(None, description="Session title")
-    created_at: str = Field(..., description="Creation timestamp")
-    updated_at: str = Field(..., description="Last update timestamp")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
+    title: Optional[ShortString] = Field(None, description="Session title")
+    created_at: IsoTimestamp = Field(..., description="Creation timestamp")
+    updated_at: IsoTimestamp = Field(..., description="Last update timestamp")
     active: bool = Field(..., description="Active status")
-    request_count: int = Field(default=0, description="Number of requests")
+    request_count: NonNegativeInt = Field(default=0, description="Number of requests")
 
 
 class ChatSessionSummary(BaseModel):
     """Summary of a chat session."""
-    session_id: str = Field(..., description="Session ID")
+    session_id: SessionId = Field(..., description="Session ID")
     user_id: str = Field(..., description="User ID")
-    casefile_id: Optional[str] = Field(None, description="Casefile ID if any")
-    created_at: str = Field(..., description="Creation timestamp")
-    updated_at: str = Field(..., description="Last update timestamp")
+    casefile_id: Optional[CasefileId] = Field(None, description="Casefile ID if any")
+    created_at: IsoTimestamp = Field(..., description="Creation timestamp")
+    updated_at: IsoTimestamp = Field(..., description="Last update timestamp")
     active: bool = Field(..., description="Active status")
-    message_count: int = Field(default=0, description="Number of messages")
+    message_count: NonNegativeInt = Field(default=0, description="Number of messages")
