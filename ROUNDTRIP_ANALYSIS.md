@@ -20,7 +20,9 @@
 - **Solution:** Fixed 31 files (services, API routers, tests) with `src.pydantic_models.` imports
 - **Commits:** `49fd082` - Import path fix across codebase
 - **Result:** ✅ All 126 pydantic model tests passing via pytest
-- **Documentation:** Updated PYTEST_IMPORT_ISSUE.md and PARAMETER_MAPPING_TEST_ISSUES.md
+- **Documentation:** 
+  - ✅ [`docs/PYTEST_IMPORT_ISSUE.md`](docs/PYTEST_IMPORT_ISSUE.md) - Marked RESOLVED with solution details
+  - ✅ [`docs/PARAMETER_MAPPING_TEST_ISSUES.md`](docs/PARAMETER_MAPPING_TEST_ISSUES.md) - Updated with import fix status
 
 **Phase 10: Decorator-Based Method Registration (Oct 15, 2025)**
 - **Achievement:** Replaced YAML-based registration with `@register_service_method` decorators
