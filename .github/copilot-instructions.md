@@ -1,29 +1,29 @@
 # AI Instructions - Tiny Data Collider
 
-## 1. What is "Tiny Data Collider"
+**Last Updated:** 2025-10-16
 
-**What:**
-- FastAPI data integration platform with Pydantic validation
-- Google Workspace integration (Gmail, Drive, Sheets)
-- Casefile management, tool execution orchestration
-- Tool Engineering Platform: Build written/generated scripts for simple to advanced problem-solving
-- YAML-Driven Architecture: Generate code/models/tools/parameters from Pydantic models
-- Agent Toolchain: Premium agent tools + user tools for data workflows
-- Data Cycle: Transfer → Transformation → Analysis → RAG → Tuning (iterative)
-- Session Management: Structured chat sessions with context, goals, audit trail
+---
 
-**Key Documents:**
-- `README.md` - Project overview, quick start
-- `ROUNDTRIP_ANALYSIS.md` - Complete system state + action items ⭐ GO-TO FILE
-- `docs/VALIDATION_PATTERNS.md` - Custom types & validators reference (Phase 1)
-- `scripts/generate_method_tools.py` - YAML tool generator (411 lines)
+## 1. Repository Overview
 
-**Two-Repository Context:**
-- **This repo (my-tiny-data-collider)**: Application code, models, services, tests
-- **Toolset repo (my-tiny-toolset)**: Analysis tools + knowledge base (REFERENCE/, WORKSPACE/, CONFIGS/)
-- **Toolset instructions**: `C:\Users\HP\my-tiny-toolset\.github\copilot-instructions.md` - Read for tool usage patterns
-- **Integration**: Application uses toolset for code analysis, not vice versa
-- **Knowledge Flow**: Patterns discovered here → Captured in toolset REFERENCE/ folders
+**This is the APPLICATION repository** - FastAPI data integration platform with Pydantic validation, Google Workspace integration (Gmail/Drive/Sheets), casefile management, and tool execution orchestration using YAML-driven architecture.
+
+**Your role as Code Assistant:**
+1. Build and enhance FastAPI application code in this repository
+2. Use meta-tools from separate toolset repository for analysis (not vice versa)
+3. Follow validation framework (custom types + validators) in all Pydantic models
+4. Execute tasks defined in `.vscode/tasks.json` (validation, tests, analysis)
+5. Consult `ROUNDTRIP_ANALYSIS.md` for current system state and action plan
+
+**Two-repository architecture:**
+- **my-tiny-data-collider** (THIS REPO): Application code, models, services, tests, 34 service methods, 37 Pydantic models
+- **my-tiny-toolset** (SEPARATE): 17 meta-tools for code analysis + knowledge base → See `C:\Users\HP\my-tiny-toolset\.github\copilot-instructions.md`
+
+**Key documents in THIS repo:**
+- `ROUNDTRIP_ANALYSIS.md` - Complete system state, action plan, progress tracking ⭐ PRIMARY REFERENCE
+- `docs/VALIDATION_PATTERNS.md` - Custom types & validators reference
+- `README.md` - Project overview, quick start guide
+- `.vscode/tasks.json` - Executable tasks for validation, testing, analysis
 
 ---
 
@@ -168,22 +168,34 @@ python -c "from pydantic_ai_integration.tool_decorator import register_tools_fro
 
 ---
 
-## 7. Session Startup & Quick Reference
+## 7. Session Startup Checklist
 
-**Every new session:**
+**Every new session, execute in order:**
 
-1. Set environment: `$env:MY_TOOLSET = "C:\Users\HP\my-tiny-toolset\TOOLSET"`
-2. Check toolset context: `C:\Users\HP\my-tiny-toolset\.github\copilot-instructions.md`
-3. Check branch: `git status`
-4. Read context: `ROUNDTRIP_ANALYSIS.md` for current system state
-5. Quick validation: `python scripts/validate_registries.py --strict`
-6. Run tests: `python -m pytest tests/ -v --tb=short` (263 passing)
+1. **Set toolset environment** → `$env:MY_TOOLSET = "C:\Users\HP\my-tiny-toolset\TOOLSET"`
+2. **Check Git branch** → `git status` (should be on `feature/develop`)
+3. **Read system state** → Open `ROUNDTRIP_ANALYSIS.md` for current progress and action plan
+4. **Validate registries** → Run task "Validate Registries" OR `python scripts/validate_registries.py --strict`
+5. **Run test suite** → Run task "Run Tests" OR `python -m pytest tests/ -v --tb=short` (expect 263/263 passing)
+6. **Review tasks** → Check `.vscode/tasks.json` for available executable tasks
 
-**Phase Status:**
-- ✅ Phase 1 Complete: Custom types, validators, test suite (32h - Oct 13, 2025)
-- ✅ Phase 2 Complete: Decorator registration, custom types application (20h - Oct 15, 2025)
-- 🚀 Phase 3 Planned: OpenAPI enhancement (19h)
+**Available tasks** (use VS Code Task Runner or `run_task` tool):
+- `Validate Registries` - Full registry + parameter validation
+- `Run Tests` - Complete test suite (263 tests)
+- `Quick Analysis` - Run code_analyzer.py on current codebase
+- `Full Analysis` - Run version_tracker.py + mapping_analyzer.py
+- `Pre-commit Checks` - Sequential validation + tests before commit
+
+**Current system status:**
+- ✅ **263/263 tests passing** (116 pydantic + 43 registry + 104 integration)
+- ✅ **34 service methods registered** with `@register_service_method` decorator
+- ✅ **37 Pydantic models validated** (100% schema valid, 9 files enhanced with custom types)
+- ✅ **Phase 1-2 complete** (52h): Validation foundation + decorator registration
+- 📋 **Remaining work**: See ROUNDTRIP_ANALYSIS.md Actions 13, 16-18, 21-22 (24.5h estimated)
+
+**Toolset integration:**
+- Toolset repo has separate `.github/copilot-instructions.md` with 17 meta-tool documentation
+- Use toolset tools FOR analysis, not IN the application code
+- Knowledge flow: Discover patterns here → Capture in toolset `REFERENCE/` folders
 
 ---
-
-**Last Updated:** 2025-10-15
