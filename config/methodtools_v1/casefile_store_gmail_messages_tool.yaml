@@ -1,0 +1,128 @@
+name: store_gmail_messages_tool
+description: Tool wrapper for casefile.store_gmail_messages with validation and execution control
+category: workspace_management
+version: 1.0.0
+tags:
+- workspace
+- google_workspace
+- update
+method_reference:
+  service: casefile
+  method: store_gmail_messages
+  classification:
+    domain: workspace
+    subdomain: google_workspace
+    capability: update
+    complexity: composite
+    maturity: beta
+    integration_tier: hybrid
+method_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID
+- name: messages
+  type: array
+  required: true
+  description: Gmail messages (GmailMessage dicts)
+- name: sync_token
+  type: string
+  required: false
+  description: Incremental sync token from Gmail API
+- name: overwrite
+  type: boolean
+  required: false
+  description: Replace existing cache instead of merging
+  default: false
+- name: threads
+  type: string
+  required: false
+  description: Gmail thread metadata
+- name: labels
+  type: string
+  required: false
+  description: Gmail label metadata
+tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID
+- name: messages
+  type: array
+  required: true
+  description: Gmail messages (GmailMessage dicts)
+- name: sync_token
+  type: string
+  required: false
+  description: Incremental sync token from Gmail API
+- name: overwrite
+  type: boolean
+  required: false
+  description: Replace existing cache instead of merging
+  default: false
+- name: threads
+  type: string
+  required: false
+  description: Gmail thread metadata
+- name: labels
+  type: string
+  required: false
+  description: Gmail label metadata
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: casefile.store_gmail_messages
+    parameter_mapping:
+      method_params:
+      - casefile_id
+      - messages
+      - sync_token
+      - overwrite
+      - threads
+      - labels
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic store_gmail_messages operation
+  input:
+    casefile_id: sample_casefile_id
+    messages: sample_messages
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: StoreGmailMessagesRequest
+  response_model: StoreGmailMessagesResponse
+  canonical_models: []
+  module: pydantic_models.operations.casefile_ops
+dependencies:
+  methods:
+  - store_gmail_messages
+  models:
+  - StoreGmailMessagesRequest
+  - StoreGmailMessagesResponse
+  services:
+  - casefile
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

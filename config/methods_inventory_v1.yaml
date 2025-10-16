@@ -1,922 +1,476 @@
-# ============================================================
-# METHODS INVENTORY v1.0.0 - DOCUMENTATION ONLY
-# ============================================================
-# ⚠️  DO NOT EDIT - AUTO-GENERATED DOCUMENTATION
-# 
-# This file is DOCUMENTATION ONLY as of Phase 10 (October 15, 2025)
-# 
-# METHOD REGISTRATION FLOW (Phase 10+):
-# 1. Methods registered via @register_service_method decorators in code
-# 2. Decorators trigger on module import (src/__init__.py)
-# 3. MANAGED_METHODS registry populated automatically
-# 4. This YAML serves as reference documentation only
-#
-# TO UPDATE THIS FILE:
-# 1. Modify service method code + @register_service_method decorator
-# 2. Method auto-registers at application startup
-# 3. (Optional) Regenerate this YAML from MANAGED_METHODS for docs:
-#    python scripts/export_registry_to_yaml.py > config/methods_inventory_v1.yaml
-#
-# LEGACY FLOW (Pre-Phase 10):
-# - Methods loaded via register_methods_from_yaml() in src/__init__.py
-# - This was manual and prone to drift
-# - Replaced by decorator-based auto-registration
-#
-# SYNCHRONIZATION STATUS: ✅ DECORATOR-BASED (Phase 10)
-# Last updated: October 15, 2025 - Phase 10 Completion
-# Registry status: 34 methods auto-registered via decorators at startup
-# 
-# VERSION HISTORY:
-# - v1.0.0 (2025-10-06): Initial baseline release with 34 methods
-# - Phase 10 (2025-10-15): Converted to decorator-based registration
-#
-# VERSIONING RULES:
-# - MAJOR: Breaking changes (signature modifications, renamed methods)
-# - MINOR: Non-breaking additions (new methods, optional parameters)
-# - PATCH: Non-breaking fixes (description updates, metadata corrections)
-#
-# IMPORTANT: MANAGED_METHODS Registry Stores Only 16 Fields
-# ----------------------------------------------------------
-# The business_rules sections below are REFERENCE DATA for tools/services.
-# They are NOT stored in the MANAGED_METHODS registry (ManagedMethodDefinition).
-# 
-# Registry stores only:
-# - Identity: name, description, version
-# - Classification: domain, subdomain, capability, complexity, maturity, integration_tier  
-# - Execution: request_model_class, response_model_class, implementation_class, implementation_method
-# - Tracking: registered_at
-#
-# Actual policy enforcement (auth, permissions, timeouts) happens in:
-# - Request DTOs (BaseRequest with policies)
-# - Service method implementations
-# - R-A-R pattern execution layer
-#
-# This YAML serves as:
-# 1. Reference documentation for method metadata
-# 2. Documentation for policy requirements
-# 3. Historical reference for tool generation patterns
-#
-# See: docs/registry/versioning-guide.md
-# Changelog: docs/registry/CHANGELOG.md
-# ============================================================
-
-version: "1.0.0"
-schema_version: "1.0"
-created_at: "2025-10-06"
-updated_at: "2025-10-15"
-changelog: "docs/registry/CHANGELOG.md"
-versioning_guide: "docs/registry/versioning-guide.md"
-
-# Compatibility requirements
-compatibility:
-  minimum_registry_version: "1.0.0"
-  minimum_decorator_version: "1.0.0"
-  python_version: ">=3.10"
-
-# Deprecation notices (currently none)
-deprecations: []
-
-metadata:
-  total_methods: 34
-  services: 7
-  model_coverage: 100%
-  classification_schema: "tool_schema_v2.yaml"
-
-statistics:
-  by_domain:
-    workspace: 18
-    communication: 10
-    automation: 6
-  by_capability:
-    read: 9
-    update: 8
-    create: 7
-    search: 4
-    process: 4
-    delete: 2
-  by_complexity:
-    atomic: 25
-    composite: 7
-    pipeline: 2
-  by_maturity:
-    stable: 22
-    beta: 12
-  by_integration:
-    internal: 24
-    external: 6
-    hybrid: 4
-
-# ============================================================================
-# CASEFILE SERVICE (13 methods)
-# ============================================================================
-
-services:
-  - name: CasefileService
-    module: src.casefileservice.service
-    description: "Casefile CRUD, ACL, and workspace sync operations"
-    method_count: 13
-    
-    methods:
-      # CRUD Operations (5)
-      - name: create_casefile
-        description: "Create new casefile with metadata"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: create
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: CreateCasefileRequest
-          response: CreateCasefileResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def create_casefile(self, request: CreateCasefileRequest) -> CreateCasefileResponse"
-      
-      - name: get_casefile
-        description: "Retrieve casefile by ID"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: read
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: GetCasefileRequest
-          response: GetCasefileResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:read"]
-          requires_casefile: true
-          casefile_permission_level: "read"
-          timeout_seconds: 30
-        signature: "async def get_casefile(self, request: GetCasefileRequest) -> GetCasefileResponse"
-      
-      - name: update_casefile
-        description: "Update casefile metadata"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: update
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: UpdateCasefileRequest
-          response: UpdateCasefileResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write"]
-          requires_casefile: true
-          casefile_permission_level: "write"
-          timeout_seconds: 30
-        signature: "async def update_casefile(self, request: UpdateCasefileRequest) -> UpdateCasefileResponse"
-      
-      - name: list_casefiles
-        description: "List casefiles with optional filters"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: search
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: ListCasefilesRequest
-          response: ListCasefilesResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def list_casefiles(self, request: ListCasefilesRequest) -> ListCasefilesResponse"
-      
-      - name: delete_casefile
-        description: "Delete casefile permanently"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: delete
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: DeleteCasefileRequest
-          response: DeleteCasefileResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:delete"]
-          requires_casefile: true
-          casefile_permission_level: "owner"
-          timeout_seconds: 30
-        signature: "async def delete_casefile(self, request: DeleteCasefileRequest) -> DeleteCasefileResponse"
-      
-      # Session Management (1)
-      - name: add_session_to_casefile
-        description: "Link tool/chat session to casefile"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: update
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: AddSessionToCasefileRequest
-          response: AddSessionToCasefileResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write"]
-          requires_casefile: true
-          casefile_permission_level: "write"
-          timeout_seconds: 30
-        signature: "async def add_session_to_casefile(self, request: AddSessionToCasefileRequest) -> AddSessionToCasefileResponse"
-      
-      # ACL Operations (4)
-      - name: grant_permission
-        description: "Grant user permission on casefile"
-        classification:
-          domain: workspace
-          subdomain: casefile_acl
-          capability: update
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: GrantPermissionRequest
-          response: GrantPermissionResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:share"]
-          requires_casefile: true
-          casefile_permission_level: "admin"
-          timeout_seconds: 30
-        signature: "async def grant_permission(self, request: GrantPermissionRequest) -> GrantPermissionResponse"
-      
-      - name: revoke_permission
-        description: "Revoke user permission on casefile"
-        classification:
-          domain: workspace
-          subdomain: casefile_acl
-          capability: delete
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: RevokePermissionRequest
-          response: RevokePermissionResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:share"]
-          requires_casefile: true
-          casefile_permission_level: "admin"
-          timeout_seconds: 30
-        signature: "async def revoke_permission(self, request: RevokePermissionRequest) -> RevokePermissionResponse"
-      
-      - name: list_permissions
-        description: "List all permissions for casefile"
-        classification:
-          domain: workspace
-          subdomain: casefile_acl
-          capability: read
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: ListPermissionsRequest
-          response: ListPermissionsResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:read"]
-          requires_casefile: true
-          casefile_permission_level: "read"
-          timeout_seconds: 30
-        signature: "async def list_permissions(self, request: ListPermissionsRequest) -> ListPermissionsResponse"
-      
-      - name: check_permission
-        description: "Check if user has specific permission"
-        classification:
-          domain: workspace
-          subdomain: casefile_acl
-          capability: read
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: CheckPermissionRequest
-          response: CheckPermissionResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:read"]
-          requires_casefile: true
-          casefile_permission_level: "read"
-          timeout_seconds: 30
-        signature: "async def check_permission(self, request: CheckPermissionRequest) -> CheckPermissionResponse"
-      
-      # Workspace Sync (3)
-      - name: store_gmail_messages
-        description: "Store Gmail messages in casefile"
-        classification:
-          domain: workspace
-          subdomain: google_workspace
-          capability: update
-          complexity: composite
-          maturity: beta
-          integration_tier: hybrid
-        models:
-          request: StoreGmailMessagesRequest
-          response: StoreGmailMessagesResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write", "workspace:gmail:read"]
-          requires_casefile: true
-          casefile_permission_level: "write"
-          timeout_seconds: 60
-        dependencies: ["GmailClient"]
-        signature: "async def store_gmail_messages(self, request: StoreGmailMessagesRequest) -> StoreGmailMessagesResponse"
-      
-      - name: store_drive_files
-        description: "Store Google Drive files in casefile"
-        classification:
-          domain: workspace
-          subdomain: google_workspace
-          capability: update
-          complexity: composite
-          maturity: beta
-          integration_tier: hybrid
-        models:
-          request: StoreDriveFilesRequest
-          response: StoreDriveFilesResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write", "workspace:drive:read"]
-          requires_casefile: true
-          casefile_permission_level: "write"
-          timeout_seconds: 60
-        dependencies: ["DriveClient"]
-        signature: "async def store_drive_files(self, request: StoreDriveFilesRequest) -> StoreDriveFilesResponse"
-      
-      - name: store_sheet_data
-        description: "Store Google Sheets data in casefile"
-        classification:
-          domain: workspace
-          subdomain: google_workspace
-          capability: update
-          complexity: composite
-          maturity: beta
-          integration_tier: hybrid
-        models:
-          request: StoreSheetDataRequest
-          response: StoreSheetDataResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write", "workspace:sheets:read"]
-          requires_casefile: true
-          casefile_permission_level: "write"
-          timeout_seconds: 60
-        dependencies: ["SheetsClient"]
-        signature: "async def store_sheet_data(self, request: StoreSheetDataRequest) -> StoreSheetDataResponse"
-
-  # ============================================================================
-  # TOOL SESSION SERVICE (5 methods)
-  # ============================================================================
-  
-  - name: ToolSessionService
-    module: src.tool_sessionservice.service
-    description: "Tool session lifecycle and execution"
-    method_count: 6
-    
-    methods:
-      # Session Lifecycle (4)
-      - name: create_session
-        description: "Create new tool execution session"
-        classification:
-          domain: automation
-          subdomain: tool_session
-          capability: create
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: CreateSessionRequest
-          response: CreateSessionResponse
-          module: src.pydantic_models.operations.tool_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["tools:execute"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def create_session(self, request: CreateSessionRequest) -> CreateSessionResponse"
-
-      - name: get_session
-        description: "Retrieve tool session by ID"
-        classification:
-          domain: automation
-          subdomain: tool_session
-          capability: read
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: GetSessionRequest
-          response: GetSessionResponse
-          module: src.pydantic_models.operations.tool_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["tools:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def get_session(self, request: GetSessionRequest) -> GetSessionResponse"
-      
-      - name: list_sessions
-        description: "List tool sessions with filters"
-        classification:
-          domain: automation
-          subdomain: tool_session
-          capability: search
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: ListSessionsRequest
-          response: ListSessionsResponse
-          module: src.pydantic_models.operations.tool_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["tools:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def list_sessions(self, request: ListSessionsRequest) -> ListSessionsResponse"
-      
-      - name: close_session
-        description: "Close tool execution session"
-        classification:
-          domain: automation
-          subdomain: tool_session
-          capability: update
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: CloseSessionRequest
-          response: CloseSessionResponse
-          module: src.pydantic_models.operations.tool_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["tools:execute"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def close_session(self, request: CloseSessionRequest) -> CloseSessionResponse"
-      
-      # Tool Execution (2)
-      - name: process_tool_request
-        description: "Validate, execute, and log tool request"
-        classification:
-          domain: automation
-          subdomain: tool_execution
-          capability: process
-          complexity: pipeline
-          maturity: stable
-          integration_tier: hybrid
-        models:
-          request: ToolRequest
-          response: ToolResponse
-          module: src.pydantic_models.operations.tool_execution_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["tools:execute"]
-          requires_casefile: false
-          timeout_seconds: 60
-        dependencies: ["MANAGED_TOOLS registry"]
-        signature: "async def process_tool_request(self, request: ToolRequest) -> ToolResponse"
-      
-      - name: process_tool_request_with_session_management
-        description: "Process tool request with automatic session management"
-        classification:
-          domain: automation
-          subdomain: tool_execution
-          capability: process
-          complexity: composite
-          maturity: stable
-          integration_tier: hybrid
-        models:
-          request: null
-          response: ToolResponse
-          module: null
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["tools:execute"]
-          requires_casefile: false
-          timeout_seconds: 60
-        dependencies: ["MANAGED_TOOLS registry", "SessionManager"]
-        signature: "async def process_tool_request_with_session_management(self, user_id: str, tool_name: str, parameters: Dict[str, Any], casefile_id: Optional[str] = None, session_token: Optional[str] = None, client_request_id: Optional[str] = None, auto_create_session: bool = True) -> ToolResponse"
-
-  # ============================================================================
-  # REQUEST HUB SERVICE (2 methods)
-  # ============================================================================
-  
-  - name: RequestHubService
-    module: src.coreservice.request_hub
-    description: "RequestHub orchestration bridging R-A-R and Tool Engineering"
-    method_count: 3
-    
-    methods:
-      - name: execute_casefile
-        description: "Create casefile through RequestHub with hook support"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: create
-          complexity: atomic
-          maturity: beta
-          integration_tier: internal
-        models:
-          request: CreateCasefileRequest
-          response: CreateCasefileResponse
-          module: src.pydantic_models.operations.casefile_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def execute_casefile(request: CreateCasefileRequest) -> CreateCasefileResponse"
-      
-      - name: execute_casefile_with_session
-        description: "Composite workflow creating a casefile and tool session"
-        classification:
-          domain: workspace
-          subdomain: casefile
-          capability: create
-          complexity: composite
-          maturity: beta
-          integration_tier: internal
-        models:
-          request: CreateCasefileWithSessionRequest
-          response: CreateCasefileWithSessionResponse
-          module: src.pydantic_models.operations.request_hub_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["casefiles:write", "tool_sessions:write"]
-          requires_casefile: false
-          timeout_seconds: 60
-        signature: "async def execute_casefile_with_session(request: CreateCasefileWithSessionRequest) -> CreateCasefileWithSessionResponse"
-      
-      - name: create_session_with_casefile
-        description: "Create tool session and link to existing casefile"
-        classification:
-          domain: automation
-          subdomain: tool_session
-          capability: create
-          complexity: composite
-          maturity: beta
-          integration_tier: internal
-        models:
-          request: CreateSessionWithCasefileRequest
-          response: CreateSessionWithCasefileResponse
-          module: src.pydantic_models.operations.request_hub_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["tools:execute", "casefiles:write"]
-          requires_casefile: true
-          casefile_permission_level: "write"
-          timeout_seconds: 60
-        dependencies: ["ToolSessionService.create_session", "CasefileService.add_session_to_casefile"]
-        signature: "async def create_session_with_casefile(request: CreateSessionWithCasefileRequest) -> CreateSessionWithCasefileResponse"
-
-  # ============================================================================
-  # COMMUNICATION SERVICE (6 methods)
-  # ============================================================================
-  
-  - name: CommunicationService
-    module: src.communicationservice.service
-    description: "Chat session management and LLM interaction"
-    method_count: 6
-    
-    methods:
-      # Chat Session Lifecycle (4)
-      - name: create_session
-        description: "Create chat session with linked tool session"
-        classification:
-          domain: communication
-          subdomain: chat_session
-          capability: create
-          complexity: composite
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: CreateChatSessionRequest
-          response: CreateChatSessionResponse
-          module: src.pydantic_models.operations.chat_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["chat:create"]
-          requires_casefile: false
-          timeout_seconds: 30
-        dependencies: ["ToolSessionService.create_session"]
-        signature: "async def create_session(self, request: CreateChatSessionRequest) -> CreateChatSessionResponse"
-      
-      - name: get_session
-        description: "Retrieve chat session by ID"
-        classification:
-          domain: communication
-          subdomain: chat_session
-          capability: read
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: GetChatSessionRequest
-          response: GetChatSessionResponse
-          module: src.pydantic_models.operations.chat_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["chat:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def get_session(self, request: GetChatSessionRequest) -> GetChatSessionResponse"
-      
-      - name: list_sessions
-        description: "List chat sessions with filters"
-        classification:
-          domain: communication
-          subdomain: chat_session
-          capability: search
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: ListChatSessionsRequest
-          response: ListChatSessionsResponse
-          module: src.pydantic_models.operations.chat_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["chat:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def list_sessions(self, request: ListChatSessionsRequest) -> ListChatSessionsResponse"
-      
-      - name: close_session
-        description: "Close chat session"
-        classification:
-          domain: communication
-          subdomain: chat_session
-          capability: update
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: CloseChatSessionRequest
-          response: CloseChatSessionResponse
-          module: src.pydantic_models.operations.chat_session_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["chat:write"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def close_session(self, request: CloseChatSessionRequest) -> CloseChatSessionResponse"
-      
-      # Chat Processing (1)
-      - name: process_chat_request
-        description: "Parse message, call LLM, handle tool calls"
-        classification:
-          domain: communication
-          subdomain: chat_processing
-          capability: process
-          complexity: pipeline
-          maturity: stable
-          integration_tier: hybrid
-        models:
-          request: ChatRequest
-          response: ChatResponse
-          module: src.pydantic_models.operations.tool_execution_ops
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["chat:write"]
-          requires_casefile: false
-          timeout_seconds: 120
-        dependencies: ["ToolSessionService.process_tool_request", "LLM provider"]
-        signature: "async def process_chat_request(self, request: ChatRequest) -> ChatResponse"
-      
-      # Internal Utility (1)
-      - name: _ensure_tool_session
-        description: "Internal: ensure tool session exists for chat"
-        classification:
-          domain: communication
-          subdomain: chat_session
-          capability: process
-          complexity: atomic
-          maturity: stable
-          integration_tier: internal
-        models:
-          request: null
-          response: null
-          module: null
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: []
-          requires_casefile: false
-          timeout_seconds: 30
-        visibility: private
-        signature: "async def _ensure_tool_session(self, chat_session_id: str, user_id: str) -> str"
-
-  # ============================================================================
-  # GMAIL CLIENT (4 methods)
-  # ============================================================================
-  
-  - name: GmailClient
-    module: src.pydantic_ai_integration.integrations.google_workspace.clients
-    description: "Gmail API wrapper (mock mode)"
-    method_count: 4
-    
-    methods:
-      - name: list_messages
-        description: "List Gmail messages"
-        classification:
-          domain: communication
-          subdomain: gmail
-          capability: read
-          complexity: atomic
-          maturity: beta
-          integration_tier: external
-        models:
-          request: GmailListMessagesRequest
-          response: GmailListMessagesResponse
-          module: src.pydantic_ai_integration.integrations.google_workspace.models
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["workspace:gmail:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def list_messages(self, request: GmailListMessagesRequest) -> GmailListMessagesResponse"
-      
-      - name: send_message
-        description: "Send Gmail message"
-        classification:
-          domain: communication
-          subdomain: gmail
-          capability: create
-          complexity: atomic
-          maturity: beta
-          integration_tier: external
-        models:
-          request: GmailSendMessageRequest
-          response: GmailSendMessageResponse
-          module: src.pydantic_ai_integration.integrations.google_workspace.models
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["workspace:gmail:write"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def send_message(self, request: GmailSendMessageRequest) -> GmailSendMessageResponse"
-      
-      - name: search_messages
-        description: "Search Gmail messages by query"
-        classification:
-          domain: communication
-          subdomain: gmail
-          capability: search
-          complexity: atomic
-          maturity: beta
-          integration_tier: external
-        models:
-          request: GmailSearchMessagesRequest
-          response: GmailSearchMessagesResponse
-          module: src.pydantic_ai_integration.integrations.google_workspace.models
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["workspace:gmail:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def search_messages(self, request: GmailSearchMessagesRequest) -> GmailSearchMessagesResponse"
-      
-      - name: get_message
-        description: "Get single Gmail message by ID"
-        classification:
-          domain: communication
-          subdomain: gmail
-          capability: read
-          complexity: atomic
-          maturity: beta
-          integration_tier: external
-        models:
-          request: GmailGetMessageRequest
-          response: GmailGetMessageResponse
-          module: src.pydantic_ai_integration.integrations.google_workspace.models
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["workspace:gmail:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def get_message(self, request: GmailGetMessageRequest) -> GmailGetMessageResponse"
-
-  # ============================================================================
-  # DRIVE CLIENT (1 method)
-  # ============================================================================
-  
-  - name: DriveClient
-    module: src.pydantic_ai_integration.integrations.google_workspace.clients
-    description: "Google Drive API wrapper (mock mode)"
-    method_count: 1
-    
-    methods:
-      - name: list_files
-        description: "List Google Drive files"
-        classification:
-          domain: workspace
-          subdomain: google_drive
-          capability: read
-          complexity: atomic
-          maturity: beta
-          integration_tier: external
-        models:
-          request: DriveListFilesRequest
-          response: DriveListFilesResponse
-          module: src.pydantic_ai_integration.integrations.google_workspace.models
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["workspace:drive:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def list_files(self, request: DriveListFilesRequest) -> DriveListFilesResponse"
-
-  # ============================================================================
-  # SHEETS CLIENT (1 method)
-  # ============================================================================
-  
-  - name: SheetsClient
-    module: src.pydantic_ai_integration.integrations.google_workspace.clients
-    description: "Google Sheets API wrapper (mock mode)"
-    method_count: 1
-    
-    methods:
-      - name: batch_get
-        description: "Batch get Google Sheets data"
-        classification:
-          domain: workspace
-          subdomain: google_sheets
-          capability: read
-          complexity: atomic
-          maturity: beta
-          integration_tier: external
-        models:
-          request: SheetsBatchGetRequest
-          response: SheetsBatchGetResponse
-          module: src.pydantic_ai_integration.integrations.google_workspace.models
-        business_rules:
-          enabled: true
-          requires_auth: true
-          required_permissions: ["workspace:sheets:read"]
-          requires_casefile: false
-          timeout_seconds: 30
-        signature: "async def batch_get(self, request: SheetsBatchGetRequest) -> SheetsBatchGetResponse"
+create_casefile:
+  name: create_casefile
+  description: Create new casefile with metadata
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: create
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: CreateCasefileRequest
+    response: CreateCasefileResponse
+  implementation:
+    class: CasefileService
+    method: create_casefile
+get_casefile:
+  name: get_casefile
+  description: Retrieve casefile by ID
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: read
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: GetCasefileRequest
+    response: GetCasefileResponse
+  implementation:
+    class: CasefileService
+    method: get_casefile
+update_casefile:
+  name: update_casefile
+  description: Update casefile metadata
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: update
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: UpdateCasefileRequest
+    response: UpdateCasefileResponse
+  implementation:
+    class: CasefileService
+    method: update_casefile
+list_casefiles:
+  name: list_casefiles
+  description: List casefiles with optional filters
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: search
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: ListCasefilesRequest
+    response: ListCasefilesResponse
+  implementation:
+    class: CasefileService
+    method: list_casefiles
+delete_casefile:
+  name: delete_casefile
+  description: Delete casefile permanently
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: delete
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: DeleteCasefileRequest
+    response: DeleteCasefileResponse
+  implementation:
+    class: CasefileService
+    method: delete_casefile
+add_session_to_casefile:
+  name: add_session_to_casefile
+  description: Link tool/chat session to casefile
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: update
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: AddSessionToCasefileRequest
+    response: AddSessionToCasefileResponse
+  implementation:
+    class: CasefileService
+    method: add_session_to_casefile
+store_gmail_messages:
+  name: store_gmail_messages
+  description: Store Gmail messages in casefile
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: google_workspace
+    capability: update
+    complexity: composite
+    maturity: beta
+    integration_tier: hybrid
+  models:
+    request: StoreGmailMessagesRequest
+    response: StoreGmailMessagesResponse
+  implementation:
+    class: CasefileService
+    method: store_gmail_messages
+store_drive_files:
+  name: store_drive_files
+  description: Store Google Drive files in casefile
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: google_workspace
+    capability: update
+    complexity: composite
+    maturity: beta
+    integration_tier: hybrid
+  models:
+    request: StoreDriveFilesRequest
+    response: StoreDriveFilesResponse
+  implementation:
+    class: CasefileService
+    method: store_drive_files
+store_sheet_data:
+  name: store_sheet_data
+  description: Store Google Sheets data in casefile
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: google_workspace
+    capability: update
+    complexity: composite
+    maturity: beta
+    integration_tier: hybrid
+  models:
+    request: StoreSheetDataRequest
+    response: StoreSheetDataResponse
+  implementation:
+    class: CasefileService
+    method: store_sheet_data
+grant_permission:
+  name: grant_permission
+  description: Grant user permission on casefile
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile_acl
+    capability: update
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: GrantPermissionRequest
+    response: GrantPermissionResponse
+  implementation:
+    class: CasefileService
+    method: grant_permission
+revoke_permission:
+  name: revoke_permission
+  description: Revoke user permission on casefile
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile_acl
+    capability: delete
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: RevokePermissionRequest
+    response: RevokePermissionResponse
+  implementation:
+    class: CasefileService
+    method: revoke_permission
+list_permissions:
+  name: list_permissions
+  description: List all permissions for casefile
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile_acl
+    capability: read
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: CasefileACL
+  implementation:
+    class: CasefileService
+    method: list_permissions
+check_permission:
+  name: check_permission
+  description: Check if user has specific permission
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile_acl
+    capability: read
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: CasefileService
+    method: check_permission
+create_session:
+  name: create_session
+  description: Create chat session with linked tool session
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: chat_session
+    capability: create
+    complexity: composite
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: CommunicationService
+    method: create_session
+get_session:
+  name: get_session
+  description: Retrieve chat session by ID
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: chat_session
+    capability: read
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: CommunicationService
+    method: get_session
+list_sessions:
+  name: list_sessions
+  description: List chat sessions with filters
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: chat_session
+    capability: search
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: CommunicationService
+    method: list_sessions
+close_session:
+  name: close_session
+  description: Close chat session
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: chat_session
+    capability: update
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: CommunicationService
+    method: close_session
+process_tool_request_with_session_management:
+  name: process_tool_request_with_session_management
+  description: Process tool request with automatic session management
+  version: 1.0.0
+  classification:
+    domain: automation
+    subdomain: tool_execution
+    capability: process
+    complexity: composite
+    maturity: stable
+    integration_tier: hybrid
+  models:
+    request: 'null'
+    response: ToolResponse
+  implementation:
+    class: ToolSessionService
+    method: process_tool_request_with_session_management
+process_chat_request:
+  name: process_chat_request
+  description: Parse message, call LLM, handle tool calls
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: chat_processing
+    capability: process
+    complexity: pipeline
+    maturity: stable
+    integration_tier: hybrid
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: CommunicationService
+    method: process_chat_request
+execute_casefile:
+  name: execute_casefile
+  description: Create casefile through RequestHub with hook support
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: create
+    complexity: atomic
+    maturity: beta
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: RequestHubService
+    method: execute_casefile
+execute_casefile_with_session:
+  name: execute_casefile_with_session
+  description: Composite workflow creating a casefile and tool session
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: create
+    complexity: composite
+    maturity: beta
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: RequestHubService
+    method: execute_casefile_with_session
+create_session_with_casefile:
+  name: create_session_with_casefile
+  description: Create tool session and link to existing casefile
+  version: 1.0.0
+  classification:
+    domain: automation
+    subdomain: tool_session
+    capability: create
+    complexity: composite
+    maturity: beta
+    integration_tier: internal
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: RequestHubService
+    method: create_session_with_casefile
+list_messages:
+  name: list_messages
+  description: List Gmail messages
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: gmail
+    capability: read
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: GmailClient
+    method: list_messages
+send_message:
+  name: send_message
+  description: Send Gmail message
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: gmail
+    capability: create
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: GmailClient
+    method: send_message
+search_messages:
+  name: search_messages
+  description: Search Gmail messages by query
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: gmail
+    capability: search
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: GmailClient
+    method: search_messages
+get_message:
+  name: get_message
+  description: Get single Gmail message by ID
+  version: 1.0.0
+  classification:
+    domain: communication
+    subdomain: gmail
+    capability: read
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: GmailClient
+    method: get_message
+list_files:
+  name: list_files
+  description: List Google Drive files
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: google_drive
+    capability: read
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: DriveClient
+    method: list_files
+batch_get:
+  name: batch_get
+  description: Batch get Google Sheets data
+  version: 1.0.0
+  classification:
+    domain: workspace
+    subdomain: google_sheets
+    capability: read
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+  models:
+    request: 'null'
+    response: 'null'
+  implementation:
+    class: SheetsClient
+    method: batch_get

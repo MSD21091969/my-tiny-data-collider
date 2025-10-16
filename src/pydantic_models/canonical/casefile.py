@@ -16,7 +16,8 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, computed_field, model_validator
 
 from coreservice.id_service import get_id_service
-from ..base.custom_types import ShortString, MediumString, TagList, IsoTimestamp
+from ..base.custom_types import CasefileId, IsoTimestamp, ShortString, MediumString, TagList, ResourceId
+from ..base.validators import validate_timestamp_order as validate_ts_order, validate_at_least_one
 
 from ..workspace import (
     CasefileDriveData,
@@ -65,25 +66,15 @@ class CasefileMetadata(BaseModel):
     )
     
     @model_validator(mode='after')
-    def validate_timestamp_order(self) -> 'CasefileMetadata':
+    def validate_timestamps(self) -> 'CasefileMetadata':
         """Ensure created_at <= updated_at."""
-        try:
-            created = datetime.fromisoformat(self.created_at.replace('Z', '+00:00'))
-            updated = datetime.fromisoformat(self.updated_at.replace('Z', '+00:00'))
-            if created > updated:
-                raise ValueError("created_at must be <= updated_at")
-        except (ValueError, AttributeError) as e:
-            # Timestamp validation happens in custom type, just check order here
-            if "created_at must be <=" not in str(e):
-                pass  # Let custom type validators handle format errors
-            else:
-                raise
+        validate_ts_order(self.created_at, self.updated_at, 'created_at', 'updated_at')
         return self
 
 
 class ResourceReference(BaseModel):
     """Reference to an external resource linked to a casefile."""
-    resource_id: str = Field(
+    resource_id: ResourceId = Field(
         ...,
         description="External resource ID",
         json_schema_extra={"example": "msg_123abc"}
@@ -148,12 +139,11 @@ class CasefileModel(BaseModel):
     @model_validator(mode='after')
     def validate_casefile_data(self) -> 'CasefileModel':
         """Ensure casefile has at least one data source or legacy resources."""
-        has_typed_data = any([self.gmail_data, self.drive_data, self.sheets_data])
-        has_legacy_resources = bool(self.resources)
-        
-        if not has_typed_data and not has_legacy_resources:
-            raise ValueError(
-                "Casefile must have at least one data source (gmail_data, drive_data, "
-                "sheets_data) or legacy resources"
-            )
+        validate_at_least_one(
+            self.gmail_data,
+            self.drive_data,
+            self.sheets_data,
+            self.resources if self.resources else None,
+            error_message="Casefile must have at least one data source (gmail_data, drive_data, sheets_data) or legacy resources"
+        )
         return self

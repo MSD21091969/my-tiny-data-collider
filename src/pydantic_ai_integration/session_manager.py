@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from pydantic_ai_integration.dependencies import MDSContext
 from src.pydantic_models.base.types import RequestStatus
-from src.pydantic_models.operations.tool_session_ops import CreateSessionRequest, GetSessionRequest
+from src.pydantic_models.operations.tool_session_ops import CreateSessionRequest, GetSessionRequest, ListSessionsRequest
 from tool_sessionservice.service import ToolSessionService
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,11 @@ class SessionManager:
         """
         Ensure a valid session context exists, creating or resuming as needed.
 
+        Logic:
+        1. If session_token provided, try to resume that specific session
+        2. If no session_token, try to find existing active session for user/casefile combo
+        3. If no existing session found, create new one (if auto_create enabled)
+
         Args:
             user_id: The user ID for the session
             casefile_id: Optional casefile ID to link the session to
@@ -46,7 +51,7 @@ class SessionManager:
             Tuple of (MDSContext, was_created) where was_created indicates
             if a new session was created vs resumed
         """
-        # Try to resume existing session if token provided
+        # Try to resume specific session if token provided
         if session_token:
             resumed_context = await self._try_resume_session(
                 session_token, user_id, client_request_id
@@ -55,16 +60,104 @@ class SessionManager:
                 logger.info(f"Resumed existing session {session_token} for user {user_id}")
                 return resumed_context, False
 
+        # Try to find existing active session for user/casefile combination
+        existing_session = await self._find_existing_session(user_id, casefile_id)
+        if existing_session:
+            # Resume the existing session
+            context = MDSContext(
+                user_id=user_id,
+                session_id=existing_session.session_id,
+                casefile_id=casefile_id,
+                environment="development"
+            )
+            context.create_session_request(client_request_id)
+            logger.info(f"Reused existing session {existing_session.session_id} for user {user_id}/casefile {casefile_id}")
+            return context, False
+
         # Create new session if auto_create is enabled
         if auto_create:
             context = await self._create_new_session(
                 user_id, casefile_id, client_request_id
             )
-            logger.info(f"Created new session {context.session_id} for user {user_id}")
+            logger.info(f"Created new session {context.session_id} for user {user_id}/casefile {casefile_id}")
             return context, True
 
         # No session available and auto_create disabled
         raise ValueError("No valid session available and auto_create is disabled")
+
+    async def _find_existing_session(
+        self,
+        user_id: str,
+        casefile_id: Optional[str] = None
+    ) -> Optional[ToolSession]:
+        """
+        Find an existing active session for the user/casefile combination.
+
+        Args:
+            user_id: User ID to search for
+            casefile_id: Optional casefile ID to match
+
+        Returns:
+            Most recent active ToolSession if found, None otherwise
+        """
+        try:
+            # List sessions for this user
+            list_request = ListSessionsRequest(
+                user_id=user_id,
+                payload={
+                    "user_id": user_id,
+                    "casefile_id": casefile_id,
+                    "active_only": True,
+                    "limit": 50,  # Get recent sessions
+                    "offset": 0
+                }
+            )
+
+            response = await self.session_service.list_sessions(list_request)
+
+            if response.status != RequestStatus.COMPLETED or not response.payload.sessions:
+                return None
+
+            # Find sessions that match the casefile_id (if provided)
+            matching_sessions = []
+            for session_summary in response.payload.sessions:
+                # If casefile_id specified, only match sessions with that casefile
+                if casefile_id and session_summary.casefile_id != casefile_id:
+                    continue
+                # If no casefile_id specified, match sessions with no casefile (user-only sessions)
+                if not casefile_id and session_summary.casefile_id:
+                    continue
+                matching_sessions.append(session_summary)
+
+            if not matching_sessions:
+                return None
+
+            # Return the most recent session (first in list, assuming sorted by creation date)
+            most_recent = matching_sessions[0]
+
+            # Get full session details to return ToolSession object
+            get_request = GetSessionRequest(
+                user_id=user_id,
+                payload={"session_id": most_recent.session_id}
+            )
+
+            get_response = await self.session_service.get_session(get_request)
+            if get_response.status == RequestStatus.COMPLETED:
+                # Convert payload to ToolSession-like object
+                class SessionResult:
+                    def __init__(self, payload):
+                        self.session_id = payload.session_id
+                        self.user_id = payload.user_id
+                        self.casefile_id = payload.casefile_id
+                        self.active = payload.active
+
+                return SessionResult(get_response.payload)
+
+            return None
+
+        except Exception as e:
+            logger.warning(f"Failed to find existing session for user {user_id}/casefile {casefile_id}: {e}")
+            return None
 
     async def _try_resume_session(
         self,

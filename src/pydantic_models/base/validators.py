@@ -63,13 +63,14 @@ def validate_timestamp_order(
     if allow_equal:
         if later_dt < earlier_dt:
             raise ValueError(
-                f"{later_field} ({later}) must be greater than or equal to "
-                f"{earlier_field} ({earlier})"
+                f"{earlier_field} must be <= {later_field} "
+                f"({earlier_field}={earlier}, {later_field}={later})"
             )
     else:
         if later_dt <= earlier_dt:
             raise ValueError(
-                f"{later_field} ({later}) must be greater than {earlier_field} ({earlier})"
+                f"{earlier_field} must be < {later_field} "
+                f"({earlier_field}={earlier}, {later_field}={later})"
             )
 
 
@@ -314,6 +315,130 @@ def validate_depends_on(
         )
 
 
+def validate_timestamp_in_range(
+    timestamp: Union[str, int, float],
+    min_timestamp: Optional[Union[str, int, float]] = None,
+    max_timestamp: Optional[Union[str, int, float]] = None,
+    field_name: str = "timestamp",
+) -> None:
+    """
+    Validate that a timestamp falls within a specified range.
+    
+    Args:
+        timestamp: The timestamp to validate
+        min_timestamp: Minimum allowed timestamp (inclusive)
+        max_timestamp: Maximum allowed timestamp (inclusive)
+        field_name: Name of field (for error messages)
+        
+    Raises:
+        ValueError: If timestamp is outside the range
+        
+    Examples:
+        >>> validate_timestamp_in_range("2025-06-01T00:00:00Z", "2025-01-01T00:00:00Z", "2025-12-31T23:59:59Z")
+    """
+    dt = _parse_timestamp(timestamp, field_name)
+    
+    if min_timestamp is not None:
+        min_dt = _parse_timestamp(min_timestamp, "min_timestamp")
+        if dt < min_dt:
+            raise ValueError(f"{field_name} ({timestamp}) must be >= {min_timestamp}")
+    
+    if max_timestamp is not None:
+        max_dt = _parse_timestamp(max_timestamp, "max_timestamp")
+        if dt > max_dt:
+            raise ValueError(f"{field_name} ({timestamp}) must be <= {max_timestamp}")
+
+
+def validate_email_domain(
+    email: str,
+    allowed_domains: Optional[List[str]] = None,
+    blocked_domains: Optional[List[str]] = None,
+    field_name: str = "email",
+) -> None:
+    """
+    Validate email domain against whitelist/blacklist.
+    
+    Args:
+        email: Email address to validate
+        allowed_domains: List of allowed domains (if None, all allowed)
+        blocked_domains: List of blocked domains (checked after allowed_domains)
+        field_name: Name of field (for error messages)
+        
+    Raises:
+        ValueError: If domain is not allowed or is blocked
+        
+    Examples:
+        >>> validate_email_domain("user@example.com", allowed_domains=["example.com"])
+        >>> validate_email_domain("user@spam.com", blocked_domains=["spam.com"])  # Raises
+    """
+    if "@" not in email:
+        raise ValueError(f"Invalid email format for {field_name}: {email}")
+    
+    domain = email.split("@")[-1].lower()
+    
+    # Check allowed domains (whitelist)
+    if allowed_domains:
+        if not any(domain == allowed.lower() for allowed in allowed_domains):
+            raise ValueError(
+                f"Email domain '{domain}' not in allowed domains: {allowed_domains}"
+            )
+    
+    # Check blocked domains (blacklist)
+    if blocked_domains:
+        if any(domain == blocked.lower() for blocked in blocked_domains):
+            raise ValueError(
+                f"Email domain '{domain}' is blocked"
+            )
+
+
+def validate_url_domain(
+    url: str,
+    allowed_domains: Optional[List[str]] = None,
+    blocked_domains: Optional[List[str]] = None,
+    field_name: str = "url",
+) -> None:
+    """
+    Validate URL domain against whitelist/blacklist.
+    
+    Args:
+        url: URL to validate
+        allowed_domains: List of allowed domains (if None, all allowed)
+        blocked_domains: List of blocked domains (checked after allowed_domains)
+        field_name: Name of field (for error messages)
+        
+    Raises:
+        ValueError: If domain is not allowed or is blocked
+        
+    Examples:
+        >>> validate_url_domain("https://example.com/path", allowed_domains=["example.com"])
+        >>> validate_url_domain("https://malicious.com", blocked_domains=["malicious.com"])  # Raises
+    """
+    try:
+        # Extract domain from URL
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower()
+        
+        if not domain:
+            raise ValueError(f"Cannot extract domain from URL: {url}")
+        
+        # Check allowed domains (whitelist)
+        if allowed_domains:
+            if not any(domain == allowed.lower() or domain.endswith(f".{allowed.lower()}") for allowed in allowed_domains):
+                raise ValueError(
+                    f"URL domain '{domain}' not in allowed domains: {allowed_domains}"
+                )
+        
+        # Check blocked domains (blacklist)
+        if blocked_domains:
+            if any(domain == blocked.lower() or domain.endswith(f".{blocked.lower()}") for blocked in blocked_domains):
+                raise ValueError(
+                    f"URL domain '{domain}' is blocked"
+                )
+    except Exception as e:
+        raise ValueError(f"Invalid URL for {field_name}: {url}") from e
+
+
 # Helper functions
 
 def _parse_timestamp(
@@ -362,4 +487,7 @@ __all__ = [
     "validate_range",
     "validate_string_length",
     "validate_depends_on",
+    "validate_timestamp_in_range",
+    "validate_email_domain",
+    "validate_url_domain",
 ]

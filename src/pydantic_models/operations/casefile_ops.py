@@ -13,7 +13,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
 from ..base.envelopes import BaseRequest, BaseResponse
-from ..base.custom_types import ShortString, MediumString, LongString, TagList, PositiveInt, NonNegativeInt
+from ..base.custom_types import ShortString, MediumString, LongString, TagList, PositiveInt, NonNegativeInt, IsoTimestamp, CasefileId, SessionId, UserId
 from ..canonical.acl import CasefileACL, PermissionEntry, PermissionLevel
 from ..canonical.casefile import CasefileModel
 from ..views.casefile_views import CasefileSummary
@@ -48,9 +48,9 @@ class CreateCasefileRequest(BaseRequest[CreateCasefilePayload]):
 
 class CasefileCreatedPayload(BaseModel):
     """Response payload for casefile creation."""
-    casefile_id: str = Field(..., description="Created casefile ID (cf_yymmdd_xxx)")
+    casefile_id: CasefileId = Field(..., description="Created casefile ID (cf_yymmdd_xxx)")
     title: str = Field(..., description="Casefile title")
-    created_at: str = Field(..., description="Creation timestamp (ISO 8601)")
+    created_at: IsoTimestamp = Field(..., description="Creation timestamp (ISO 8601)")
     created_by: str = Field(..., description="User who created the casefile")
 
 
@@ -65,7 +65,7 @@ class CreateCasefileResponse(BaseResponse[CasefileCreatedPayload]):
 
 class GetCasefilePayload(BaseModel):
     """Payload for retrieving a casefile."""
-    casefile_id: str = Field(..., description="Casefile ID to retrieve")
+    casefile_id: CasefileId = Field(..., description="Casefile ID to retrieve")
 
 
 class GetCasefileRequest(BaseRequest[GetCasefilePayload]):
@@ -94,7 +94,7 @@ class UpdateCasefilePayload(BaseModel):
     SECURITY: Uses explicit fields instead of Dict[str, Any] to prevent injection.
     All fields are optional - only provided fields will be updated.
     """
-    casefile_id: str = Field(
+    casefile_id: CasefileId = Field(
         ...,
         description="Casefile ID to update",
         json_schema_extra={"example": "cf_251013_abc123"}
@@ -143,7 +143,7 @@ class UpdateCasefileResponse(BaseResponse[CasefileUpdatedPayload]):
 
 class ListCasefilesPayload(BaseModel):
     """Payload for listing casefiles with filters."""
-    user_id: Optional[str] = Field(
+    user_id: Optional[UserId] = Field(
         None,
         description="Filter by user ID (owner)",
         json_schema_extra={"example": "user@example.com"}
@@ -196,7 +196,7 @@ class ListCasefilesResponse(BaseResponse[CasefileListPayload]):
 
 class DeleteCasefilePayload(BaseModel):
     """Payload for deleting a casefile."""
-    casefile_id: str = Field(..., description="Casefile ID to delete")
+    casefile_id: CasefileId = Field(..., description="Casefile ID to delete")
     confirm: bool = Field(default=False, description="Confirmation flag for deletion")
 
 
@@ -207,8 +207,8 @@ class DeleteCasefileRequest(BaseRequest[DeleteCasefilePayload]):
 
 class CasefileDeletedPayload(BaseModel):
     """Response payload for casefile deletion."""
-    casefile_id: str = Field(..., description="Deleted casefile ID")
-    deleted_at: str = Field(..., description="Deletion timestamp")
+    casefile_id: CasefileId = Field(..., description="Deleted casefile ID")
+    deleted_at: IsoTimestamp = Field(..., description="Deletion timestamp")
     title: str = Field(..., description="Title of deleted casefile (for confirmation)")
 
 
@@ -223,8 +223,8 @@ class DeleteCasefileResponse(BaseResponse[CasefileDeletedPayload]):
 
 class AddSessionToCasefilePayload(BaseModel):
     """Payload for linking a session to a casefile."""
-    casefile_id: str = Field(..., description="Casefile ID")
-    session_id: str = Field(..., description="Session ID to add (ts_* or cs_*)")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
+    session_id: SessionId = Field(..., description="Session ID to add (ts_* or cs_*)")
     session_type: Literal["tool", "chat"] = Field(..., description="Type of session")
 
 
@@ -235,8 +235,8 @@ class AddSessionToCasefileRequest(BaseRequest[AddSessionToCasefilePayload]):
 
 class SessionAddedPayload(BaseModel):
     """Response payload for session addition."""
-    casefile_id: str = Field(..., description="Casefile ID")
-    session_id: str = Field(..., description="Added session ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
+    session_id: SessionId = Field(..., description="Added session ID")
     session_type: str = Field(..., description="Session type")
     total_sessions: int = Field(..., description="Total sessions now linked to casefile")
 
@@ -252,8 +252,8 @@ class AddSessionToCasefileResponse(BaseResponse[SessionAddedPayload]):
 
 class GrantPermissionPayload(BaseModel):
     """Payload for granting permission to a user."""
-    casefile_id: str = Field(..., description="Casefile ID")
-    target_user_id: str = Field(..., description="User to grant permission to")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
+    target_user_id: UserId = Field(..., description="User to grant permission to")
     permission: PermissionLevel = Field(..., description="Permission level to grant")
     expires_at: Optional[str] = Field(None, description="Optional expiration timestamp")
     notes: Optional[str] = Field(None, description="Optional notes")
@@ -266,11 +266,11 @@ class GrantPermissionRequest(BaseRequest[GrantPermissionPayload]):
 
 class PermissionGrantedPayload(BaseModel):
     """Response payload for permission grant."""
-    casefile_id: str
-    target_user_id: str
+    casefile_id: CasefileId
+    target_user_id: UserId
     permission: PermissionLevel
     granted_by: str
-    granted_at: str
+    granted_at: IsoTimestamp
 
 
 class GrantPermissionResponse(BaseResponse[PermissionGrantedPayload]):
@@ -280,8 +280,8 @@ class GrantPermissionResponse(BaseResponse[PermissionGrantedPayload]):
 
 class RevokePermissionPayload(BaseModel):
     """Payload for revoking permission from a user."""
-    casefile_id: str = Field(..., description="Casefile ID")
-    target_user_id: str = Field(..., description="User to revoke permission from")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
+    target_user_id: UserId = Field(..., description="User to revoke permission from")
 
 
 class RevokePermissionRequest(BaseRequest[RevokePermissionPayload]):
@@ -291,10 +291,10 @@ class RevokePermissionRequest(BaseRequest[RevokePermissionPayload]):
 
 class PermissionRevokedPayload(BaseModel):
     """Response payload for permission revocation."""
-    casefile_id: str
-    target_user_id: str
+    casefile_id: CasefileId
+    target_user_id: UserId
     revoked_by: str
-    revoked_at: str
+    revoked_at: IsoTimestamp
 
 
 class RevokePermissionResponse(BaseResponse[PermissionRevokedPayload]):
@@ -304,7 +304,7 @@ class RevokePermissionResponse(BaseResponse[PermissionRevokedPayload]):
 
 class ListPermissionsPayload(BaseModel):
     """Payload for listing all permissions for a casefile."""
-    casefile_id: str = Field(..., description="Casefile ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
 
 
 class ListPermissionsRequest(BaseRequest[ListPermissionsPayload]):
@@ -314,8 +314,8 @@ class ListPermissionsRequest(BaseRequest[ListPermissionsPayload]):
 
 class PermissionListPayload(BaseModel):
     """Response payload with list of all permissions."""
-    casefile_id: str
-    owner_id: str
+    casefile_id: CasefileId
+    owner_id: UserId
     public_access: PermissionLevel
     permissions: List[PermissionEntry]
     total_users: int
@@ -329,8 +329,8 @@ class ListPermissionsResponse(BaseResponse[PermissionListPayload]):
 # Legacy direct response model (for backward compatibility with API routers)
 class PermissionListResponse(BaseModel):
     """Direct response with list of all permissions (legacy format)."""
-    casefile_id: str
-    owner_id: str
+    casefile_id: CasefileId
+    owner_id: UserId
     public_access: PermissionLevel
     permissions: List[PermissionEntry]
     total_users: int
@@ -338,8 +338,8 @@ class PermissionListResponse(BaseModel):
 
 class CheckPermissionPayload(BaseModel):
     """Payload for checking if a user has permission."""
-    casefile_id: str = Field(..., description="Casefile ID")
-    user_id: str = Field(..., description="User ID to check")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
+    user_id: UserId = Field(..., description="User ID to check")
     required_permission: PermissionLevel = Field(..., description="Required permission level")
 
 
@@ -350,8 +350,8 @@ class CheckPermissionRequest(BaseRequest[CheckPermissionPayload]):
 
 class PermissionCheckPayload(BaseModel):
     """Response payload with permission check result."""
-    casefile_id: str
-    user_id: str
+    casefile_id: CasefileId
+    user_id: UserId
     permission: PermissionLevel
     can_read: bool
     can_write: bool
@@ -371,7 +371,7 @@ class CheckPermissionResponse(BaseResponse[PermissionCheckPayload]):
 
 class StoreGmailMessagesPayload(BaseModel):
     """Payload for storing Gmail messages in casefile."""
-    casefile_id: str = Field(..., description="Casefile ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
     messages: List[dict] = Field(..., description="Gmail messages (GmailMessage dicts)")
     sync_token: Optional[str] = Field(None, description="Incremental sync token from Gmail API")
     overwrite: bool = Field(False, description="Replace existing cache instead of merging")
@@ -386,13 +386,13 @@ class StoreGmailMessagesRequest(BaseRequest[StoreGmailMessagesPayload]):
 
 class GmailStorageResultPayload(BaseModel):
     """Response payload for Gmail message storage."""
-    casefile_id: str = Field(..., description="Casefile ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
     messages_stored: int = Field(..., description="Number of messages stored")
     threads_stored: int = Field(0, description="Number of threads stored")
     labels_stored: int = Field(0, description="Number of labels stored")
     sync_status: str = Field(..., description="Sync status: completed, partial, failed")
     sync_token: Optional[str] = Field(None, description="New sync token")
-    synced_at: str = Field(..., description="Sync timestamp")
+    synced_at: IsoTimestamp = Field(..., description="Sync timestamp")
 
 
 class StoreGmailMessagesResponse(BaseResponse[GmailStorageResultPayload]):
@@ -406,7 +406,7 @@ class StoreGmailMessagesResponse(BaseResponse[GmailStorageResultPayload]):
 
 class StoreDriveFilesPayload(BaseModel):
     """Payload for storing Google Drive files in casefile."""
-    casefile_id: str = Field(..., description="Casefile ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
     files: List[dict] = Field(..., description="Drive files (DriveFile dicts)")
     sync_token: Optional[str] = Field(None, description="Incremental sync token from Drive API")
     overwrite: bool = Field(False, description="Replace existing cache instead of merging")
@@ -419,11 +419,11 @@ class StoreDriveFilesRequest(BaseRequest[StoreDriveFilesPayload]):
 
 class DriveStorageResultPayload(BaseModel):
     """Response payload for Drive file storage."""
-    casefile_id: str = Field(..., description="Casefile ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
     files_stored: int = Field(..., description="Number of files stored")
     sync_status: str = Field(..., description="Sync status: completed, partial, failed")
     sync_token: Optional[str] = Field(None, description="New sync token")
-    synced_at: str = Field(..., description="Sync timestamp")
+    synced_at: IsoTimestamp = Field(..., description="Sync timestamp")
 
 
 class StoreDriveFilesResponse(BaseResponse[DriveStorageResultPayload]):
@@ -437,7 +437,7 @@ class StoreDriveFilesResponse(BaseResponse[DriveStorageResultPayload]):
 
 class StoreSheetDataPayload(BaseModel):
     """Payload for storing Google Sheets data in casefile."""
-    casefile_id: str = Field(..., description="Casefile ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
     sheet_payloads: List[dict] = Field(..., description="Sheet data (SheetData dicts)")
     sync_token: Optional[str] = Field(None, description="Incremental sync token from Sheets API")
 
@@ -449,11 +449,11 @@ class StoreSheetDataRequest(BaseRequest[StoreSheetDataPayload]):
 
 class SheetStorageResultPayload(BaseModel):
     """Response payload for Sheets data storage."""
-    casefile_id: str = Field(..., description="Casefile ID")
+    casefile_id: CasefileId = Field(..., description="Casefile ID")
     sheets_stored: int = Field(..., description="Number of sheets stored")
     sync_status: str = Field(..., description="Sync status: completed, partial, failed")
     sync_token: Optional[str] = Field(None, description="New sync token")
-    synced_at: str = Field(..., description="Sync timestamp")
+    synced_at: IsoTimestamp = Field(..., description="Sync timestamp")
 
 
 class StoreSheetDataResponse(BaseResponse[SheetStorageResultPayload]):

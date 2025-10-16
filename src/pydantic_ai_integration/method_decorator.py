@@ -53,7 +53,7 @@ from .method_definition import (
 )
 
 # Import from registry
-from .method_registry import register_method
+from .method_registry import register_method, MANAGED_METHODS
 
 logger = logging.getLogger(__name__)
 
@@ -434,21 +434,82 @@ def load_methods_from_yaml(yaml_path: str) -> Dict[str, ManagedMethodDefinition]
 
     methods = {}
 
-    # Iterate through services
-    for service in config.get("services", []):
-        service_name = service["name"]
-        service_module = service["module"]
+    # Handle both nested (services) and flat (method keys) YAML structures
+    if "services" in config:
+        # Nested structure: services with methods
+        for service in config.get("services", []):
+            service_name = service["name"]
+            service_module = service.get("module", "unknown")
 
-        # Iterate through methods in service
-        for method_config in service.get("methods", []):
-            method_name = method_config["name"]
-            classification = method_config["classification"]
+            # Iterate through methods in service
+            for method_config in service.get("methods", []):
+                method_name = method_config["name"]
+                classification = method_config["classification"]
 
-            # Extract model classes for validation
+                # Extract model classes for validation
+                models_config = method_config.get("models", {})
+                module_path = models_config.get("module") or service_module
+                request_name = models_config.get("request") or "Unknown"
+                response_name = models_config.get("response") or "Unknown"
+
+                request_model_class = None
+                response_model_class = None
+
+                # Try to import model classes
+                if module_path != "unknown":
+                    try:
+                        import importlib
+
+                        # Strip 'src.' prefix since src is already in Python path
+                        import_path = module_path
+                        if import_path.startswith("src."):
+                            import_path = import_path[4:]  # Remove 'src.' prefix
+                        models_module = importlib.import_module(import_path)
+                        request_model_class = getattr(models_module, request_name, None)
+                        response_model_class = getattr(models_module, response_name, None)
+                    except Exception as e:
+                        logger.warning(f"  ⚠ Could not import models from {module_path}: {e}")
+
+                # Create slim method definition
+                method_def = ManagedMethodDefinition(
+                    name=method_name,
+                    description=method_config["description"],
+                    version=method_config.get("version", "1.0.0"),
+                    domain=classification.get("domain", ""),
+                    subdomain=classification.get("subdomain", ""),
+                    capability=classification.get("capability", ""),
+                    complexity=classification.get("complexity", ""),
+                    maturity=classification.get("maturity", ""),
+                    integration_tier=classification.get("integration_tier", ""),
+                    request_model_class=request_model_class,
+                    response_model_class=response_model_class,
+                    implementation_class=service_name,
+                    implementation_method=method_name,
+                )
+
+                # FIX: Use compound key to avoid duplicates across services
+                # Format: "ServiceName.method_name"
+                compound_key = f"{service_name}.{method_name}"
+                methods[compound_key] = method_def
+
+                logger.info(
+                    f"Loaded method '{compound_key}' from YAML "
+                    f"(service: {service_name}, domain: {classification.get('domain')})"
+                )
+    else:
+        # Flat structure: methods as top-level keys
+        for method_name, method_config in config.items():
+            if not isinstance(method_config, dict) or "name" not in method_config:
+                continue  # Skip non-method entries
+                
+            classification = method_config.get("classification", {})
+            implementation = method_config.get("implementation", {})
             models_config = method_config.get("models", {})
-            module_path = models_config.get("module") or "unknown"
-            request_name = models_config.get("request") or "Unknown"
-            response_name = models_config.get("response") or "Unknown"
+            
+            service_name = implementation.get("class", "Unknown")
+            module_path = models_config.get("module", "unknown")
+            request_name = models_config.get("request", "Unknown")
+            response_name = models_config.get("response", "Unknown")
 
             request_model_class = None
             response_model_class = None
@@ -485,13 +546,10 @@ def load_methods_from_yaml(yaml_path: str) -> Dict[str, ManagedMethodDefinition]
                 implementation_method=method_name,
             )
 
-            # FIX: Use compound key to avoid duplicates across services
-            # Format: "ServiceName.method_name"
-            compound_key = f"{service_name}.{method_name}"
-            methods[compound_key] = method_def
+            methods[method_name] = method_def
 
             logger.info(
-                f"Loaded method '{compound_key}' from YAML "
+                f"Loaded method '{method_name}' from YAML "
                 f"(service: {service_name}, domain: {classification.get('domain')})"
             )
 

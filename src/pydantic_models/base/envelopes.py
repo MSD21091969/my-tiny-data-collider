@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, computed_field
 
-from .custom_types import IsoTimestamp, SessionId
+from .custom_types import IsoTimestamp, SessionId, UserId
 from .types import RequestStatus
 
 # Generic type variables for payloads
@@ -25,7 +25,7 @@ class BaseRequest(BaseModel, Generic[RequestPayloadT]):
     """Base model for all requests in the system."""
     request_id: UUID = Field(default_factory=uuid4, description="Unique request identifier")
     session_id: Optional[SessionId] = Field(None, description="Optional session identifier")
-    user_id: str = Field(..., description="User making the request")
+    user_id: UserId = Field(..., description="User making the request")
     operation: str = Field(..., description="Operation being requested")
     payload: RequestPayloadT = Field(..., description="Request payload")
     timestamp: IsoTimestamp = Field(default_factory=lambda: datetime.now().isoformat(), description="Request timestamp")

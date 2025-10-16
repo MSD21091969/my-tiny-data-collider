@@ -156,6 +156,9 @@ class RegistryLoader:
         """
         Load methods from YAML inventory.
 
+        Only loads methods that aren't already registered by decorators.
+        Decorator-registered methods take precedence over YAML.
+
         Returns:
             Number of methods loaded
 
@@ -164,13 +167,27 @@ class RegistryLoader:
         """
         try:
             # Import registration function and registry
-            from ..method_decorator import register_methods_from_yaml
-            from ..method_registry import MANAGED_METHODS
+            from ..method_decorator import load_methods_from_yaml
+            from ..method_registry import MANAGED_METHODS, register_method
 
-            # Load methods
-            register_methods_from_yaml()
+            # Load methods from YAML
+            yaml_methods = load_methods_from_yaml("config/methods_inventory_v1.yaml")
 
-            # Return count
+            # Only register methods that aren't already registered by decorators
+            registered_count = 0
+            skipped_count = 0
+
+            for method_name, method_def in yaml_methods.items():
+                if method_name in MANAGED_METHODS:
+                    logger.debug(f"Skipping YAML method '{method_name}' - already registered by decorator")
+                    skipped_count += 1
+                else:
+                    register_method(method_name, method_def)
+                    registered_count += 1
+
+            logger.info(f"Loaded {registered_count} methods from YAML, skipped {skipped_count} already registered by decorators")
+
+            # Return total count (decorator + YAML)
             return len(MANAGED_METHODS)
 
         except Exception as e:

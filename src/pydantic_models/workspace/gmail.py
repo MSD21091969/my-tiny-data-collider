@@ -7,7 +7,16 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, computed_field
 
-from ..base.custom_types import NonEmptyString, PositiveInt, FileSizeBytes, EmailList, IsoTimestamp
+from ..base.custom_types import (
+    NonEmptyString, 
+    PositiveInt, 
+    FileSizeBytes, 
+    EmailList, 
+    IsoTimestamp,
+    GmailAttachmentId,
+    GmailMessageId,
+    GmailThreadId,
+)
 
 
 class GmailAttachment(BaseModel):
@@ -28,7 +37,7 @@ class GmailAttachment(BaseModel):
         description="Attachment size in bytes",
         json_schema_extra={"example": 1024000}
     )
-    attachment_id: str = Field(
+    attachment_id: GmailAttachmentId = Field(
         ...,
         description="Gmail attachment identifier",
         json_schema_extra={"example": "ANGjdJ8w..."}
@@ -38,12 +47,12 @@ class GmailAttachment(BaseModel):
 class GmailMessage(BaseModel):
     """Envelope + payload for a Gmail message."""
 
-    id: str = Field(
+    id: GmailMessageId = Field(
         ...,
         description="Gmail message ID",
         json_schema_extra={"example": "17a1b2c3d4e5f6"}
     )
-    thread_id: str = Field(
+    thread_id: GmailThreadId = Field(
         ...,
         description="Thread ID for the message",
         json_schema_extra={"example": "17a1b2c3d4e5f6"}

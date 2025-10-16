@@ -48,6 +48,43 @@ def main():
     print("=" * 70)
     print()
     
+    # Load tools from YAML before validation
+    print("Loading tools from YAML...")
+    try:
+        # Set environment variable to skip auto-initialization
+        import os
+        os.environ["SKIP_AUTO_INIT"] = "true"
+        
+        # Add src to path for imports
+        import sys
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent
+        src_path = str(project_root / "src")
+        sys.path.insert(0, src_path)
+        print(f"Added {src_path} to sys.path")
+        print(f"sys.path[0]: {sys.path[0]}")
+        
+        # Load methods from YAML instead of importing service modules
+        print("Loading methods from YAML...")
+        from pydantic_ai_integration.method_decorator import register_methods_from_yaml
+        try:
+            register_methods_from_yaml("config/methods_inventory_v1.yaml")
+            print("✓ Methods loaded from YAML")
+        except Exception as e:
+            print(f"❌ Failed to load methods from YAML: {e}")
+        
+        # Check if methods are loaded
+        from pydantic_ai_integration.method_registry import MANAGED_METHODS
+        print(f"✓ MANAGED_METHODS populated with {len(MANAGED_METHODS)} methods")
+        
+        from pydantic_ai_integration.tool_decorator import register_tools_from_yaml
+        register_tools_from_yaml()
+        print("✓ Tools loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to load tools: {e}")
+        return 1
+    print()
+    
     # Run validation
     report = validate_parameter_mappings(
         skip_tools_without_methods=not args.include_no_method

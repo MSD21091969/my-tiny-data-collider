@@ -1,0 +1,70 @@
+name: check_permission_tool
+description: Tool wrapper for casefile.check_permission with validation and execution control
+category: workspace_management
+version: 1.0.0
+tags:
+- workspace
+- casefile_acl
+- read
+method_reference:
+  service: casefile
+  method: check_permission
+  classification:
+    domain: workspace
+    subdomain: casefile_acl
+    capability: read
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+method_params: []
+tool_params:
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: casefile.check_permission
+    parameter_mapping:
+      method_params: []
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic check_permission operation
+  input: {}
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: 'null'
+  response_model: 'null'
+  canonical_models: []
+  module: pydantic_models.operations.casefile_ops
+dependencies:
+  methods:
+  - check_permission
+  models:
+  - 'null'
+  - 'null'
+  services:
+  - casefile
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

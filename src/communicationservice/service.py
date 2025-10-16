@@ -59,14 +59,14 @@ class CommunicationService:
 
     @register_service_method(
         name="create_session",
-        description="Create chat session with linked tool session",
+        description="Create chat session (tool session created lazily)",
         service_name="CommunicationService",
         service_module="src.communicationservice.service",
         classification={
             "domain": "communication",
             "subdomain": "chat_session",
             "capability": "create",
-            "complexity": "composite",
+            "complexity": "atomic",
             "maturity": "stable",
             "integration_tier": "internal"
         },
@@ -75,11 +75,10 @@ class CommunicationService:
         enabled=True,
         requires_auth=True,
         timeout_seconds=30,
-        version="1.0.0",
-        dependencies=["ToolSessionService.create_session"]
+        version="1.0.0"
     )
     async def create_session(self, request: CreateChatSessionRequest) -> CreateChatSessionResponse:
-        """Create a new chat session and its linked tool session."""
+        """Create a new chat session. Tool session will be created lazily when first needed."""
         start_time = datetime.now()
 
         user_id = request.user_id
@@ -94,19 +93,10 @@ class CommunicationService:
         )
         await self.repository.create_session(session)
 
-        # Create tool session using new Request/Response pattern
-        tool_request = CreateSessionRequest(
-            user_id=user_id, operation="create_tool_session", payload={"casefile_id": casefile_id}
-        )
-        tool_response = await self.tool_service.create_session(tool_request)
-        tool_session_id = tool_response.payload.session_id
+        # NOTE: Tool session creation moved to lazy _ensure_tool_session() method
+        # to avoid creating unnecessary tool sessions for chat-only interactions
 
-        session.metadata = session.metadata or {}
-        session.metadata["tool_session_id"] = tool_session_id
-        session.updated_at = datetime.now().isoformat()
-        await self.repository.update_session(session)
-
-        logger.info("Created chat session %s with tool session %s", session_id, tool_session_id)
+        logger.info("Created chat session %s", session_id)
 
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
 
@@ -115,7 +105,7 @@ class CommunicationService:
             status=RequestStatus.COMPLETED,
             payload=ChatSessionCreatedPayload(
                 session_id=session_id,
-                tool_session_id=tool_session_id,
+                tool_session_id=None,  # Will be created lazily
                 casefile_id=casefile_id,
                 created_at=session.created_at,
             ),
@@ -163,11 +153,10 @@ class CommunicationService:
         client_session_request_id = (
             cleaned_request.payload.session_request_id or self.id_service.new_session_request_id()
         )
-        tool_session_id = await self._ensure_tool_session(session)
 
         context = MDSContext(
             user_id=session.user_id,
-            session_id=tool_session_id,
+            session_id="temp",  # Will be set by tool service
             casefile_id=session.casefile_id,
             environment="development",
         )
@@ -212,18 +201,15 @@ class CommunicationService:
                 if not tool_name:
                     continue
 
-                tool_request = ToolRequest(
-                    session_id=tool_session_id,
+                # Use tool service's session management - it will create session if needed
+                tool_response = await self.tool_service.process_tool_request_with_session_management(
                     user_id=session.user_id,
-                    operation="tool_execution",
-                    payload=ToolRequestPayload(
-                        tool_name=tool_name,
-                        parameters=tool_params,
-                        session_request_id=client_session_request_id,
-                        casefile_id=session.casefile_id,
-                    ),
+                    tool_name=tool_name,
+                    parameters=tool_params,
+                    casefile_id=session.casefile_id,
+                    client_request_id=client_session_request_id,
+                    auto_create_session=True
                 )
-                tool_response = await self.tool_service.process_tool_request(tool_request)
                 tool_calls.append(
                     {
                         "name": tool_name,
@@ -568,13 +554,16 @@ class CommunicationService:
         session.updated_at = datetime.now().isoformat()
         await self.repository.update_session(session)
 
-        tool_session_id = (session.metadata or {}).get("tool_session_id")
+        # NOTE: Tool sessions are managed by ToolSessionService
+        # They may not exist if no tools were called during chat
         tool_session_closed = False
         tool_session_error = None
 
-        if tool_session_id:
-            try:
-                logger.info("Closing tool session %s", tool_session_id)
+        # Try to close any linked tool session, but don't fail if none exists
+        try:
+            # Get tool session ID from metadata if it exists
+            tool_session_id = (session.metadata or {}).get("tool_session_id")
+            if tool_session_id:
                 from ..pydantic_models.operations.tool_session_ops import CloseSessionRequest
 
                 close_tool_request = CloseSessionRequest(
@@ -584,9 +573,9 @@ class CommunicationService:
                 )
                 await self.tool_service.close_session(close_tool_request)
                 tool_session_closed = True
-            except Exception as exc:
-                logger.warning("Failed to close tool session %s: %s", tool_session_id, exc)
-                tool_session_error = str(exc)
+        except Exception as exc:
+            logger.warning("Failed to close tool session %s: %s", tool_session_id, exc)
+            tool_session_error = str(exc)
 
         execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
 
@@ -596,8 +585,8 @@ class CommunicationService:
             payload=ChatSessionClosedPayload(
                 session_id=session.session_id,
                 closed_at=session.updated_at,
-                message_count=message_count,
-                event_count=event_count,
+                total_messages=message_count,
+                total_events=event_count,
                 duration_seconds=duration_seconds,
                 tool_session_id=tool_session_id,
                 tool_session_closed=tool_session_closed,
@@ -608,43 +597,5 @@ class CommunicationService:
                 "operation": "close_chat_session",
             },
         )
-
-    @register_service_method(
-        name="_ensure_tool_session",
-        description="Internal: ensure tool session exists for chat",
-        service_name="CommunicationService",
-        service_module="src.communicationservice.service",
-        classification={
-            "domain": "communication",
-            "subdomain": "chat_session",
-            "capability": "process",
-            "complexity": "atomic",
-            "maturity": "stable",
-            "integration_tier": "internal"
-        },
-        required_permissions=[],
-        requires_casefile=False,
-        enabled=True,
-        requires_auth=True,
-        timeout_seconds=30,
-        version="1.0.0",
-        visibility="private"
-    )
-    async def _ensure_tool_session(self, session: ChatSession) -> str:
-        """Ensure the chat session has a corresponding tool session."""
-
-        metadata = session.metadata or {}
-        tool_session_id = metadata.get("tool_session_id")
-
-        if not tool_session_id:
-            tool_request = CreateSessionRequest(
-                user_id=session.user_id,
-                operation="create_tool_session",
-                payload={"casefile_id": session.casefile_id},
-            )
-            tool_response = await self.tool_service.create_session(tool_request)
-            tool_session_id = tool_response.payload.session_id
-            metadata["tool_session_id"] = tool_session_id
-            session.metadata = metadata
 
         return tool_session_id

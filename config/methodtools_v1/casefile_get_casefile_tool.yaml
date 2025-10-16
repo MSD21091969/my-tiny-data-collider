@@ -1,0 +1,80 @@
+name: get_casefile_tool
+description: Tool wrapper for casefile.get_casefile with validation and execution control
+category: workspace_management
+version: 1.0.0
+tags:
+- workspace
+- casefile
+- read
+method_reference:
+  service: casefile
+  method: get_casefile
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: read
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+method_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID to retrieve
+tool_params:
+- name: casefile_id
+  type: string
+  required: true
+  description: Casefile ID to retrieve
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: casefile.get_casefile
+    parameter_mapping:
+      method_params:
+      - casefile_id
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic get_casefile operation
+  input:
+    casefile_id: sample_casefile_id
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: GetCasefileRequest
+  response_model: GetCasefileResponse
+  canonical_models: []
+  module: pydantic_models.operations.casefile_ops
+dependencies:
+  methods:
+  - get_casefile
+  models:
+  - GetCasefileRequest
+  - GetCasefileResponse
+  services:
+  - casefile
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

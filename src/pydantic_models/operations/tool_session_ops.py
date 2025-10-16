@@ -19,6 +19,7 @@ from ..base.custom_types import (
     ShortString,
     PositiveInt,
     NonNegativeInt,
+    UserId,
 )
 from ..base.envelopes import BaseRequest, BaseResponse
 from ..views.session_views import SessionSummary
@@ -95,7 +96,7 @@ class SessionDataPayload(BaseModel):
         description="Session ID",
         json_schema_extra={"examples": ["ts_251013_tool001"]}
     )
-    user_id: str = Field(
+    user_id: UserId = Field(
         ...,
         description="User who owns the session",
         json_schema_extra={"examples": ["user@example.com", "admin@company.org"]}

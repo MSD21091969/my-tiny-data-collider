@@ -19,12 +19,13 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
 
-from ..base.custom_types import ToolSessionId, CasefileId, IsoTimestamp, PositiveInt, NonNegativeInt
+from ..base.custom_types import ToolSessionId, CasefileId, IsoTimestamp, PositiveInt, NonNegativeInt, UserId, EventId
+from ..base.validators import validate_timestamp_order as validate_ts_order
 
 
 class AuthToken(BaseModel):
     """JWT authentication token structure."""
-    user_id: str = Field(
+    user_id: UserId = Field(
         ...,
         description="User ID from JWT",
         json_schema_extra={"example": "user@example.com"}
@@ -44,7 +45,7 @@ class AuthToken(BaseModel):
 
 class ToolEvent(BaseModel):
     """Record of a tool execution within a session."""
-    event_id: str = Field(
+    event_id: EventId = Field(
         default_factory=lambda: ToolEvent._get_id_service_static().new_tool_event_id(),
         json_schema_extra={"example": "evt_abc123"}
     )
@@ -175,7 +176,7 @@ class ToolSession(BaseModel):
         description="Unique session ID (ts_ prefix)",
         json_schema_extra={"example": "ts_abc123xyz"}
     )
-    user_id: str = Field(
+    user_id: UserId = Field(
         ...,
         description="User who created the session",
         json_schema_extra={"example": "user@example.com"}
@@ -205,16 +206,7 @@ class ToolSession(BaseModel):
     )
     
     @model_validator(mode='after')
-    def validate_timestamp_order(self) -> 'ToolSession':
+    def validate_timestamps(self) -> 'ToolSession':
         """Ensure created_at <= updated_at."""
-        try:
-            created = datetime.fromisoformat(self.created_at.replace('Z', '+00:00'))
-            updated = datetime.fromisoformat(self.updated_at.replace('Z', '+00:00'))
-            if created > updated:
-                raise ValueError("created_at must be <= updated_at")
-        except (ValueError, AttributeError) as e:
-            if "created_at must be <=" not in str(e):
-                pass  # Let custom type validators handle format errors
-            else:
-                raise
+        validate_ts_order(self.created_at, self.updated_at, 'created_at', 'updated_at')
         return self

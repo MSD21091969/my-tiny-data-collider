@@ -61,7 +61,7 @@ class TestTimestampOrderValidation:
     
     def test_equal_timestamps_disallowed(self):
         """Test equal timestamps can be disallowed."""
-        with pytest.raises(ValueError, match="must be greater than"):
+        with pytest.raises(ValueError, match="must be <"):
             validate_timestamp_order(
                 "2025-01-01T00:00:00Z",
                 "2025-01-01T00:00:00Z",
@@ -70,7 +70,7 @@ class TestTimestampOrderValidation:
     
     def test_invalid_order(self):
         """Test invalid timestamp order raises error."""
-        with pytest.raises(ValueError, match="must be greater than or equal to"):
+        with pytest.raises(ValueError, match="must be <="):
             validate_timestamp_order(
                 "2025-01-02T00:00:00Z",
                 "2025-01-01T00:00:00Z"

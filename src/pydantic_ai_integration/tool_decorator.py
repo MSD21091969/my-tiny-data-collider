@@ -990,8 +990,8 @@ def register_tools_from_yaml(yaml_path: Optional[str] = None) -> None:
             method_ref = tool_config.get('method_reference', {})
             service_name = method_ref.get('service', '')
             method_name_part = method_ref.get('method', '')
-            method_name = f"{service_name}.{method_name_part}".strip('.')
-            if not method_name or method_name == '.':
+            method_name = method_name_part  # Use just the method name for registry lookup
+            if not method_name:
                 method_name = None
 
             # Ensure tool name is unique by including service name if there are duplicates

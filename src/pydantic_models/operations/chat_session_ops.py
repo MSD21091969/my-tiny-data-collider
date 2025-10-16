@@ -19,6 +19,8 @@ from ..base.custom_types import (
     ShortString,
     PositiveInt,
     NonNegativeInt,
+    ToolSessionId,
+    UserId,
 )
 from ..base.envelopes import BaseRequest, BaseResponse
 from ..views.session_views import ChatSessionSummary
@@ -52,6 +54,11 @@ class ChatSessionCreatedPayload(BaseModel):
         ...,
         description="Created session ID (cs_yymmdd_xxx)",
         json_schema_extra={"examples": ["cs_251013_chat001", "cs_250920_conv456"]}
+    )
+    tool_session_id: Optional[ToolSessionId] = Field(
+        None,
+        description="Linked tool session ID (created lazily)",
+        json_schema_extra={"examples": ["ts_251013_tool001", None]}
     )
     casefile_id: Optional[CasefileId] = Field(
         None,
@@ -100,7 +107,7 @@ class ChatSessionDataPayload(BaseModel):
         description="Session ID",
         json_schema_extra={"examples": ["cs_251013_chat001"]}
     )
-    user_id: str = Field(
+    user_id: UserId = Field(
         ...,
         description="User who owns the session",
         json_schema_extra={"examples": ["user@example.com", "admin@company.org"]}
@@ -263,6 +270,16 @@ class ChatSessionClosedPayload(BaseModel):
         None,
         description="Session duration in seconds",
         json_schema_extra={"examples": [300, 1800, 3600]}
+    )
+    tool_session_id: Optional[ToolSessionId] = Field(
+        None,
+        description="Linked tool session ID if any",
+        json_schema_extra={"examples": ["ts_251013_tool001", None]}
+    )
+    tool_session_closed: bool = Field(
+        default=False,
+        description="Whether linked tool session was also closed",
+        json_schema_extra={"examples": [True, False]}
     )
 
 

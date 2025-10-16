@@ -1,0 +1,127 @@
+name: list_casefiles_tool
+description: Tool wrapper for casefile.list_casefiles with validation and execution control
+category: workspace_management
+version: 1.0.0
+tags:
+- workspace
+- casefile
+- search
+method_reference:
+  service: casefile
+  method: list_casefiles
+  classification:
+    domain: workspace
+    subdomain: casefile
+    capability: search
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+method_params:
+- name: user_id
+  type: string
+  required: false
+  description: Filter by user ID (owner)
+- name: tags
+  type: string
+  required: false
+  description: Filter by tags (any match)
+- name: search_query
+  type: string
+  required: false
+  description: Search in title/description
+  max_length: 500
+- name: limit
+  type: integer
+  required: false
+  description: Maximum results to return
+  max_value: 100
+  default: 50
+- name: offset
+  type: integer
+  required: false
+  description: Offset for pagination
+  min_value: 0
+  default: 0
+tool_params:
+- name: user_id
+  type: string
+  required: false
+  description: Filter by user ID (owner)
+- name: tags
+  type: string
+  required: false
+  description: Filter by tags (any match)
+- name: search_query
+  type: string
+  required: false
+  description: Search in title/description
+  max_length: 500
+- name: limit
+  type: integer
+  required: false
+  description: Maximum results to return
+  max_value: 100
+  default: 50
+- name: offset
+  type: integer
+  required: false
+  description: Offset for pagination
+  min_value: 0
+  default: 0
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: casefile.list_casefiles
+    parameter_mapping:
+      method_params:
+      - user_id
+      - tags
+      - search_query
+      - limit
+      - offset
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic list_casefiles operation
+  input:
+    user_id: sample_user_id
+    tags: sample_tags
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: ListCasefilesRequest
+  response_model: ListCasefilesResponse
+  canonical_models: []
+  module: pydantic_models.operations.casefile_ops
+dependencies:
+  methods:
+  - list_casefiles
+  models:
+  - ListCasefilesRequest
+  - ListCasefilesResponse
+  services:
+  - casefile
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

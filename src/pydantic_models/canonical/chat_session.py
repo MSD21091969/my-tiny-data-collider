@@ -15,7 +15,14 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from ..base.custom_types import ChatSessionId, CasefileId, IsoTimestamp
+from ..base.custom_types import (
+    ChatSessionId,
+    CasefileId,
+    IsoTimestamp,
+    NonNegativeInt,
+    UserId,
+)
+from ..base.validators import validate_timestamp_order as validate_ts_order
 
 
 class MessageType(str, Enum):
@@ -82,14 +89,5 @@ class ChatSession(BaseModel):
     @model_validator(mode='after')
     def validate_timestamp_order(self) -> 'ChatSession':
         """Ensure created_at <= updated_at."""
-        try:
-            created = datetime.fromisoformat(self.created_at.replace('Z', '+00:00'))
-            updated = datetime.fromisoformat(self.updated_at.replace('Z', '+00:00'))
-            if created > updated:
-                raise ValueError("created_at must be <= updated_at")
-        except (ValueError, AttributeError) as e:
-            if "created_at must be <=" not in str(e):
-                pass  # Let custom type validators handle format errors
-            else:
-                raise
+        validate_ts_order(self.created_at, self.updated_at, 'created_at', 'updated_at')
         return self

@@ -36,7 +36,38 @@ project_root = Path(__file__).parent.parent
 def load_methods_inventory(yaml_path: str = "config/methods_inventory_v1.yaml") -> Dict:
     """Load methods inventory from YAML."""
     with open(yaml_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        flat_inventory = yaml.safe_load(f)
+    
+    # Convert flat structure to nested structure expected by generate_all_tools
+    # Group methods by implementation.class
+    services_dict = {}
+    
+    for method_name, method_def in flat_inventory.items():
+        impl = method_def.get("implementation", {})
+        service_class = impl.get("class", "UnknownService")
+        
+        # Normalize service name (remove 'Service' suffix if present)
+        service_name = service_class.replace("Service", "").lower()
+        
+        if service_name not in services_dict:
+            services_dict[service_name] = {
+                "name": service_name,
+                "methods": []
+            }
+        
+        # Add method to service, but add module path for import_request_model
+        method_def_copy = method_def.copy()
+        if "models" in method_def_copy:
+            method_def_copy["models"]["module"] = f"pydantic_models.operations.{service_name}_ops"
+        
+        services_dict[service_name]["methods"].append(method_def_copy)
+    
+    # Convert to list format expected by generate_all_tools
+    nested_inventory = {
+        "services": list(services_dict.values())
+    }
+    
+    return nested_inventory
 
 
 def load_tool_schema(schema_path: str = "config/tool_schema_v2.yaml") -> Dict:
@@ -59,12 +90,12 @@ def import_request_model(module_path: str, model_name: str) -> type[BaseModel] |
     """
     Dynamically import a request model.
     
-    Note: With editable install, module paths in YAML use 'src.' prefix,
-    but Python imports should use the package name directly.
+    Note: With editable install, module paths use package-relative paths,
+    Python imports should use the package name directly.
     """
     try:
-        # Strip 'src.' prefix if present (YAML convention vs Python import)
-        import_path = module_path[4:] if module_path.startswith("src.") else module_path
+        # Use the module path directly since package-dir maps src to root
+        import_path = module_path
         
         module = __import__(import_path, fromlist=[model_name])
         model_class = getattr(module, model_name, None)

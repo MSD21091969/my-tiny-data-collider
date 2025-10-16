@@ -26,7 +26,57 @@ logger = logging.getLogger(__name__)
 # Global registry - SINGLE SOURCE OF TRUTH for methods
 # Parallel to MANAGED_TOOLS in tool_decorator.py
 # Format: {method_name: ManagedMethodDefinition}
-MANAGED_METHODS: Dict[str, ManagedMethodDefinition] = {}
+
+class _MethodRegistry:
+    """Singleton registry for methods."""
+    
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._registry = {}
+            print(f"[DEBUG] _MethodRegistry singleton created with id {id(cls._instance)}")
+        return cls._instance
+    
+    def __getitem__(self, key):
+        return self._registry[key]
+    
+    def __setitem__(self, key, value):
+        self._registry[key] = value
+    
+    def __contains__(self, key):
+        return key in self._registry
+    
+    def __len__(self):
+        return len(self._registry)
+    
+    def __iter__(self):
+        return iter(self._registry)
+    
+    def keys(self):
+        return self._registry.keys()
+    
+    def values(self):
+        return self._registry.values()
+    
+    def items(self):
+        return self._registry.items()
+    
+    def get(self, key, default=None):
+        return self._registry.get(key, default)
+    
+    def copy(self):
+        return self._registry.copy()
+    
+    def clear(self):
+        self._registry.clear()
+
+# Singleton instance
+_MANAGED_METHODS_INSTANCE = _MethodRegistry()
+
+# Public interface - always returns the same singleton instance
+MANAGED_METHODS = _MANAGED_METHODS_INSTANCE
 
 
 # ==============================================================================
