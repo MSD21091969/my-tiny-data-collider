@@ -1,7 +1,5 @@
 """Google Workspace client abstractions used by generated tools."""
 
-from __future__ import annotations
-
 import logging
 from datetime import datetime
 from typing import Optional

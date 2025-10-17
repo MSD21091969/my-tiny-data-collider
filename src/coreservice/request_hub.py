@@ -1,7 +1,5 @@
 """RequestHub orchestrates Request-Action-Response workflows with hook support."""
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime

@@ -639,13 +639,7 @@ class ToolSessionService:
     )
     async def process_tool_request_with_session_management(
         self,
-        user_id: str,
-        tool_name: str,
-        parameters: Dict[str, Any],
-        casefile_id: Optional[str] = None,
-        session_token: Optional[str] = None,
-        client_request_id: Optional[str] = None,
-        auto_create_session: bool = True
+        request: ToolRequest
     ) -> ToolResponse:
         """
         Process a tool request with automatic session management.
@@ -654,18 +648,21 @@ class ToolSessionService:
         easier for tools to be invoked without explicit session management.
         
         Args:
-            user_id: User executing the tool
-            tool_name: Name of the tool to execute
-            parameters: Tool parameters
-            casefile_id: Optional casefile context
-            session_token: Optional existing session to resume
-            client_request_id: Optional client request ID
-            auto_create_session: Whether to create session if none exists
+            request: Tool request with user_id, tool_name, parameters, and optional session context
             
         Returns:
-            Tool response
+            Tool response with session metadata
         """
         from pydantic_ai_integration.session_manager import ensure_session_for_tool
+        
+        # Extract request fields
+        user_id = request.user_id
+        tool_name = request.payload.tool_name
+        parameters = request.payload.parameters
+        casefile_id = request.payload.casefile_id if hasattr(request.payload, 'casefile_id') else None
+        session_token = request.session_id
+        client_request_id = request.request_id
+        auto_create_session = request.payload.auto_create_session if hasattr(request.payload, 'auto_create_session') else True
         
         # Get or create session context
         context, session_created = await ensure_session_for_tool(
@@ -677,19 +674,14 @@ class ToolSessionService:
             auto_create=auto_create_session
         )
         
-        # Create tool request using the session context
-        tool_request = ToolRequest(
-            user_id=user_id,
-            session_id=context.session_id,
-            payload=ToolRequestPayload(
-                tool_name=tool_name,
-                parameters=parameters,
-                session_request_id=context.session_request_id
-            )
-        )
+        # Update request with session context if needed
+        if not request.session_id:
+            request.session_id = context.session_id
+        if hasattr(request.payload, 'session_request_id') and not request.payload.session_request_id:
+            request.payload.session_request_id = context.session_request_id
         
         # Process the tool request
-        response = await self.process_tool_request(tool_request)
+        response = await self.process_tool_request(request)
         
         # Add session metadata to response
         if response.metadata is None:

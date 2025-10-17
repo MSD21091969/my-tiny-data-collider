@@ -299,7 +299,7 @@ process_tool_request_with_session_management:
     maturity: stable
     integration_tier: hybrid
   models:
-    request: 'null'
+    request: ToolRequest
     response: ToolResponse
   implementation:
     class: ToolSessionService
@@ -333,8 +333,8 @@ execute_casefile:
     maturity: beta
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: CreateCasefileRequest
+    response: CreateCasefileResponse
   implementation:
     class: RequestHubService
     method: execute_casefile
@@ -350,8 +350,8 @@ execute_casefile_with_session:
     maturity: beta
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: CreateCasefileWithSessionRequest
+    response: CreateCasefileWithSessionResponse
   implementation:
     class: RequestHubService
     method: execute_casefile_with_session
@@ -367,8 +367,8 @@ create_session_with_casefile:
     maturity: beta
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: CreateSessionWithCasefileRequest
+    response: CreateSessionWithCasefileResponse
   implementation:
     class: RequestHubService
     method: create_session_with_casefile
@@ -384,8 +384,8 @@ list_messages:
     maturity: beta
     integration_tier: external
   models:
-    request: 'null'
-    response: 'null'
+    request: GmailListMessagesRequest
+    response: GmailListMessagesResponse
   implementation:
     class: GmailClient
     method: list_messages
@@ -401,8 +401,8 @@ send_message:
     maturity: beta
     integration_tier: external
   models:
-    request: 'null'
-    response: 'null'
+    request: GmailSendMessageRequest
+    response: GmailSendMessageResponse
   implementation:
     class: GmailClient
     method: send_message
@@ -418,8 +418,8 @@ search_messages:
     maturity: beta
     integration_tier: external
   models:
-    request: 'null'
-    response: 'null'
+    request: GmailSearchMessagesRequest
+    response: GmailSearchMessagesResponse
   implementation:
     class: GmailClient
     method: search_messages
@@ -435,8 +435,8 @@ get_message:
     maturity: beta
     integration_tier: external
   models:
-    request: 'null'
-    response: 'null'
+    request: GmailGetMessageRequest
+    response: GmailGetMessageResponse
   implementation:
     class: GmailClient
     method: get_message
@@ -452,8 +452,8 @@ list_files:
     maturity: beta
     integration_tier: external
   models:
-    request: 'null'
-    response: 'null'
+    request: DriveListFilesRequest
+    response: DriveListFilesResponse
   implementation:
     class: DriveClient
     method: list_files
@@ -469,8 +469,8 @@ batch_get:
     maturity: beta
     integration_tier: external
   models:
-    request: 'null'
-    response: 'null'
+    request: SheetsBatchGetRequest
+    response: SheetsBatchGetResponse
   implementation:
     class: SheetsClient
     method: batch_get
