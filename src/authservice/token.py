@@ -21,7 +21,7 @@ def is_dev_mode() -> bool:
 
 # Mock configuration - hardcoded for development
 MOCK_USER = {
-    "user_id": "sam123",
+    "user_id": "sam@example.com",
     "username": "Sam",
     "password": "Sam",
     "email": "sam@example.com",

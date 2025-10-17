@@ -1,10 +1,3 @@
-"""
-Service Container and Dependency Injection for MDS Services.
-
-This module provides centralized service management following DRY principles
-and enabling proper dependency injection for testing and maintainability.
-"""
-
 import logging
 from typing import Any
 
@@ -27,8 +20,19 @@ class ServiceContainer:
     Services are lazily instantiated and cached for reuse.
     """
 
-    def __init__(self) -> None:
-        """Initialize the service container."""
+    def __init__(
+        self,
+        firestore_pool=None,
+        redis_cache=None,
+    ) -> None:
+        """Initialize the service container.
+
+        Args:
+            firestore_pool: Firestore connection pool (None for mock mode)
+            redis_cache: Redis cache service (None for mock mode)
+        """
+        self.firestore_pool = firestore_pool
+        self.redis_cache = redis_cache
         self._services: dict[str, Any] = {}
         self._service_factories: dict[str, callable] = {}
         self._repositories: dict[str, Any] = {}
@@ -40,9 +44,18 @@ class ServiceContainer:
         """Register all core services with their dependencies."""
 
         # Register repositories (leaf dependencies)
-        self._service_factories['casefile_repository'] = lambda: CasefileRepository()
-        self._service_factories['tool_session_repository'] = lambda: ToolSessionRepository()
-        self._service_factories['chat_session_repository'] = lambda: ChatSessionRepository()
+        self._service_factories['casefile_repository'] = lambda: CasefileRepository(
+            firestore_pool=self.firestore_pool,
+            redis_cache=self.redis_cache
+        )
+        self._service_factories['tool_session_repository'] = lambda: ToolSessionRepository(
+            firestore_pool=self.firestore_pool,
+            redis_cache=self.redis_cache
+        )
+        self._service_factories['chat_session_repository'] = lambda: ChatSessionRepository(
+            firestore_pool=self.firestore_pool,
+            redis_cache=self.redis_cache
+        )
         self._service_factories['id_service'] = lambda: get_id_service()
 
         # Register services with dependencies
@@ -128,14 +141,24 @@ class ServiceManager:
     while maintaining centralized management.
     """
 
-    def __init__(self, container: ServiceContainer | None = None) -> None:
+    def __init__(
+        self,
+        container: ServiceContainer | None = None,
+        firestore_pool=None,
+        redis_cache=None,
+    ) -> None:
         """
         Initialize the service manager.
 
         Args:
             container: Service container to use, creates default if None
+            firestore_pool: Firestore connection pool (None for mock mode)
+            redis_cache: Redis cache service (None for mock mode)
         """
-        self.container = container or ServiceContainer()
+        self.container = container or ServiceContainer(
+            firestore_pool=firestore_pool,
+            redis_cache=redis_cache
+        )
 
     @property
     def casefile_service(self) -> CasefileService:
@@ -174,19 +197,26 @@ class ServiceManager:
 _service_manager: ServiceManager | None = None
 
 
-def get_service_manager() -> ServiceManager:
+def get_service_manager(
+    firestore_pool=None,
+    redis_cache=None,
+) -> ServiceManager:
     """
-    Get the global service manager instance.
+    Create a service manager instance with injected dependencies.
 
-    Creates default instance if not set.
+    Args:
+        firestore_pool: Firestore connection pool (None for mock mode)
+        redis_cache: Redis cache service (None for mock mode)
 
     Returns:
-        Global service manager
+        ServiceManager instance with injected dependencies
     """
-    global _service_manager
-    if _service_manager is None:
-        _service_manager = ServiceManager()
-    return _service_manager
+    # Always create a new instance with the provided dependencies
+    # This ensures each request gets the correct firestore_pool and redis_cache from app state
+    return ServiceManager(
+        firestore_pool=firestore_pool,
+        redis_cache=redis_cache
+    )
 
 
 def set_service_manager(manager: ServiceManager) -> None:

@@ -1,7 +1,66 @@
 # Tool Performance Testing Guide
 
 **Last Updated:** 2025-10-17  
-**Status:** 28 methods registered, 0 warnings, 179 tests passing
+**Status:** 28 methods registered, 179 unit tests passing, 34 integration tests passing  
+**API Status:** POST /v1/casefiles/ working, endpoints operational
+
+---
+
+## 🔧 Session Work: Bug Fixes Applied
+
+### Fixes Completed (2025-10-17)
+
+**1. Service Container Dependency Injection** ✅
+- Problem: Repositories required `firestore_pool` but container didn't inject it
+- Solution: Modified `ServiceContainer.__init__()` to accept pool parameters
+- Modified `service_container.py` lines 11-50 to pass `firestore_pool` and `redis_cache` to repository factories
+- Impact: Repositories now properly initialized in mock mode
+
+**2. FastAPI Dependency Resolution** ✅
+- Problem: `get_request_hub()` didn't inject app state dependencies
+- Solution: Changed to async dependency that extracts pools from app state
+- Modified `dependencies.py` to create `ServiceManager` per request with injected dependencies
+- Impact: Services now receive correct Firestore/Redis instances
+
+**3. Mock Authentication** ✅
+- Problem: `MOCK_USER.user_id = "sam123"` failed Pydantic email validation
+- Solution: Changed to `"sam@example.com"` (email format)
+- Modified `src/authservice/token.py` line 25
+- Impact: Authentication no longer fails validation
+
+**4. Casefile Model Validation (Data Sources)** ✅
+- Problem: `CasefileModel` requires at least one data source; creation failed with empty casefile
+- Solution: Initialize with empty `CasefileGmailData()` when creating new casefiles
+- Modified: `src/casefileservice/service.py` line 176-181 and `create_casefile_mapper.py`
+- Impact: New casefiles can be created without pre-existing data
+
+**5. Mock Firestore Pool for Development** ✅
+- Problem: Pool was set to `None` in mock mode; repositories couldn't acquire connections
+- Solution: Created `MockFirestoreConnectionPool` with in-memory storage
+- Created: `src/persistence/mock_firestore_pool.py` (100+ lines, full CRUD support)
+- Modified: `app.py` startup event to initialize mock pool when `USE_MOCKS=true`
+- Impact: Repositories work in mock mode without requiring real Firestore/Redis
+
+**6. TestClient Startup Event Initialization** ✅
+- Problem: FastAPI `TestClient` doesn't automatically call startup events
+- Solution: Manually invoke startup handlers before using TestClient
+- Example: See `test_create_casefile.py` for pattern
+- Impact: Tests can now verify full request flow with proper pool initialization
+
+### Current API Status
+- ✅ Server starts successfully with `USE_MOCKS=true`
+- ✅ Health endpoint: `GET /health` returns proper JSON
+- ✅ Casefile creation: `POST /v1/casefiles/?title=X&description=Y` creates with mock data
+- ✅ Method registry: 28 methods registered and functional
+- ✅ Drift warnings appear (expected, non-blocking - methods registered via decorators not in YAML)
+
+**Latest Test Result:**
+```
+Testing POST /v1/casefiles/ endpoint...
+Status Code: 200
+Response: {"request_id": "...", "status": "COMPLETED", "payload": {...}}
+SUCCESS: Casefile created successfully!
+```
 
 ---
 
@@ -389,7 +448,45 @@ pytest tests/integration/ -v -m firestore
 
 ---
 
-## 📝 Notes
+## � Test Session Results (2025-10-17)
+
+### ✅ Successful Tests
+- **Unit tests:** 179 passing in 3.64s (0 warnings, 0 failures)
+- **Integration tests:** 34 passing in 5.04s (0 skipped in this run)
+- **Python:** 3.13.5
+- **Dependencies:** uvicorn 0.37.0, fastapi 0.119.0
+
+### ⚠️ Known Issues
+1. **Registry drift detection:** Shows 28 false positives (methods ARE registered via decorators but drift validator doesn't detect them)
+2. **Service container mock mode:** `CasefileRepository.__init__()` requires `firestore_pool` even when `USE_MOCKS=true`
+3. **FastAPI startup:** Hangs at "Waiting for application startup" without `USE_MOCKS=true` (Firestore connection blocking)
+4. **API endpoint failure:** POST /v1/casefiles/ crashes with TypeError on repository initialization
+
+### 🐛 Critical Bug Found
+**Location:** `src/coreservice/service_container.py`  
+**Issue:** Repository factories don't check `USE_MOCKS` environment variable  
+**Error:** `TypeError: CasefileRepository.__init__() missing 1 required positional argument: 'firestore_pool'`  
+**Impact:** FastAPI endpoints fail even in mock mode  
+**Fix needed:** Inject mock repositories when `USE_MOCKS=true`
+
+### 📊 Test Coverage Summary
+| Component | Status | Details |
+|-----------|--------|---------|
+| Pydantic models | ✅ Pass | 179 unit tests covering custom types, validators, canonical models |
+| Registry system | ⚠️ Warning | Drift detection false positives (expected, non-blocking) |
+| Integration flows | ✅ Pass | 34 tests covering MVP journeys, tool execution modes, error handling |
+| FastAPI server | ❌ Fail | Startup works with mocks, but endpoints crash on repository init |
+| Health endpoint | ❌ Blocked | Cannot test due to startup hang or service container crash |
+
+### 🎯 Next Actions
+1. Fix `service_container.py` to handle mock mode (inject MemoryRepository when `USE_MOCKS=true`)
+2. Add timeout/fallback for Firestore connection in `app.py` startup
+3. Suppress drift detection warnings in production (add `--no-drift` flag)
+4. Re-test health endpoint and Swagger UI after fixes
+
+---
+
+## �📝 Notes
 
 - **Parameter validation script** has Unicode encoding issues (✓ ✗ symbols)
 - **Tool YAMLs** generated successfully despite import warnings

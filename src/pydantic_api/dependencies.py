@@ -2,26 +2,44 @@
 FastAPI dependency injection module.
 """
 
-from functools import lru_cache
 from typing import Any, Dict
 
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from authservice import get_current_user
 from coreservice.request_hub import RequestHub
+from coreservice.service_container import get_service_manager
 from tool_sessionservice import ToolSessionService
 
 
-@lru_cache()
 def get_tool_session_service() -> ToolSessionService:
     """Get an instance of the ToolSessionService."""
     return ToolSessionService()
 
 
-@lru_cache()
-def get_request_hub() -> RequestHub:
-    """Get an instance of RequestHub for orchestrated workflows."""
-    return RequestHub()
+async def get_request_hub(request: Request) -> RequestHub:
+    """Get an instance of RequestHub for orchestrated workflows with injected dependencies.
+    
+    This is an async dependency that retrieves the firestore_pool and redis_cache
+    from the FastAPI app state and injects them into the service manager.
+    
+    Args:
+        request: FastAPI Request object for accessing app state
+        
+    Returns:
+        RequestHub instance with injected service manager
+    """
+    # Get firestore_pool and redis_cache from app state
+    firestore_pool = getattr(request.app.state, 'firestore_pool', None)
+    redis_cache = getattr(request.app.state, 'redis_cache', None)
+
+    # Get service manager with injected dependencies
+    service_manager = get_service_manager(
+        firestore_pool=firestore_pool,
+        redis_cache=redis_cache
+    )
+
+    return RequestHub(service_manager=service_manager)
 
 def get_current_user_id(current_user: Dict[str, Any] = Depends(get_current_user)) -> str:
     """Get the current authenticated user ID.

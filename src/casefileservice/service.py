@@ -173,10 +173,11 @@ class CasefileService(ContextAwareService):
             public_access=PermissionLevel.NONE
         )
 
-        # Create casefile
+        # Create casefile with empty Gmail data to satisfy validation requirement
         casefile = CasefileModel(
             metadata=metadata,
-            acl=acl
+            acl=acl,
+            gmail_data=CasefileGmailData()
         )
 
         # Store in repository

@@ -15,6 +15,7 @@ load_dotenv()
 from authservice.routes import router as auth_router
 from coreservice.config import get_environment
 from persistence.firestore_pool import FirestoreConnectionPool
+from persistence.mock_firestore_pool import MockFirestoreConnectionPool
 from persistence.redis_cache import RedisCacheService
 
 from .middleware import (
@@ -52,17 +53,26 @@ def create_app() -> FastAPI:
     async def startup_event() -> None:
         """Initialize resources on application startup."""
         use_mocks = os.getenv("USE_MOCKS", "false").lower() == "true"
+        logger.info(f"Startup event: USE_MOCKS={use_mocks}")
         
         if not use_mocks:
             # Initialize Firestore connection pool
+            logger.info("Initializing Firestore connection pool...")
             pool = FirestoreConnectionPool(database="mds-objects", pool_size=10)
             await pool.initialize()
             app.state.firestore_pool = pool
+            logger.info("Firestore connection pool initialized")
         else:
-            app.state.firestore_pool = None
+            # Initialize mock Firestore pool for development
+            logger.info("Mock mode enabled, initializing mock Firestore pool...")
+            pool = MockFirestoreConnectionPool()
+            await pool.initialize()
+            app.state.firestore_pool = pool
+            logger.info("Mock Firestore pool initialized")
 
         # Initialize Redis cache
         if not use_mocks:
+            logger.info("Initializing Redis cache...")
             cache = RedisCacheService(redis_url="redis://localhost:6379/0", ttl=3600)
             try:
                 await cache.initialize()
@@ -72,6 +82,7 @@ def create_app() -> FastAPI:
                 logger.warning(f"Redis cache initialization failed: {e}, continuing without cache")
                 app.state.redis_cache = None
         else:
+            logger.info("Mock mode enabled, skipping Redis cache initialization")
             app.state.redis_cache = None
 
     # Cleanup connection pool on shutdown

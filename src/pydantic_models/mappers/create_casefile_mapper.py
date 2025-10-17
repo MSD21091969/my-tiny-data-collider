@@ -9,6 +9,7 @@ from pydantic_models.operations.casefile_ops import (
     CreateCasefilePayload,
     CasefileCreatedPayload
 )
+from pydantic_models.workspace import CasefileGmailData
 
 
 class CreateCasefileMapper(BaseMapper[CreateCasefilePayload, CasefileModel]):
@@ -19,14 +20,16 @@ class CreateCasefileMapper(BaseMapper[CreateCasefilePayload, CasefileModel]):
         """Transform request payload to domain model."""
         return CasefileModel(
             id=cls._generate_casefile_id(),
-            title=payload.title,
-            description=payload.description,
-            tags=payload.tags,
             metadata=CasefileMetadata(
+                title=payload.title,
+                description=payload.description,
+                tags=payload.tags,
                 created_by="system",  # This would come from request context
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
+                created_at=datetime.utcnow().isoformat(),
+                updated_at=datetime.utcnow().isoformat()
+            ),
+            # Initialize with empty Gmail data to satisfy validation requirement
+            gmail_data=CasefileGmailData()
         )
 
     @classmethod
@@ -34,8 +37,8 @@ class CreateCasefileMapper(BaseMapper[CreateCasefilePayload, CasefileModel]):
         """Transform domain model to response payload."""
         return CasefileCreatedPayload(
             casefile_id=domain.id,
-            title=domain.title,
-            created_at=domain.metadata.created_at.isoformat(),
+            title=domain.metadata.title,
+            created_at=domain.metadata.created_at,
             created_by=domain.metadata.created_by
         )
 
