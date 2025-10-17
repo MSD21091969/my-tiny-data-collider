@@ -1,0 +1,70 @@
+name: get_message_tool
+description: Tool wrapper for gmailclient.get_message with validation and execution control
+category: communication
+version: 1.0.0
+tags:
+- communication
+- gmail
+- read
+method_reference:
+  service: gmailclient
+  method: get_message
+  classification:
+    domain: communication
+    subdomain: gmail
+    capability: read
+    complexity: atomic
+    maturity: beta
+    integration_tier: external
+method_params: []
+tool_params:
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: gmailclient.get_message
+    parameter_mapping:
+      method_params: []
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic get_message operation
+  input: {}
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: GmailGetMessageRequest
+  response_model: GmailGetMessageResponse
+  canonical_models: []
+  module: pydantic_models.operations.gmailclient_ops
+dependencies:
+  methods:
+  - get_message
+  models:
+  - GmailGetMessageRequest
+  - GmailGetMessageResponse
+  services:
+  - gmailclient
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

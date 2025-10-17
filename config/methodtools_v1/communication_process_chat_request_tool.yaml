@@ -1,0 +1,70 @@
+name: process_chat_request_tool
+description: Tool wrapper for communication.process_chat_request with validation and execution control
+category: communication
+version: 1.0.0
+tags:
+- communication
+- chat_processing
+- process
+method_reference:
+  service: communication
+  method: process_chat_request
+  classification:
+    domain: communication
+    subdomain: chat_processing
+    capability: process
+    complexity: pipeline
+    maturity: stable
+    integration_tier: hybrid
+method_params: []
+tool_params:
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: communication.process_chat_request
+    parameter_mapping:
+      method_params: []
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic process_chat_request operation
+  input: {}
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: ChatRequest
+  response_model: ChatResponse
+  canonical_models: []
+  module: pydantic_models.operations.communication_ops
+dependencies:
+  methods:
+  - process_chat_request
+  models:
+  - ChatRequest
+  - ChatResponse
+  services:
+  - communication
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true

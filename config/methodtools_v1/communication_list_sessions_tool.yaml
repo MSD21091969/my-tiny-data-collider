@@ -1,0 +1,70 @@
+name: list_sessions_tool
+description: Tool wrapper for communication.list_sessions with validation and execution control
+category: communication
+version: 1.0.0
+tags:
+- communication
+- chat_session
+- search
+method_reference:
+  service: communication
+  method: list_sessions
+  classification:
+    domain: communication
+    subdomain: chat_session
+    capability: search
+    complexity: atomic
+    maturity: stable
+    integration_tier: internal
+method_params: []
+tool_params:
+- name: timeout_seconds
+  type: integer
+  required: false
+  description: Maximum execution time in seconds
+  default: 30
+  min_value: 5
+  max_value: 300
+- name: dry_run
+  type: boolean
+  required: false
+  description: Preview mode without actual execution
+  default: false
+implementation:
+  type: method_wrapper
+  method_wrapper:
+    method_name: communication.list_sessions
+    parameter_mapping:
+      method_params: []
+      tool_params:
+      - timeout_seconds
+      - dry_run
+business_rules:
+  enabled: true
+  requires_auth: true
+  required_permissions: []
+  requires_casefile: false
+  timeout_seconds: 30
+examples:
+- description: Basic list_sessions operation
+  input: {}
+  expected_output:
+    result: success
+    data: {}
+data_contracts:
+  request_model: ListChatSessionsRequest
+  response_model: ListChatSessionsResponse
+  canonical_models: []
+  module: pydantic_models.operations.communication_ops
+dependencies:
+  methods:
+  - list_sessions
+  models:
+  - ListChatSessionsRequest
+  - ListChatSessionsResponse
+  services:
+  - communication
+compatibility:
+  method_version: 1.0.0
+  schema_version: '1.0'
+  requires_auth: true
