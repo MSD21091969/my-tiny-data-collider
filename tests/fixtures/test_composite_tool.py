@@ -241,7 +241,7 @@ class TestCompositeYAMLSchema:
         """Verify YAML schema supports composite tool definition."""
 
         # This test validates the schema structure without loading actual YAML
-        # YAML composite tool structure per tool_schema_v2.yaml:
+        # YAML composite tool structure:
         composite_yaml_structure = {
             "name": "example_composite",
             "description": "Example composite tool",

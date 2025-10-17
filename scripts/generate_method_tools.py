@@ -70,20 +70,7 @@ def load_methods_inventory(yaml_path: str = "config/methods_inventory_v1.yaml") 
     return nested_inventory
 
 
-def load_tool_schema(schema_path: str = "config/tool_schema_v2.yaml") -> Dict:
-    """Load tool schema for validation."""
-    with open(schema_path, "r", encoding="utf-8") as f:
-        content = f.read()
-        # Schema is documented in comments, extract validation rules
-        # For now, return empty dict - schema is documentation only
-        # Future: Parse schema into validation rules
-        return {}
 
-
-def load_tool_schema(schema_path: str = "config/tool_schema_v2.yaml") -> Dict:
-    """Load tool schema for validation."""
-    with open(schema_path, "r") as f:
-        return yaml.safe_load(f)
 
 
 def import_request_model(module_path: str, model_name: str) -> type[BaseModel] | None:
@@ -156,7 +143,7 @@ def extract_tool_parameters(request_model_class: type[BaseModel]) -> List[Dict[s
 
 def validate_tool_structure(tool_data: Dict[str, Any]) -> List[str]:
     """
-    Validate tool YAML structure against tool_schema_v2.yaml requirements.
+    Validate tool YAML structure requirements.
     
     Returns list of validation errors (empty = valid).
     """
@@ -535,7 +522,6 @@ def main():
     print("TOOL YAML GENERATION WITH VALIDATION")
     print("=" * 70)
     print(f"Inventory: {inventory_path}")
-    print(f"Schema: config/tool_schema_v2.yaml")
     print(f"Output: {output_dir}")
     print(f"Mode: {'DRY-RUN' if args.dry_run else 'WRITE'}")
     print()
@@ -545,19 +531,6 @@ def main():
         inventory = load_methods_inventory(inventory_path)
     except Exception as e:
         print(f"❌ Failed to load inventory: {e}")
-        return 1
-    
-    # Load and verify tool schema exists
-    schema_path = project_root / "config" / "tool_schema_v2.yaml"
-    if not schema_path.exists():
-        print(f"❌ Tool schema not found: {schema_path}")
-        return 1
-    
-    try:
-        schema = load_tool_schema(schema_path)
-        print(f"[OK] Tool schema loaded: {schema_path}")
-    except Exception as e:
-        print(f"❌ Failed to load schema: {e}")
         return 1
     
     # Create output directory
@@ -575,14 +548,14 @@ def main():
     print()
     print("=" * 70)
     print(f"[OK] Generated {generated_count} tool YAMLs")
-    print(f"[OK] All tools validated against tool_schema_v2.yaml")
+    print(f"[OK] All tools validated (structure checks passed)")
     print("=" * 70)
     
     if args.dry_run:
         print("\n[INFO] Run without --dry-run to write files")
     else:
         print(f"\n[OUTPUT] Tools written to: {output_dir}")
-        print(f"[VALIDATED] All {generated_count} YAMLs conform to schema")
+        print(f"[VALIDATED] All {generated_count} YAMLs passed structure validation")
         print("[NEXT] Run parameter mapping validation")
         print("   python scripts/validate_parameter_mappings.py --verbose")
     

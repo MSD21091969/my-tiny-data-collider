@@ -221,13 +221,13 @@ check_permission:
     method: check_permission
 create_session:
   name: create_session
-  description: Create chat session with linked tool session
+  description: Create chat session (tool session created lazily)
   version: 1.0.0
   classification:
     domain: communication
     subdomain: chat_session
     capability: create
-    complexity: composite
+    complexity: atomic
     maturity: stable
     integration_tier: internal
   models:
