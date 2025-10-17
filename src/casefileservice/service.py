@@ -17,6 +17,8 @@ from pydantic_models.operations.casefile_ops import (
     CasefileDeletedPayload,
     CasefileListPayload,
     CasefileUpdatedPayload,
+    CheckPermissionRequest,
+    CheckPermissionResponse,
     CreateCasefileRequest,
     CreateCasefileResponse,
     DeleteCasefileRequest,
@@ -29,6 +31,8 @@ from pydantic_models.operations.casefile_ops import (
     GrantPermissionResponse,
     ListCasefilesRequest,
     ListCasefilesResponse,
+    ListPermissionsRequest,
+    ListPermissionsResponse,
     PermissionGrantedPayload,
     PermissionLevel,
     PermissionRevokedPayload,
@@ -1151,19 +1155,21 @@ class CasefileService(ContextAwareService):
         timeout_seconds=30,
         version="1.0.0"
     )
-    async def list_permissions(self, casefile_id: str, requesting_user_id: str) -> CasefileACL:
+    async def list_permissions(self, request: ListPermissionsRequest) -> ListPermissionsResponse:
         """List all permissions for a casefile.
         
         Args:
-            casefile_id: Casefile ID
-            requesting_user_id: User requesting permissions list (must have read access)
+            request: Request containing casefile_id and requesting_user_id
             
         Returns:
-            CasefileACL object
+            Response with CasefileACL
             
         Raises:
             ValueError: If casefile not found or user lacks permission
         """
+        casefile_id = request.payload.casefile_id
+        requesting_user_id = request.payload.requesting_user_id
+        
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
             raise ValueError(f"Casefile {casefile_id} not found")
@@ -1180,7 +1186,11 @@ class CasefileService(ContextAwareService):
         if not casefile.acl.can_read(requesting_user_id):
             raise ValueError(f"User {requesting_user_id} does not have permission to view casefile {casefile_id}")
 
-        return casefile.acl
+        return ListPermissionsResponse(
+            request_id=request.request_id,
+            status=RequestStatus.SUCCESS,
+            payload=casefile.acl
+        )
 
     @register_service_method(
         name="check_permission",
@@ -1205,29 +1215,34 @@ class CasefileService(ContextAwareService):
     )
     async def check_permission(
         self,
-        casefile_id: str,
-        user_id: str,
-        required_permission: PermissionLevel
-    ) -> bool:
+        request: CheckPermissionRequest
+    ) -> CheckPermissionResponse:
         """Check if a user has specific permission on a casefile.
         
         Args:
-            casefile_id: Casefile ID
-            user_id: User ID to check
-            required_permission: Required permission level
+            request: Request containing casefile_id, user_id, and required_permission
             
         Returns:
-            True if user has required permission or higher
+            Response with has_permission boolean
         """
+        casefile_id = request.payload.casefile_id
+        user_id = request.payload.user_id
+        required_permission = request.payload.required_permission
+        
         casefile = await self.repository.get_casefile(casefile_id)
         if not casefile:
-            return False
-
-        if not casefile.acl:
+            has_permission = False
+        elif not casefile.acl:
             # Legacy casefile - only owner has access
-            return user_id == casefile.metadata.created_by
+            has_permission = user_id == casefile.metadata.created_by
+        else:
+            has_permission = casefile.acl.has_permission(user_id, required_permission)
 
-        return casefile.acl.has_permission(user_id, required_permission)
+        return CheckPermissionResponse(
+            request_id=request.request_id,
+            status=RequestStatus.SUCCESS,
+            payload={"has_permission": has_permission}
+        )
 
     async def _record_metrics(
         self,

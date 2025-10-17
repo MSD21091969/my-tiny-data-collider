@@ -197,8 +197,8 @@ list_permissions:
     maturity: stable
     integration_tier: internal
   models:
-    request: 'null'
-    response: CasefileACL
+    request: ListPermissionsRequest
+    response: ListPermissionsResponse
   implementation:
     class: CasefileService
     method: list_permissions
@@ -214,8 +214,8 @@ check_permission:
     maturity: stable
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: CheckPermissionRequest
+    response: CheckPermissionResponse
   implementation:
     class: CasefileService
     method: check_permission
@@ -231,8 +231,8 @@ create_session:
     maturity: stable
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: CreateChatSessionRequest
+    response: CreateChatSessionResponse
   implementation:
     class: CommunicationService
     method: create_session
@@ -248,8 +248,8 @@ get_session:
     maturity: stable
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: GetChatSessionRequest
+    response: GetChatSessionResponse
   implementation:
     class: CommunicationService
     method: get_session
@@ -265,8 +265,8 @@ list_sessions:
     maturity: stable
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: ListChatSessionsRequest
+    response: ListChatSessionsResponse
   implementation:
     class: CommunicationService
     method: list_sessions
@@ -282,8 +282,8 @@ close_session:
     maturity: stable
     integration_tier: internal
   models:
-    request: 'null'
-    response: 'null'
+    request: CloseChatSessionRequest
+    response: CloseChatSessionResponse
   implementation:
     class: CommunicationService
     method: close_session
@@ -316,8 +316,8 @@ process_chat_request:
     maturity: stable
     integration_tier: hybrid
   models:
-    request: 'null'
-    response: 'null'
+    request: ChatRequest
+    response: ChatResponse
   implementation:
     class: CommunicationService
     method: process_chat_request

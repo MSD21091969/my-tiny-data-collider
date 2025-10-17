@@ -1,7 +1,5 @@
 """Service for handling chat sessions and message processing."""
 
-from __future__ import annotations
-
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
