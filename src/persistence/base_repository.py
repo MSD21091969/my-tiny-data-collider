@@ -12,13 +12,13 @@ Provides consistent interface for all persistence operations with:
 import logging
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Optional, TypeVar, Dict, List
-from datetime import datetime
+from datetime import datetime, UTC
 
 from google.cloud.firestore import AsyncClient, AsyncTransaction
 from pydantic import BaseModel
 
-from src.persistence.firestore_pool import FirestoreConnectionPool
-from src.persistence.redis_cache import RedisCacheService
+from persistence.firestore_pool import FirestoreConnectionPool
+from persistence.redis_cache import RedisCacheService
 
 logger = logging.getLogger(__name__)
 
@@ -143,8 +143,8 @@ class BaseRepository(ABC, Generic[T]):
         try:
             doc_ref = client.collection(self.collection_name).document(doc_id)
             data = self._to_dict(model)
-            data["created_at"] = datetime.utcnow()
-            data["updated_at"] = datetime.utcnow()
+            data["created_at"] = datetime.now(UTC)
+            data["updated_at"] = datetime.now(UTC)
 
             await doc_ref.set(data)
             self._metrics["writes"] += 1
@@ -178,7 +178,7 @@ class BaseRepository(ABC, Generic[T]):
         try:
             doc_ref = client.collection(self.collection_name).document(doc_id)
             data = self._to_dict(model)
-            data["updated_at"] = datetime.utcnow()
+            data["updated_at"] = datetime.now(UTC)
 
             await doc_ref.update(data)
             self._metrics["writes"] += 1

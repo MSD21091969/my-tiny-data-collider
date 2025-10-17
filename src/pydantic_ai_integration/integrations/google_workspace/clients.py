@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic_ai_integration.method_decorator import register_service_method
-from src.coreservice.config import get_config
-from src.pydantic_models.workspace import (
+from coreservice.config import get_config
+from pydantic_models.workspace import (
     CasefileDriveData,
     CasefileGmailData,
     CasefileSheetsData,

@@ -1,11 +1,11 @@
 """Auto-generated mapper for get_casefile operation."""
 
-from src.pydantic_models.base.transformations import BaseMapper
-from src.pydantic_models.operations.casefile_ops import (
+from pydantic_models.base.transformations import BaseMapper
+from pydantic_models.operations.casefile_ops import (
     AddSessionToCasefilePayload,
     CreateSessionWithCasefileResponse
 )
-from src.pydantic_models.canonical.casefile import CasefileModel
+from pydantic_models.canonical.casefile import CasefileModel
 
 
 class GetCasefileMapper(BaseMapper[AddSessionToCasefilePayload, CasefileModel]):

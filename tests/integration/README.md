@@ -1,35 +1,29 @@
-# Integration Tests - feature/ai-method-integration
+# Integration Tests
 
-## Test Files
+**Last Updated:** 2025-10-17
 
-### Core Test Suites
+## Test Suites
 
-**test_tool_method_integration.py**
-- Original integration tests
-- End-to-end tool execution validation
+### test_mvp_user_journeys.py ✅
+- **Status:** 7/7 passing
+- Complete user journey tests
+- Auth flow validation  
+- Request context flow verification
+- Session context preservation
+
+### test_tool_method_integration.py ⚠️
+- **Status:** 2/7 passing (5 failures due to tool registry issues)
+- Tool-to-method integration tests
 - Parameter mapping verification
 - Error handling tests
+- Registry validation
 
-**test_tool_execution_modes.py**
-- Comprehensive test suite with 7 execution modes
-- 13 test cases covering direct, DTO, mock, dry-run, verification, error, and performance modes
-- Tests all 5 casefile tools
-
-### Test Scripts
-
-**verify_implementation.py**
-- Quick verification script
-- Demonstrates 3 test scenarios: dry run, execution, parameter mapping
-- Run: `python tests/integration/verify_implementation.py`
-
-**run_tool_tests.py**
-- Test runner with mode filtering
-- CLI: `python tests/integration/run_tool_tests.py --mode [direct|dto|mock|dryrun|verify|error|performance]`
-
-**show_data_flow.py**
-- Enhanced logging demonstration
-- Shows all data at each execution step
-- Requires valid Firestore configuration
+### test_tool_execution_modes.py ⚠️
+- **Status:** 2/27 passing (18 skipped, 7 failures due to tool registry)
+- Comprehensive execution mode tests (7 modes)
+- Direct execution, DTO, mock, dry-run tests
+- Performance tracking
+- Error handling scenarios
 
 ## Running Tests
 
@@ -38,147 +32,146 @@
 pytest tests/integration/ -v
 ```
 
-### Specific Test Suites
+### By Test Suite
 ```powershell
-# Original integration tests
+# MVP user journeys (all passing)
+pytest tests/integration/test_mvp_user_journeys.py -v
+
+# Tool method integration
 pytest tests/integration/test_tool_method_integration.py -v
 
-# Execution modes suite
+# Execution modes
 pytest tests/integration/test_tool_execution_modes.py -v
+```
 
-# Dry run mode only
-pytest tests/integration/test_tool_execution_modes.py::TestDryRunMode -v
-
-# Direct execution tests
+### By Test Class
+```powershell
+# Specific test class
 pytest tests/integration/test_tool_execution_modes.py::TestDirectToolExecution -v
+
+# Specific test
+pytest tests/integration/test_mvp_user_journeys.py::TestMVPUserJourney::test_complete_user_journey_create_casefile_and_execute_tool -v
 ```
 
 ### With Logging
 ```powershell
-# Show all logs
-pytest tests/integration/test_tool_execution_modes.py -v -s --log-cli-level=INFO
+# Show execution details
+pytest tests/integration/ -v -s --log-cli-level=INFO
 
-# Debug level logging
-pytest tests/integration/test_tool_execution_modes.py -v -s --log-cli-level=DEBUG
+# Debug level (shows data flow)
+pytest tests/integration/ -v -s --log-cli-level=DEBUG
 ```
 
-### Single Test
-```powershell
-pytest tests/integration/test_tool_execution_modes.py::TestDirectToolExecution::test_create_casefile_direct -v -s
-```
+## Test Execution Modes
 
-## Test Modes
+1. **Direct Tool Execution** - `tool.implementation()` calls without additional layers
+2. **Via Request DTO** - Full Request DTO construction and service method flow
+3. **Mock Mode** - Mocked services for testing without external dependencies
+4. **Dry Run Mode** - Preview mode, no actual service execution
+5. **Result Verification** - Structure, timing, and data correctness validation
+6. **Error Handling** - Invalid params, timeouts, missing services scenarios
+7. **Performance Tracking** - Execution timing measurement and analysis
 
-### 1. Direct Tool Execution
-Tests `tool.implementation()` calls directly without additional layers.
+## Test Results
 
-### 2. Via Request DTO
-Tests full Request DTO construction and service method flow.
+### Current Status (2025-10-17)
+- **MVP User Journeys:** 7/7 passed ✅
+- **Tool Method Integration:** 2/7 passed (5 failures due to tool registry issues)
+- **Tool Execution Modes:** 2/27 passed (18 skipped, 7 failures due to tool registry)
 
-### 3. Mock Mode
-Uses mocked services to test logic without Firestore dependency.
-
-### 4. Dry Run Mode
-Tests preview mode where no actual service methods execute.
-
-### 5. Result Verification
-Validates result structure, timing, and data correctness per tool.
-
-### 6. Error Handling
-Tests error scenarios: invalid params, timeouts, missing services.
-
-### 7. Performance Tracking
-Measures and logs execution timing for performance analysis.
-
-## Test Output
-
-### Output Directory
-`tests/integration/output/` contains:
-- `data_flow_output.txt` - Full execution logs with data flow
-- `test_output.txt` - Test run results
-- Additional test artifacts as generated
+### Known Issues
+- Tool registry coverage/drift warnings (YAML methods not generating tools)
+- This is a system issue unrelated to test infrastructure
+- Tests validate that error handling works correctly
 
 ### Expected Results
 
-**Success (with Firestore):**
+**Success (with configured services):**
 - Status: "success"
-- Result contains casefile_id (e.g., cf_251010_abc123)
+- Result contains expected data structures
 - Duration tracked in milliseconds
-- All test assertions pass
+- All assertions pass
 
-**Success (without Firestore):**
-- Status: "error"
-- Error type: ServiceInstantiationError or ToolExecutionError
-- Tests pass (infrastructure working, external dependency missing)
+**Success (without configured services):**
+- Status: "error"  
+- Error type indicates missing dependency
+- Tests pass (validates error handling)
 
-**Dry Run:**
+**Dry Run Mode:**
 - Status: "dry_run"
-- Message indicates preview mode
-- No service calls made
-- All parameters logged
+- Preview mode - no actual execution
+- Parameters logged for verification
 
-## Fixtures
+## Test Fixtures
 
-Located in `tests/conftest.py`:
+Available in `tests/integration/conftest.py` and root `conftest.py`:
 
-**mock_context()** - Basic execution context without casefile
-**mock_casefile_context()** - Context with casefile ID
-**valid_user_session()** - Valid authenticated session
-**read_only_user()** - User with read-only permissions
-**expired_session_user()** - Expired session scenario
-**invalid_session_user()** - Invalid/non-existent session
+- **test_context** - Basic execution context for tool testing
+- **mock_context** - Context without casefile ID
+- **mock_casefile_context** - Context with casefile ID
+- **valid_user_session** - Authenticated session fixture
+- **read_only_user** - Limited permissions scenario
+- **expired_session_user** - Session expiration testing
+- **invalid_session_user** - Invalid/non-existent session testing
 
 ## Test Coverage
 
-**Tested Tools:** 5 of 64
-- create_casefile_tool
-- get_casefile_tool
-- list_casefiles_tool
-- update_casefile_tool
-- delete_casefile_tool
+### Categories
+1. **User Journeys** - End-to-end workflows (7/7 passing)
+2. **Tool-Method Integration** - Tool execution and parameter mapping
+3. **Execution Modes** - Different execution patterns and error scenarios
 
-**Remaining:** 59 tools require testing
+### Services Under Test
+- **CasefileService** - Casefile CRUD operations
+- **ToolSessionService** - Session management
+- **AuthService** - Authentication and authorization
+- **RequestHub** - Request orchestration and policy enforcement
 
-## Known Issues
+## Writing New Tests
 
-1. UUID not JSON serializable in some contexts (logged, not blocking)
-2. Firestore credentials required for live service tests
-3. Some error types return generic ToolExecutionError (can be more specific)
-
-## Development
-
-### Adding New Tests
-
-1. Create test class inheriting from appropriate base
-2. Use `@pytest.mark.asyncio` for async tests
-3. Use `@pytest.mark.integration` for integration tests
-4. Parameterize tests where applicable
-
-### Test Naming Convention
-
-- `test_<tool_name>_<mode>` for mode-specific tests
-- `test_<functionality>` for feature tests
-- Descriptive docstrings required
-
-### Assertions
-
-Check result structure:
+### Test Structure
 ```python
-assert "status" in result
-assert "tool_name" in result
-assert result["status"] in ["success", "error", "dry_run"]
+import pytest
+from tests.fixtures.integration_fixtures import test_context
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_my_feature(test_context):
+    """Clear description of what's being tested."""
+    # Arrange
+    # Act
+    # Assert
 ```
 
-Check execution:
+### Assertions
 ```python
+# Structure validation
+assert "status" in result
+assert result["status"] in ["success", "error", "dry_run"]
+
+# Success path
 if result["status"] == "success":
     assert "result" in result
     assert "duration_ms" in result
-```
 
-Check errors:
-```python
+# Error handling
 elif result["status"] == "error":
     assert "error_type" in result
     assert "error_message" in result
 ```
+
+### Test Naming Conventions
+- `test_<feature>_<scenario>` - Feature-based tests
+- `test_<action>_<condition>` - Action-based tests  
+- `Test<Category>` - Test class names
+- Always include clear docstrings
+
+## Maintenance Notes
+
+### Removed Utility Scripts (2025-10-17)
+The following scripts were removed as redundant with pytest infrastructure:
+- `verify_implementation.py` - Replaced by `test_tool_method_integration.py`
+- `run_tool_tests.py` - Replaced by native pytest CLI (`pytest -k`, `-m` flags)
+- `show_data_flow.py` - Replaced by pytest logging (`-s --log-cli-level=INFO`)
+
+Use pytest's built-in features for debugging and selective test execution.

@@ -6,13 +6,13 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from src.pydantic_models.base.custom_types import (
+from pydantic_models.base.custom_types import (
     EmailAddress,
     LongString,
     PositiveInt,
     ShortString,
 )
-from src.pydantic_models.workspace import (
+from pydantic_models.workspace import (
     DriveFile,
     GmailMessage,
     SheetData,

@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from src.casefileservice.repository import CasefileRepository
-from src.pydantic_models.canonical.casefile import CasefileMetadata, CasefileModel
-from src.pydantic_models.workspace import CasefileGmailData
+from casefileservice.repository import CasefileRepository
+from pydantic_models.canonical.casefile import CasefileMetadata, CasefileModel
+from pydantic_models.workspace import CasefileGmailData
 
 
 def _make_casefile(created_by: str = "user123@example.com") -> CasefileModel:

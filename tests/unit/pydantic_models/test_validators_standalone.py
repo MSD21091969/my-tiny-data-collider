@@ -20,30 +20,19 @@ def test_timestamp_validation():
     print("Testing timestamp validation...")
     
     # Valid ordering
-    try:
-        validate_timestamp_order("2025-01-01T00:00:00Z", "2025-01-02T00:00:00Z")
-        print("  ✓ Valid ISO timestamps")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_timestamp_order("2025-01-01T00:00:00Z", "2025-01-02T00:00:00Z")
+    print("  ✓ Valid ISO timestamps")
     
     # Unix timestamps
-    try:
-        validate_timestamp_order(1609459200, 1609545600)
-        print("  ✓ Valid Unix timestamps")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_timestamp_order(1609459200, 1609545600)
+    print("  ✓ Valid Unix timestamps")
     
     # Invalid ordering
     try:
         validate_timestamp_order("2025-01-02T00:00:00Z", "2025-01-01T00:00:00Z")
-        print("  ✗ Should have raised ValueError for invalid order")
-        return False
-    except ValueError as e:
+        assert False, "Should have raised ValueError for invalid order"
+    except ValueError:
         print(f"  ✓ Correctly rejected invalid order")
-    
-    return True
 
 
 def test_at_least_one_validation():
@@ -51,22 +40,15 @@ def test_at_least_one_validation():
     print("\nTesting at-least-one validation...")
     
     # Valid: one field present
-    try:
-        validate_at_least_one(None, "value", None)
-        print("  ✓ Accepts when one field is present")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_at_least_one(None, "value", None)
+    print("  ✓ Accepts when one field is present")
     
     # Invalid: all None
     try:
         validate_at_least_one(None, None, None)
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected all-None")
-    
-    return True
 
 
 def test_mutually_exclusive_validation():
@@ -74,22 +56,15 @@ def test_mutually_exclusive_validation():
     print("\nTesting mutually exclusive validation...")
     
     # Valid: only one field
-    try:
-        validate_mutually_exclusive(None, "value", None)
-        print("  ✓ Accepts one field")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_mutually_exclusive(None, "value", None)
+    print("  ✓ Accepts one field")
     
     # Invalid: multiple fields
     try:
         validate_mutually_exclusive("value1", "value2", None)
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected multiple fields")
-    
-    return True
 
 
 def test_range_validation():
@@ -97,30 +72,22 @@ def test_range_validation():
     print("\nTesting range validation...")
     
     # Valid value
-    try:
-        validate_range(5, "count", min_value=1, max_value=10)
-        print("  ✓ Accepts value in range")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_range(5, "count", min_value=1, max_value=10)
+    print("  ✓ Accepts value in range")
     
     # Invalid: too high
     try:
         validate_range(11, "count", min_value=1, max_value=10)
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected value above max")
     
     # Invalid: too low
     try:
         validate_range(0, "count", min_value=1, max_value=10)
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected value below min")
-    
-    return True
 
 
 def test_list_validation():
@@ -128,38 +95,26 @@ def test_list_validation():
     print("\nTesting list validation...")
     
     # Not empty
-    try:
-        validate_list_not_empty([1, 2, 3], "items")
-        print("  ✓ Accepts non-empty list")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_list_not_empty([1, 2, 3], "items")
+    print("  ✓ Accepts non-empty list")
     
     # Empty list
     try:
         validate_list_not_empty([], "items")
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected empty list")
     
     # Unique values
-    try:
-        validate_list_unique([1, 2, 3], "numbers")
-        print("  ✓ Accepts unique values")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_list_unique([1, 2, 3], "numbers")
+    print("  ✓ Accepts unique values")
     
     # Duplicate values
     try:
         validate_list_unique([1, 2, 2, 3], "numbers")
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected duplicates")
-    
-    return True
 
 
 def test_string_length_validation():
@@ -167,30 +122,22 @@ def test_string_length_validation():
     print("\nTesting string length validation...")
     
     # Valid length
-    try:
-        validate_string_length("hello", "name", min_length=1, max_length=10)
-        print("  ✓ Accepts valid length")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_string_length("hello", "name", min_length=1, max_length=10)
+    print("  ✓ Accepts valid length")
     
     # Too short
     try:
         validate_string_length("", "name", min_length=1)
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected too-short string")
     
     # Too long
     try:
         validate_string_length("toolongstring", "name", max_length=5)
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected too-long string")
-    
-    return True
 
 
 def test_conditional_required_validation():
@@ -198,30 +145,19 @@ def test_conditional_required_validation():
     print("\nTesting conditional required validation...")
     
     # Condition met, field present
-    try:
-        validate_conditional_required(True, "value", "is_active", "email")
-        print("  ✓ Accepts when both present")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_conditional_required(True, "value", "is_active", "email")
+    print("  ✓ Accepts when both present")
     
     # Condition not met
-    try:
-        validate_conditional_required(False, None, "is_active", "email")
-        print("  ✓ Accepts when condition not met")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_conditional_required(False, None, "is_active", "email")
+    print("  ✓ Accepts when condition not met")
     
     # Condition met, field missing
     try:
         validate_conditional_required(True, None, "is_active", "email")
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected missing required field")
-    
-    return True
 
 
 def test_depends_on_validation():
@@ -229,30 +165,19 @@ def test_depends_on_validation():
     print("\nTesting depends-on validation...")
     
     # Both present
-    try:
-        validate_depends_on("value1", "value2", "field_a", "field_b")
-        print("  ✓ Accepts when both present")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_depends_on("value1", "value2", "field_a", "field_b")
+    print("  ✓ Accepts when both present")
     
     # Both absent
-    try:
-        validate_depends_on(None, None, "field_a", "field_b")
-        print("  ✓ Accepts when both absent")
-    except Exception as e:
-        print(f"  ✗ Failed: {e}")
-        return False
+    validate_depends_on(None, None, "field_a", "field_b")
+    print("  ✓ Accepts when both absent")
     
     # Dependent without dependency
     try:
         validate_depends_on("value", None, "field_a", "field_b")
-        print("  ✗ Should have raised ValueError")
-        return False
+        assert False, "Should have raised ValueError"
     except ValueError:
         print("  ✓ Correctly rejected missing dependency")
-    
-    return True
 
 
 def main():

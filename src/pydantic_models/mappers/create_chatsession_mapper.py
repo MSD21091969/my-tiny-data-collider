@@ -1,11 +1,11 @@
 """Auto-generated mapper for create_chatsession operation."""
 
-from src.pydantic_models.base.transformations import BaseMapper
-from src.pydantic_models.operations.chatsession_ops import (
+from pydantic_models.base.transformations import BaseMapper
+from pydantic_models.operations.chatsession_ops import (
     ChatSessionClosedPayload,
     CloseChatSessionResponse
 )
-from src.pydantic_models.canonical.chatsession import ChatSessionModel
+from pydantic_models.canonical.chatsession import ChatSessionModel
 
 
 class CreateChatsessionMapper(BaseMapper[ChatSessionClosedPayload, ChatSessionModel]):

@@ -9,7 +9,7 @@ from persistence.firestore_pool import FirestoreConnectionPool
 from persistence.redis_cache import RedisCacheService
 from typing import Dict, List, Optional
 
-from src.pydantic_models.canonical.chat_session import ChatSession
+from pydantic_models.canonical.chat_session import ChatSession
 
 logger = logging.getLogger(__name__)
 

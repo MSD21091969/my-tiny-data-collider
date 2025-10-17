@@ -1,31 +1,13 @@
 """
 Pytest configuration and shared fixtures for my-tiny-data-collider tests.
 """
-import pytest
 import sys
 from pathlib import Path
+import pytest
 
 
-def pytest_configure(config):
-    """
-    Pytest hook that runs BEFORE test collection.
-    This ensures src/ is in sys.path before any test imports happen.
-    """
-    project_root = Path(__file__).parent.parent
-    src_path = project_root / "src"
-    src_str = str(src_path)
-    
-    # Add to sys.path if not already present
-    if src_str not in sys.path:
-        sys.path.insert(0, src_str)
-        print(f"✓ Added {src_str} to sys.path")
-
-
-# Also set at module level for backwards compatibility
-project_root = Path(__file__).parent.parent
-src_path = project_root / "src"
-if str(src_path) not in sys.path:
-    sys.path.insert(0, str(src_path))
+# Add src directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 @pytest.fixture(scope="session")

@@ -9,11 +9,11 @@ from typing import Any
 
 from pydantic_ai_integration.method_decorator import register_service_method
 from coreservice.service_container import ServiceManager
-from src.pydantic_models.base.envelopes import BaseRequest, BaseResponse
-from src.pydantic_models.base.types import RequestStatus
+from pydantic_models.base.envelopes import BaseRequest, BaseResponse
+from pydantic_models.base.types import RequestStatus
 
 # Casefile operations
-from src.pydantic_models.operations.casefile_ops import (
+from pydantic_models.operations.casefile_ops import (
     AddSessionToCasefilePayload,
     AddSessionToCasefileRequest,
     AddSessionToCasefileResponse,
@@ -45,7 +45,7 @@ from src.pydantic_models.operations.casefile_ops import (
 )
 
 # Chat session operations
-from src.pydantic_models.operations.chat_session_ops import (
+from pydantic_models.operations.chat_session_ops import (
     CloseChatSessionRequest,
     CloseChatSessionResponse,
     CreateChatSessionRequest,
@@ -57,7 +57,7 @@ from src.pydantic_models.operations.chat_session_ops import (
 )
 
 # RequestHub composite operations
-from src.pydantic_models.operations.request_hub_ops import (
+from pydantic_models.operations.request_hub_ops import (
     CasefileWithSessionResultPayload,
     CreateCasefileWithSessionRequest,
     CreateCasefileWithSessionResponse,
@@ -67,13 +67,13 @@ from src.pydantic_models.operations.request_hub_ops import (
 )
 
 # Tool session operations
-from src.pydantic_models.operations.tool_execution_ops import (
+from pydantic_models.operations.tool_execution_ops import (
     ChatRequest,
     ChatResponse,
     ToolRequest,
     ToolResponse,
 )
-from src.pydantic_models.operations.tool_session_ops import (
+from pydantic_models.operations.tool_session_ops import (
     CloseSessionRequest,
     CloseSessionResponse,
     CreateSessionPayload,

@@ -7,8 +7,8 @@ import pytest
 from coreservice.policy_patterns import PolicyPatternLoader
 from coreservice.request_hub import RequestHub
 from coreservice.service_container import ServiceContainer, ServiceManager
-from src.pydantic_models.base.types import RequestStatus
-from src.pydantic_models.operations.casefile_ops import (
+from pydantic_models.base.types import RequestStatus
+from pydantic_models.operations.casefile_ops import (
     AddSessionToCasefileRequest,
     AddSessionToCasefileResponse,
     CasefileCreatedPayload,
@@ -17,12 +17,12 @@ from src.pydantic_models.operations.casefile_ops import (
     CreateCasefileResponse,
     SessionAddedPayload,
 )
-from src.pydantic_models.operations.request_hub_ops import (
+from pydantic_models.operations.request_hub_ops import (
     CreateCasefileWithSessionPayload,
     CreateCasefileWithSessionRequest,
     CreateCasefileWithSessionResponse,
 )
-from src.pydantic_models.operations.tool_session_ops import (
+from pydantic_models.operations.tool_session_ops import (
     CreateSessionPayload,
     CreateSessionRequest,
     CreateSessionResponse,

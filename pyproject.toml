@@ -59,7 +59,6 @@ include = ["*"]
 namespaces = false
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -70,7 +69,12 @@ markers = [
     "mock: Tests using mock backends",
     "slow: Tests that take >5 seconds to run",
 ]
-addopts = ["-v", "--tb=short", "--strict-markers", "--strict-config"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--strict-config",
+]
 
 [tool.black]
 line-length = 100

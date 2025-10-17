@@ -14,8 +14,8 @@ except ImportError:  # pragma: no cover
 from persistence.base_repository import BaseRepository
 from persistence.firestore_pool import FirestoreConnectionPool
 from persistence.redis_cache import RedisCacheService
-from src.pydantic_models.canonical.tool_session import ToolEvent, ToolSession
-from src.pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
+from pydantic_models.canonical.tool_session import ToolEvent, ToolSession
+from pydantic_models.operations.tool_execution_ops import ToolRequest, ToolResponse
 
 logger = logging.getLogger(__name__)
 

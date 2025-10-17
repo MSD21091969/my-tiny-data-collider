@@ -6,11 +6,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.authservice import get_current_user
-from src.communicationservice.service import CommunicationService
-from src.coreservice.request_hub import RequestHub
-from src.pydantic_models.base.envelopes import RequestEnvelope
-from src.pydantic_models.operations.chat_session_ops import (
+from authservice import get_current_user
+from communicationservice.service import CommunicationService
+from coreservice.request_hub import RequestHub
+from pydantic_models.base.envelopes import RequestEnvelope
+from pydantic_models.operations.chat_session_ops import (
     CloseChatSessionRequest,
     CloseChatSessionResponse,
     CreateChatSessionRequest,
